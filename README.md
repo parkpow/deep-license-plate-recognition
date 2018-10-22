@@ -4,6 +4,9 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
 
 Integrate with our ALPR API in a few lines of code. Get an easy to use JSON response with the number plate value of vehicles and the bounding boxes.
 
+<p align="center">
+  <img src="assets/demo.jpg">
+</p>
 
 ## Getting started
 
