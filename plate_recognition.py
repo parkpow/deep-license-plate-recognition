@@ -22,7 +22,11 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     result = []
-    for path in glob(args.FILE):
+    paths = glob(args.FILE)
+    if len(paths) == 0:
+        print('File {} does not exist.'.format(args.FILE))
+        return
+    for path in paths:
         with open(path) as fp:
             response = requests.post(
                 'https://platerecognizer.com/plate-reader/',
