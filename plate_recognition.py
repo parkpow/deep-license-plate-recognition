@@ -27,7 +27,7 @@ def main():
         print('File {} does not exist.'.format(args.FILE))
         return
     for path in paths:
-        with open(path) as fp:
+        with open(path, 'rb') as fp:
             response = requests.post(
                 'https://platerecognizer.com/plate-reader/',
                 files=dict(upload=fp),
