@@ -44,7 +44,7 @@ def main():
         im.save(fp, 'JPEG')
         fp.seek(0)
         response = requests.post(
-            'https://platerecognizer.com/plate-reader/',
+            'https://api.platerecognizer.com/v1/plate-reader/',
             files=dict(upload=fp),
             headers={'Authorization': 'Token ' + args.api})
         result.append(response.json())

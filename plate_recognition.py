@@ -29,7 +29,7 @@ def main():
     for path in paths:
         with open(path, 'rb') as fp:
             response = requests.post(
-                'https://platerecognizer.com/plate-reader/',
+                'https://api.platerecognizer.com/v1/plate-reader/',
                 files=dict(upload=fp),
                 headers={'Authorization': 'Token ' + args.api})
             result.append(response.json())
