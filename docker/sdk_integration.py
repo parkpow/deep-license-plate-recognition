@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import json
-import time
 from glob import glob
 
 import requests
@@ -12,12 +11,9 @@ import requests
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description=
-        'Read license plates from images and output the result as JSON.',
-        epilog=
-        'For example: python plate_recognition.py --api MY_API_KEY "/path/to/vehicle-*.jpg"'
-    )
-    parser.add_argument('--api', help='Your API key.', required=True)
+        'Read license plates from images and output the result as JSON.')
     parser.add_argument('FILE', help='Path to vehicle image or pattern.')
+    parser.add_argument('--url', default='http://localhost:8080')
     return parser.parse_args()
 
 
@@ -30,12 +26,8 @@ def main():
         return
     for path in paths:
         with open(path, 'rb') as fp:
-            response = requests.post(
-                'https://api.platerecognizer.com/v1/plate-reader/',
-                files=dict(upload=fp),
-                headers={'Authorization': 'Token ' + args.api})
+            response = requests.post(args.url + '/alpr', files=dict(upload=fp))
             result.append(response.json())
-        time.sleep(1)
     print(json.dumps(result, indent=2))
 
 

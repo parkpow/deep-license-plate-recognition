@@ -8,7 +8,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   <img src="assets/demo.jpg">
 </p>
 
-## Getting started
+## Reading license plates from images
 
 Get your API key from [Plate recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
 
@@ -42,12 +42,13 @@ The result includes the bounding `box`es (rectangle around object) and the `plat
 ```
 
 
-## Batch mode
+### Batch mode
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
 `python plate_recognition.py --api MY_API_KEY "/path/to/car-*.jpg"`
 
+## [Running ALPR locally with the SDK](docker/)
 
 ## Number plate recognition on a video
 
