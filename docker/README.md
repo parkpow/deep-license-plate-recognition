@@ -8,7 +8,7 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
 
 ## SDK Guide
 
-We have an SDK that lets you run license plate recognition **locally** (no internet connection needed). Once you have [installed the SDK](https://platerecognizer.com/sdk/). You can use this command line script to interface with it. This script is a good starting point to interface the SDK with the rest of your application.
+We have launched our [On-Premise LPR SDK](https://platerecognizer.com/) that lets you run license plate recognition **locally** (no internet connection needed). Once you have [installed the SDK](https://platerecognizer.com/sdk/). You can use this command line script to interface with it. This script is a good starting point to interface the SDK with the rest of your application.
 
 ### Interfacing with the SDK
 
@@ -30,3 +30,8 @@ python sdk_integration.py /tmp/car.jpg
 ```
 
 The script outputs the license plates found in the picture as a JSON object. Feel free to edit it to your needs. If you are running the container with a different port, you can use the `--url` to set a different address. For example `--url=http://localhost:8000`.
+
+---
+Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
+
+Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/).
