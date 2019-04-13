@@ -10,7 +10,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
 
 ## Reading license plates from images
 
-Get your API key from [Plate recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
+Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
 
 ```
 pip install requests
@@ -64,3 +64,8 @@ The script `alpr_video.py` lets you perform license plate recognition on a video
 `python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 /path/to/cars.mp4`
 
 OpenCV is also capable of reading live video streams. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
+
+---
+Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
+
+Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/).
