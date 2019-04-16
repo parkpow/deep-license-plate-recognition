@@ -31,6 +31,8 @@ python sdk_integration.py /tmp/car.jpg
 
 The script outputs the license plates found in the picture as a JSON object. Feel free to edit it to your needs. If you are running the container with a different port, you can use the `--url` to set a different address. For example `--url=http://localhost:8000`.
 
+You may also read **all the images** in a directory with: `python sdk_integration.py "/tmp/*jpg"`
+
 ---
 Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
 
