@@ -42,11 +42,15 @@ The result includes the bounding `box`es (rectangle around object) and the `plat
 ```
 
 
-### Batch mode
+### Process all the files in a directory, batch mode
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
 `python plate_recognition.py --api MY_API_KEY "/path/to/car-*.jpg"`
+
+Or to process multiple directories at once, do:
+`python plate_recognition.py --api MY_API_KEY "/path/*/*.jpg"`
+
 
 ## [Running ALPR locally with the SDK](docker/)
 
