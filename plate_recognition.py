@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import json
 import time
+from collections import OrderedDict
 from glob import glob
 
 import requests
@@ -34,7 +35,7 @@ def main():
                 'https://api.platerecognizer.com/v1/plate-reader/',
                 files=dict(upload=fp),
                 headers={'Authorization': 'Token ' + args.api})
-            result.append(response.json())
+            result.append(response.json(object_pairs_hook=OrderedDict))
         time.sleep(1)
     print(json.dumps(result, indent=2))
 

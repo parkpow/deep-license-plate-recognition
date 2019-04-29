@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import json
+from collections import OrderedDict
 from glob import glob
 
 import requests
@@ -27,7 +28,7 @@ def main():
     for path in paths:
         with open(path, 'rb') as fp:
             response = requests.post(args.url + '/alpr', files=dict(upload=fp))
-            result.append(response.json())
+            result.append(response.json(object_pairs_hook=OrderedDict))
     print(json.dumps(result, indent=2))
 
 
