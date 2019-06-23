@@ -1,6 +1,0 @@
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\bin\Debug\PlateRecognizer.exe.config
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\bin\Debug\PlateRecognizer.exe
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\bin\Debug\PlateRecognizer.pdb
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\obj\Debug\PlateRecognizer.csproj.CoreCompileInputs.cache
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\obj\Debug\PlateRecognizer.exe
-S:\DEV\PR\PlateRecognizer\PlateRecognizer\obj\Debug\PlateRecognizer.pdb
