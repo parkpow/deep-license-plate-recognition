@@ -19,7 +19,7 @@ def parse_arguments():
     )
     parser.add_argument('--api', '--api-key', help='Your API key.', required=False)
     parser.add_argument('--regions', help='Match the license plate pattern fo specific region', required=False, action="append")
-    parser.add_argument('--url','--sdk-url', default='http://localhost:8080', help="Url to self hosted sdk", required=False)
+    parser.add_argument('--url','--sdk-url', help="Url to self hosted sdk", required=False)
     parser.add_argument('files', nargs='+', help='Path to vehicle images')
     return parser.parse_args()
 
