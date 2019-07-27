@@ -18,14 +18,14 @@ def parse_arguments():
         'For example: python plate_recognition.py --api MY_API_KEY "/path/to/vehicle-*.jpg"'
     )
     parser.add_argument('--api', help='Your API key.', required=True)
-    parser.add_argument('FILE', help='Path to vehicle image or pattern.')
+    parser.add_argument('files', nargs='+', help='Path to vehicle image or pattern.')
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
     result = []
-    paths = glob(args.FILE)
+    paths = args.files
     if len(paths) == 0:
         print('File {} does not exist.'.format(args.FILE))
         return
