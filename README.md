@@ -58,7 +58,7 @@ You can also run the license plate reader on many files at once. To run the scri
 
 To use a locally hosted sdk, pass the url to the docker container as follows:
 
-`python plate_recognition.py --api-key MY_API_KEY --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
+`python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
 
 ## Number plate recognition on a video
 
