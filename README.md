@@ -43,7 +43,7 @@ The result includes the bounding `box`es (rectangle around object) and the `plat
 
 ### Lookups for a specific region
 
-You can match the license plate patterns of a specific region. 
+You can match the license plate patterns of a specific region.
 
 `python plate_recognition.py --api-key MY_API_KEY --regions fr --regions it /path/to/car.jpg`
 
@@ -51,7 +51,7 @@ You can match the license plate patterns of a specific region.
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
-`python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/car3.jpg`
+`python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
 
 
 ## [Running ALPR locally with the SDK](docker/)
