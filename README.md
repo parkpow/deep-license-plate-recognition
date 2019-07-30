@@ -14,7 +14,7 @@ Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace 
 
 ```
 pip install requests
-python plate_recognition.py --api MY_API_KEY /path/to/vehicle.jpg
+python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle.jpg
 ```
 
 The result includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. The JSON output can easily be consumed by your application.
@@ -41,18 +41,24 @@ The result includes the bounding `box`es (rectangle around object) and the `plat
 ]
 ```
 
+### Lookups for a specific region
 
-### Process all the files in a directory, batch mode
+You can match the license plate patterns of a specific region. 
+
+`python plate_recognition.py --api-key MY_API_KEY --regions fr --regions it /path/to/car.jpg`
+
+### Process more than one file, batch mode
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
-`python plate_recognition.py --api MY_API_KEY "/path/to/car-*.jpg"`
-
-Or to process multiple directories at once, do:
-`python plate_recognition.py --api MY_API_KEY "/path/*/*.jpg"`
+`python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/car3.jpg`
 
 
 ## [Running ALPR locally with the SDK](docker/)
+
+To use a locally hosted sdk, pass the url to the docker container as follows:
+
+`python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
 
 ## Number plate recognition on a video
 
