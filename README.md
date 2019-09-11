@@ -8,6 +8,9 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   <img src="assets/demo.jpg">
 </p>
 
+
+
+
 ## Reading license plates from images
 
 Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
@@ -17,7 +20,7 @@ pip install requests
 python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle.jpg
 ```
 
-The result includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. The JSON output can easily be consumed by your application.
+The **result** includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. The JSON output can easily be consumed by your application.
 
 ```javascript
 [
@@ -41,11 +44,14 @@ The result includes the bounding `box`es (rectangle around object) and the `plat
 ]
 ```
 
+
 ### Lookups for a specific region
 
 You can match the license plate patterns of a specific region.
 
 `python plate_recognition.py --api-key MY_API_KEY --regions fr --regions it /path/to/car.jpg`
+
+
 
 ### Process more than one file, batch mode
 
@@ -53,12 +59,15 @@ You can also run the license plate reader on many files at once. To run the scri
 
 `python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
 
+<br><br><br>
 
 ## [Running ALPR locally with the SDK](docker/)
 
 To use a locally hosted sdk, pass the url to the docker container as follows:
 
 `python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
+
+<br><br><br>
 
 ## Number plate recognition on a video
 
@@ -74,6 +83,8 @@ The script `alpr_video.py` lets you perform license plate recognition on a video
 `python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 /path/to/cars.mp4`
 
 OpenCV is also capable of reading live video streams. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
+
+<br><br><br>
 
 ---
 Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
