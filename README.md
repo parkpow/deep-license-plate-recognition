@@ -9,9 +9,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
 </p>
 
 
-
-
-## Reading license plates from images
+## Reading License Plates from Images
 
 Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
 
@@ -45,7 +43,7 @@ The **result** includes the bounding `box`es (rectangle around object) and the `
 ```
 
 
-### Lookups for a specific region
+### Lookups For a Specific Region
 
 You can match the license plate patterns of a specific region.
 
@@ -53,7 +51,7 @@ You can match the license plate patterns of a specific region.
 
 
 
-### Process more than one file, batch mode
+### Process Multiple Files (Batch Mode)
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
@@ -61,7 +59,7 @@ You can also run the license plate reader on many files at once. To run the scri
 
 <br><br><br>
 
-## [Running ALPR locally with the SDK](docker/)
+## [Running the ALPR Locally (SDK)](docker/)
 
 To use a locally hosted sdk, pass the url to the docker container as follows:
 
@@ -69,7 +67,11 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 <br><br><br>
 
-## Number plate recognition on a video
+## Code Samples
+
+See sample projects to use the API in [C++](cpp/README.md), [C#](csharp/README.md) or [Java](java/README.md). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
+
+## Number Plate Recognition on a Video
 
 To do ANPR on videos, you will also need to install OpenCV. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
 
