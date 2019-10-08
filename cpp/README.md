@@ -1,5 +1,5 @@
 # Api Token
-Get your API key from [Plate Recognizer](https://platerecognizer.com/).
+Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key.
 
 # PlateRecognizer Cpp Client (Linux)
 
@@ -116,7 +116,7 @@ Json::Value sendRequest(string auth_token, string fileName) {
 
 int main(int argc, char *argv[])
 {
-	string token = "66657e2170068c797227476c967b4137c18c1a8a";
+	string token = "MY_API_KEY";
 	Json::Value data;
 	if (argc == 2) {
 		data = sendRequest(token, argv[1]);
