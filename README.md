@@ -71,6 +71,8 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 See sample projects to use the API in [C++](cpp/README.md), [C#](csharp/README.md) or [Java](java/README.md). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 
+<br><br><br>
+
 ## Number Plate Recognition on a Video
 
 To do ANPR on videos, you will also need to install OpenCV. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
