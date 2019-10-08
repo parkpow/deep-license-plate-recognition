@@ -16,8 +16,7 @@ If you are using maven, it is very easy to setup, Just add following line in you
 
 ```
 
-update the `file` valiable in [recognize.java](PlateRecognizer/src/main/java/com/mycompany/numberplate/recognize.java) and run your project, it will automatically download library!
-
+Update the `file` variable in [recognize.java](PlateRecognizer/src/main/java/com/mycompany/numberplate/recognize.java) and run your project, it will automatically download the library!
 
 
 <p align="center">
