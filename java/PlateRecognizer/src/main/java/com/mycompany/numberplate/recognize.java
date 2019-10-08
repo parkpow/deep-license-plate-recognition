@@ -15,7 +15,8 @@ import kong.unirest.HttpResponse;
  */
 public class recognize {
     public static void main(String[] args){
-        String token = "66657e2170068c797227476c967b4137c18c1a8a";
+        // Get api key from https://app.platerecognizer.com/start/ and replace MY_API_KEY
+        String token = "MY_API_KEY";
         String file = "C:\\Users\\uzair\\Downloads\\Soren1.jpg";
         
         try{
