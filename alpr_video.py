@@ -1,23 +1,29 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
-from PIL import Image
 import argparse
-import cv2
+import io
 import json
-import requests
 import tempfile
 import time
+
+import requests
+from PIL import Image
+
+import cv2
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description='Read license plates from a video and output the result as JSON.',
-        epilog='For example: python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 "/path/to/cars.mp4"')
+        description=
+        'Read license plates from a video and output the result as JSON.',
+        epilog=
+        'For example: python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 "/path/to/cars.mp4"'
+    )
     parser.add_argument('--api', help='Your API key.', required=True)
-    parser.add_argument('--start', help='Start reading from this frame.', type=int)
+    parser.add_argument('--start',
+                        help='Start reading from this frame.',
+                        type=int)
     parser.add_argument('--end', help='End reading after this frame.', type=int)
     parser.add_argument('--skip', help='Read 1 out of N frames.', type=int)
     parser.add_argument('FILE', help='Path to video.')
@@ -29,7 +35,7 @@ def main():
     result = []
     cap = cv2.VideoCapture(args.FILE)
     frame_id = 0
-    while(cap.isOpened()):
+    while (cap.isOpened()):
         ret, frame = cap.read()
         frame_id += 1
         if args.skip and frame_id % args.skip != 0:
@@ -39,13 +45,13 @@ def main():
         if args.end and frame_id > args.end:
             break
         print('Reading frame %s' % frame_id)
-        fp = tempfile.NamedTemporaryFile()
+        imgByteArr = io.BytesIO()
         im = Image.fromarray(frame)
-        im.save(fp, 'JPEG')
-        fp.seek(0)
+        im.save(imgByteArr, 'JPEG')
+        imgByteArr.seek(0)
         response = requests.post(
             'https://api.platerecognizer.com/v1/plate-reader/',
-            files=dict(upload=fp),
+            files=dict(upload=imgByteArr),
             headers={'Authorization': 'Token ' + args.api})
         result.append(response.json())
         time.sleep(1)
