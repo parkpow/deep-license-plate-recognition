@@ -8,6 +8,13 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   <img src="assets/demo.jpg">
 </p>
 
+  - [Reading License Plates from Images](#reading-license-plates-from-images)
+    - [Lookups For a Specific Region](#lookups-for-a-specific-region)
+    - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
+  - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
+  - [Code Samples](#code-samples)
+  - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
+
 
 ## Reading License Plates from Images
 
