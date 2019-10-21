@@ -25,8 +25,7 @@ Now let's clone the repository and read that image.
 ```
 git clone git@github.com:marcbelmont/deep-license-plate-recognition.git
 pip install requests
-cd docker
-python plate_recognition.py  --sdk-url http://localhost:8080  /tmp/car.jpg
+python plate_recognition.py --sdk-url http://localhost:8080  /tmp/car.jpg
 ```
 
 The script outputs the license plates found in the picture as a JSON object. Feel free to edit it to your needs. If you are running the container with a different port, you can use the `--sdk-url` to set a different address. For example `--sdk-url=http://localhost:8000`.
