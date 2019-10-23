@@ -76,7 +76,7 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 ## Code Samples
 
-See sample projects to use the API in [C++](cpp/README.md), [C#](csharp/README.md) or [Java](java/README.md). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
+See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 
 <br><br><br>
 
