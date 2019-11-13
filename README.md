@@ -76,9 +76,11 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 ## Automatic Image Transfer
 
-Download automatic image transfer script to send camera images to Parkpow.
+Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/).
 
-To get started type: `python transfer.py --help`
+To get started: `python transfer.py --help`
+
+<br><br><br>
 
 ## Code Samples
 
