@@ -24,6 +24,13 @@ except ImportError:
           'https://2.python-requests.org/en/master/user/install/#install')
     exit(1)
 
+try:
+    import jsonlines
+except ImportError:
+    print('A dependency is missing. Please install: '
+          'https://jsonlines.readthedocs.io/en/latest/#installation')
+    exit(1)      
+
 _queue = queue.Queue(256)  # type: ignore
 
 ##########################
@@ -89,10 +96,9 @@ If it the --api-url is not defined, the results will be saved in the output file
         default='https://api.platerecognizer.com/v1/plate-reader')
 
     parser.add_argument(
-        '--api-url',
-        help='ParkPow API url, https://app.parkpow.com/api/v1/log-vehicle',
-        type=str,
-        required=False)
+        '--use-parkpow',
+        help='Upload results to ParkPow',
+        action='store_true')
 
     parser.add_argument('--output-file',
                         help="Json file with response",
@@ -135,8 +141,8 @@ def image_transfer(src_path, args):
             return
     else:
 
-        with open(args.output_file, 'w') as json_file:
-            json.dump(results, json_file, indent=4)
+        with jsonlines.open(args.output_file, mode='a') as json_file:
+            json_file.write(results)
             response = results
 
     # Move to archive
@@ -155,13 +161,14 @@ def image_transfer(src_path, args):
 def alpr(path, args):
     print('Sending %s' % path)
     try:
-        if 'alpr' in args.alpr_api:
+        if 'localhost' in args.alpr_api:
             time.sleep(1)  # Wait for the whole image to arrive
             with open(path, 'rb') as fp:
                 response = requests.post(args.alpr_api,
                                          files=dict(upload=fp),
                                          timeout=10)
         else:
+            time.sleep(1) # Wait for the whole image to arrive
             filename = os.path.basename(path)
             response = requests.post(
                 args.alpr_api,
@@ -189,9 +196,10 @@ def alpr(path, args):
 
 
 def api_request(args, payload, files):
+    api_url = 'https://app.parkpow.com/api/v1/log-vehicle'
     headers = {'Authorization': 'Token {}'.format(args.parkpow_token)}
     try:
-        response = requests.post(args.api_url,
+        response = requests.post(api_url,
                                  data=payload,
                                  headers=headers,
                                  files=files,
@@ -262,8 +270,8 @@ def validate_env(args):
     if not Path(args.source).exists():
         messages.append('%s does not exist.' % args.source)
 
-    if not args.api_url and not args.output_file:
-        messages.append("Pass argument --api-url or the argument --output-file")
+    if not args.use_parkpow and not args.output_file:
+        messages.append("Pass argument --use-parkpow or the argument --output-file")
 
     if '/v1/plate-reader' in args.alpr_api and not args.platerec_token:
         messages.append(
@@ -277,9 +285,10 @@ def validate_env(args):
         if not response or response.status_code != 200:
             messages.append('Make sure that the SDK is up and running (%s).' %
                             args.alpr_api)
-    if args.api_url and 'app.parkpow.com' in args.api_url:
+    if args.use_parkpow:
+        api_url = 'https://app.parkpow.com/api/v1/log-vehicle'
         try:
-            response = requests.get(args.api_url.rsplit('/', 1)[0] +
+            response = requests.get(api_url.rsplit('/', 1)[0] +
                                     '/parking-list',
                                     headers={
                                         'Authorization':
