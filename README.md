@@ -74,6 +74,12 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 <br><br><br>
 
+## Automatic Image Transfer
+
+Download automatic image transfer script to send camera images to Parkpow.
+
+To get started type: `python transfer.py --help`
+
 ## Code Samples
 
 See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
