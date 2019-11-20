@@ -11,7 +11,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   - [Reading License Plates from Images](#reading-license-plates-from-images)
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
-  - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
+    - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
   - [Automatic Image Transfer](#automatic-image-transfer)
   - [Code Samples](#code-samples)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
@@ -67,7 +67,7 @@ You can also run the license plate reader on many files at once. To run the scri
 
 <br><br><br>
 
-## [Running the ALPR Locally (SDK)](docker/)
+### [Running the ALPR Locally (SDK)](docker/)
 
 To use a locally hosted sdk, pass the url to the docker container as follows:
 
