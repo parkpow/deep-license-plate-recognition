@@ -91,7 +91,7 @@ See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/
 
 ## Number Plate Recognition on a Video
 
-To do ANPR on videos, you will also need to install OpenCV. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
+To do ANPR on videos, you will also need to **install OpenCV**. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
 
 ```
 pip install requests
@@ -102,7 +102,7 @@ The script `alpr_video.py` lets you perform license plate recognition on a video
 
 `python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 /path/to/cars.mp4`
 
-OpenCV is also capable of reading live video streams. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
+OpenCV is also capable of reading **live video streams**. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
 
 <br><br><br>
 
