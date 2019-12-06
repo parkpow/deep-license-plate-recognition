@@ -8,6 +8,14 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   <img src="assets/demo.jpg">
 </p>
 
+  - [Reading License Plates from Images](#reading-license-plates-from-images)
+    - [Lookups For a Specific Region](#lookups-for-a-specific-region)
+    - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
+    - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
+  - [Automatic Image Transfer](#automatic-image-transfer)
+  - [Code Samples](#code-samples)
+  - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
+
 
 ## Reading License Plates from Images
 
@@ -59,7 +67,7 @@ You can also run the license plate reader on many files at once. To run the scri
 
 <br><br><br>
 
-## [Running the ALPR Locally (SDK)](docker/)
+### [Running the ALPR Locally (SDK)](docker/)
 
 To use a locally hosted sdk, pass the url to the docker container as follows:
 
@@ -67,15 +75,23 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 <br><br><br>
 
+## Automatic Image Transfer
+
+Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/).
+
+To get started: `python transfer.py --help`
+
+<br><br><br>
+
 ## Code Samples
 
-See sample projects to use the API in [C++](cpp/README.md), [C#](csharp/README.md) or [Java](java/README.md). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
+See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 
 <br><br><br>
 
 ## Number Plate Recognition on a Video
 
-To do ANPR on videos, you will also need to install OpenCV. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
+To do ANPR on videos, you will also need to **install OpenCV**. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
 
 ```
 pip install requests
@@ -86,7 +102,7 @@ The script `alpr_video.py` lets you perform license plate recognition on a video
 
 `python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 /path/to/cars.mp4`
 
-OpenCV is also capable of reading live video streams. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
+OpenCV is also capable of reading **live video streams**. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
 
 <br><br><br>
 
