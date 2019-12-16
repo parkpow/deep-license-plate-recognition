@@ -49,17 +49,22 @@ def install(image,
     test_existing_install(image)
     pull_cmd = 'docker pull {}:{}'.format(image, image_version)
     os.system(pull_cmd)
-    run_cmd = '{} run {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(
+    run_cmd = '{} run --rm -t {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(
         docker_version,
-        "-dit --restart unless-stopped" if auto_start_container else '-it --rm',
-        extra_args, port, token, license_key, image)
+        "--restart unless-stopped" if auto_start_container else '',
+        extra_args,
+        port,
+        token,
+        license_key,
+        image,
+    )
     os.system(run_cmd)
     if test_install(image):
         print("\nInstallation successfull")
     else:
         print("\nInstallation was not successfull")
 
-    print("\nUse the command bellow to run the sdk again.")
+    print("\nUse the command below to run the sdk again.")
     print(run_cmd)
 
 
@@ -172,7 +177,7 @@ def main():
 
         port = int(input('\nSet the container port [default=8080] > ') or 8080)
 
-        print("\nStarting installation!!")
+        print("\nStarting Installation")
 
         if hardware == 1:
             image = 'platerecognizer/alpr'
@@ -211,7 +216,7 @@ def main():
         image = get_image()
         if not image:
             print(
-                'PlateRecognizer SDK is not installed, Please select Install. Quiting!!'
+                'PlateRecognizer SDK is not installed, Please select Install. Quitting!!'
             )
             exit(1)
         stop_container(image)
@@ -238,7 +243,7 @@ def main():
         image = get_image()
         if not image:
             print(
-                'PlateRecognizer SDK is not installed, Please select Install. Quiting!!'
+                'PlateRecognizer SDK is not installed, Please select Install. Quitting!!'
             )
             exit(1)
 
@@ -247,12 +252,11 @@ def main():
         )
         print('2) Uninstall the SDK and remove the container.')
         print('3) Quit')
-        uninstall_choice = 3
         while True:
             uninstall_choice = int(input('Pick an action [defaut=3] > ') or 3)
             if uninstall_choice in [1, 2, 3]:
                 if uninstall_choice == 3:
-                    print('Quiting!!')
+                    print('Quitting!!')
                     exit(1)
                 break
 
