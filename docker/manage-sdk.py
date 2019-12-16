@@ -5,10 +5,13 @@ import os
 import time
 import webbrowser
 from six.moves import input
+from threading import Thread
 try:
     from urllib.request import Request, urlopen
+    from urllib.error import URLError
 except ImportError:
     from urllib2 import Request, urlopen
+    from urllib2 import URLError
 
 def main():
 
@@ -19,13 +22,29 @@ def main():
         except OSError:
             return False
 
-    def test_install(image):
+    def test_install(port, token, counter=0):
+        try:
+            url = 'http://localhost:{}/alpr'.format(port)
+            req = Request(url)
+            req.get_method = lambda: 'POST'
+            req.add_header('Authorization', 'Token {}'.format(token))
+            res = urlopen(req).read()
+            return True
+        except:
+            if counter < 20:
+                time.sleep(2)
+                counter +=1
+                return test_install(port, token, counter=counter)
+            else:
+                return False    
+
+    def get_container_id(image):
         cmd = 'docker ps -q --filter ancestor={}'.format(image)
         output = subprocess.check_output(cmd.split())
         return output.decode()
 
     def test_existing_install(image):
-        image_id = test_install(image)
+        image_id = get_container_id(image)
         if image_id:
             print('\nYou already have a running platerecognizer daemon, Please Upgrade instead.')
             exit(1) 
@@ -34,12 +53,12 @@ def main():
         test_existing_install(image)
         pull_cmd = 'docker pull {}:{}'.format(image, image_version)
         os.system(pull_cmd)  
-        run_cmd = '{} run {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(docker_version, "-dit --restart unless-stopped" if auto_start_container else '-it --rm', extra_args, port, token, license_key, image)
-        os.system(run_cmd)  
-        if test_install(image):
-            print("\nInstallation successfull")
+        run_cmd = '{} run {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(docker_version, "-dit --restart unless-stopped" if auto_start_container else '-dit --rm', extra_args, port, token, license_key, image)
+        os.system(run_cmd) 
+        if test_install(port, token):
+            print('Installation successfull!!!')
         else:
-            print("\nInstallation was not successfull")  
+            print('Installation Failed!!!')    
 
         print("\nUse the command bellow to run the sdk again.")
         print(run_cmd) 
@@ -55,7 +74,13 @@ def main():
             req.add_header('Authorization', 'Token {}'.format(token))
             res = urlopen(req).read()
             return True
-        except:
+        except URLError as e:
+            if '404' in e:
+                print('License Key is incorrect!!')
+                return False
+            elif '403' in e:
+                print('Api Token is incorrect!!')
+                return False    
             return False    
         
 
@@ -77,8 +102,6 @@ def main():
         container_id = subprocess.check_output(cmd.split())
         if container_id:
             cmd = 'docker stop {}'.format(container_id)
-
-
 
     if not verify_docker_install():
         print("Docker is not installed, Follow 'https://docs.docker.com/v17.09/engine/installation/' to install docker for your hardware")
