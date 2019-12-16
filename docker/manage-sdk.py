@@ -102,6 +102,8 @@ def main():
         container_id = subprocess.check_output(cmd.split())
         if container_id:
             cmd = 'docker stop {}'.format(container_id)
+            os.system(cmd)
+        return container_id    
 
     if not verify_docker_install():
         print("Docker is not installed, Follow 'https://docs.docker.com/v17.09/engine/installation/' to install docker for your hardware")
@@ -229,10 +231,15 @@ def main():
             os.system(cmd)
 
         elif uninstall_choice == 2:
-            stop_container(image)
+            container_id = stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(token, image)
             os.system(cmd)
-            # TODO: command is not complete on the docs
+            if container_id:
+                cmd = 'docker container rm {}'.format(container_id)
+                os.system(cmd)
+            cmd = 'docker rmi "platerecognizer/alpr"'
+            os.system(cmd)  
+            print('Uninstall complete!!')  
 
 if __name__ == "__main__":
     main()
