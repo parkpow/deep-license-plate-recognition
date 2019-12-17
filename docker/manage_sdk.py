@@ -33,26 +33,19 @@ def test_install(port, token, counter=0):
         req.add_header('Authorization', 'Token {}'.format(token))
         res = urlopen(req).read()
         return True
-    except:
+    except Exception:
         if counter < 20:
             time.sleep(2)
-            counter +=1
+            counter += 1
             return test_install(port, token, counter=counter)
         else:
-            return False  
+            return False
+
 
 def get_container_id(image):
-        cmd = 'docker ps -q --filter ancestor={}'.format(image)
-        output = subprocess.check_output(cmd.split())
-        return output.decode()
-
-def test_existing_install(image):
-    image_id = get_container_id(image)
-    if image_id:
-        print(
-            '\nYou already have a running platerecognizer daemon, Please Upgrade instead.'
-        )
-        exit(1)
+    cmd = 'docker ps -q --filter ancestor={}'.format(image)
+    output = subprocess.check_output(cmd.split())
+    return output.decode()
 
 
 def install(image,
@@ -63,7 +56,8 @@ def install(image,
             extra_args='',
             docker_version='docker',
             image_version='latest'):
-    test_existing_install(image)
+    if get_container_id(image):
+        stop_container(image)
     pull_cmd = 'docker pull {}:{}'.format(image, image_version)
     os.system(pull_cmd)
     run_cmd = '{} run --rm -t {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(
@@ -75,14 +69,17 @@ def install(image,
         license_key,
         image,
     )
-    os.system(run_cmd)
+    os.system(run_cmd + "&")
     if test_install(port, token):
-        print("\nInstallation successfull")
+        print("\nInstallation successful")
     else:
-        print("\nInstallation was not successfull")
+        print("\nInstallation was not successful")
 
     print("\nUse the command below to run the sdk again.")
     print(run_cmd)
+    print(
+        '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/alpr'
+    )
 
 
 def get_image():
@@ -94,7 +91,9 @@ def get_image():
 
 def verify_token(token, license_key):
     try:
-        req = Request('https://app.platerecognizer.com/v1/sdk-webhooks/{}/'.format(license_key))
+        req = Request(
+            'https://app.platerecognizer.com/v1/sdk-webhooks/{}/'.format(
+                license_key))
         req.add_header('Authorization', 'Token {}'.format(token))
         res = urlopen(req).read()
         return True
@@ -104,18 +103,20 @@ def verify_token(token, license_key):
             return False
         elif '403' in e:
             print('Api Token is incorrect!!')
-            return False    
+            return False
         return False
 
 
 def get_token_input():
-
-    token = str(input('\nType your Token > '))
-    license_key = str(input('Type your License Key > '))
+    print(
+        '\nSee your account credentials on https://app.platerecognizer.com/accounts/plan/'
+    )
+    token = str(input('\nType your API Token > ')).strip()
+    license_key = str(input('Type your License Key > ')).strip()
 
     if not token or not license_key or not verify_token(token, license_key):
         print(
-            "Invalid Token or License Key, get  license_key from https://app.platerecognizer.com/accounts/plan/"
+            "Invalid Token or License Key. Check they are typed correctly (press Ctrl-C to exit)."
         )
         webbrowser.open('https://app.platerecognizer.com/accounts/plan/')
         time.sleep(1)
@@ -134,6 +135,7 @@ def stop_container(image):
 
 
 def main():
+    print('Plate Recognizer SDK Manager\n')
 
     if not verify_docker_install():
         print(
@@ -149,7 +151,7 @@ def main():
     for ind, choice in enumerate(actions):
         print("{}) {}".format(ind + 1, choice))
     while True:
-        choice = int(input("Pick an action [default=1]:  > ") or 1)
+        choice = int(input("Pick an action [default=1] > ") or 1)
         if choice == 4:
             print("Quit!")
             exit(1)
@@ -233,7 +235,7 @@ def main():
 
     elif action_choice == 2:
         version = str(
-            input('Which version would you like to install? [default=latest]')
+            input('Which version would you like to install? [default=latest] ')
             or 'latest')
         token, license_key = get_token_input()
         image = get_image()
@@ -293,13 +295,14 @@ def main():
 
         elif uninstall_choice == 2:
             container_id = stop_container(image)
-            cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(token, image)
+            cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
+                token, image)
             os.system(cmd)
             if container_id:
                 cmd = 'docker container rm {}'.format(container_id)
                 os.system(cmd)
             cmd = 'docker rmi "{}"'.format(image)
-            os.system(cmd)  
+            os.system(cmd)
             print('Uninstall complete!!')
 
 
