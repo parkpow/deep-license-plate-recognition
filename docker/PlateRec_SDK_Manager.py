@@ -60,9 +60,9 @@ def install(image,
         stop_container(image)
     pull_cmd = 'docker pull {}:{}'.format(image, image_version)
     os.system(pull_cmd)
-    run_cmd = '{} run --rm -t {} {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(
+    run_cmd = '{} run {} -t  {} -p {}:8080 -v license:/license -e TOKEN={} -e LICENSE_KEY={} {}'.format(
         docker_version,
-        "--restart unless-stopped" if auto_start_container else '',
+        "--restart unless-stopped" if auto_start_container else '--rm',
         extra_args,
         port,
         token,
@@ -71,15 +71,16 @@ def install(image,
     )
     os.system(run_cmd + "&")
     if test_install(port, token):
-        print("\nInstallation successful")
+        print("Installation successful")
     else:
-        print("\nInstallation was not successful")
+        print("Installation was not successful")
 
     print("\nUse the command below to run the sdk again.")
     print(run_cmd)
     print(
         '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/alpr'
     )
+    print("(press Ctrl-C to exit)\n")
 
 
 def get_image():
@@ -109,10 +110,12 @@ def verify_token(token, license_key):
 
 def get_token_input():
     print(
-        '\nSee your account credentials on https://app.platerecognizer.com/accounts/plan/'
+        '\nSee your account credentials on https://app.platerecognizer.com/accounts/plan/. We opened up the account page on your browser.'
     )
-    token = str(input('\nType your API Token > ')).strip()
-    license_key = str(input('Type your License Key > ')).strip()
+    webbrowser.open('https://app.platerecognizer.com/accounts/plan/')
+    time.sleep(1)
+    token = str(input('\nEnter the API Token for the SDK > ')).strip()
+    license_key = str(input('Enter the License Key for the SDK > ')).strip()
 
     if not token or not license_key or not verify_token(token, license_key):
         print(
@@ -126,8 +129,7 @@ def get_token_input():
 
 
 def stop_container(image):
-    cmd = 'docker ps -q --filter ancestor={}'.format(image)
-    container_id = subprocess.check_output(cmd.split())
+    container_id = get_container_id(image)
     if container_id:
         cmd = 'docker stop {}'.format(container_id)
         os.system(cmd)
@@ -135,7 +137,8 @@ def stop_container(image):
 
 
 def main():
-    print('Plate Recognizer SDK Manager\n')
+    print('Plate Recognizer SDK Manager.40m')
+    print('If you face any problems, please let us know at https://platerecognizer.com/contact and include a screenshot of the error message.\n')
 
     if not verify_docker_install():
         print(
@@ -187,13 +190,14 @@ def main():
 
         auto_start_container = False
         port = 8080
-        print("\n1) Automatically start the container on boot")
-        print("2) Continue")
+        print('\nWould you like to start the container on boot?')
+        print("1) yes")
+        print("2) no")
 
         image = None
 
         while True:
-            choice = int(input('Pick an action [default=2] > ') or 2)
+            choice = int(input('Pick an action [default=1] > ') or 1)
             if choice in [1, 2]:
                 if choice == 1:
                     auto_start_container = True
@@ -231,7 +235,7 @@ def main():
                     extra_args='--runtume nvidia',
                     docker_version='nvidia-docker')
 
-        exit(1)
+        return main()
 
     elif action_choice == 2:
         version = str(
@@ -266,12 +270,12 @@ def main():
     elif action_choice == 3:
 
         image = get_image()
-        print(image)
-        if not image:
+        if not 'platerecogniser' in image:
             print(
-                'PlateRecognizer SDK is not installed, Please select Install. Quitting!!'
+                'PlateRecognizer SDK is not installed, Please select Install. (press Ctrl-C to exit).\n'
             )
-            exit(1)
+            return main()
+            
 
         print(
             '\n1) Uninstall the SDK. You can then install it on another machine.'
@@ -290,8 +294,12 @@ def main():
         if uninstall_choice == 1:
             stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
-                token, image)
+                token, image) 
+                
+
             os.system(cmd)
+            print('Uninstall complete!!\n')
+            return main()
 
         elif uninstall_choice == 2:
             container_id = stop_container(image)
@@ -303,7 +311,8 @@ def main():
                 os.system(cmd)
             cmd = 'docker rmi "{}"'.format(image)
             os.system(cmd)
-            print('Uninstall complete!!')
+            print('Uninstall complete!!\n')
+            return main()
 
 
 if __name__ == "__main__":
