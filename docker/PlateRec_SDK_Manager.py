@@ -145,7 +145,7 @@ def main():
             "Docker is not installed, Follow 'https://docs.docker.com/v17.09/engine/installation/' to install docker for your hardware"
         )
         webbrowser.open('https://docs.docker.com/v17.09/engine/installation/')
-        time.sleep(1)
+        time.sleep(10)
         exit(1)
 
     actions = ('Install', 'Update', 'Uninstall', 'Quit')
@@ -245,9 +245,9 @@ def main():
         image = get_image()
         if not image:
             print(
-                'PlateRecognizer SDK is not installed, Please select Install. Quitting!!'
+                'PlateRecognizer SDK is not installed, Please select Install. Quitting!!\n'
             )
-            exit(1)
+            return main()
         stop_container(image)
         extra_args = ''
         docker_version = 'docker'
