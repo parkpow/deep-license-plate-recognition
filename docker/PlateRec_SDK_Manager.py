@@ -137,15 +137,17 @@ def stop_container(image):
 
 
 def main():
-    print('Plate Recognizer SDK Manager.40m')
+    print('Plate Recognizer SDK Manager.')
     print('If you face any problems, please let us know at https://platerecognizer.com/contact and include a screenshot of the error message.\n')
 
     if not verify_docker_install():
         print(
             "Docker is not installed, Follow 'https://docs.docker.com/v17.09/engine/installation/' to install docker for your hardware"
         )
+        print('Program will exit in 30seconds (press Ctrl-C to exit now).')
         webbrowser.open('https://docs.docker.com/v17.09/engine/installation/')
-        time.sleep(10)
+
+        time.sleep(30)
         exit(1)
 
     actions = ('Install', 'Update', 'Uninstall', 'Quit')
