@@ -272,7 +272,7 @@ def main():
     elif action_choice == 3:
 
         image = get_image()
-        if not 'platerecogniser' in image:
+        if not 'platerecognizer' in image:
             print(
                 'PlateRecognizer SDK is not installed, Please select Install. (press Ctrl-C to exit).\n'
             )
