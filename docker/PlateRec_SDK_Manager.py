@@ -83,7 +83,7 @@ def install(image,
     print(
         '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/alpr'
     )
-    print("(press Ctrl-C to exit)\n")
+    print("To exit this program, just close this Command Line Interface window.\n")
 
 
 def get_image():
@@ -147,6 +147,7 @@ def stop_container(image):
 def main():
     print('Plate Recognizer SDK Manager.')
     print('If you face any problems, please let us know at https://platerecognizer.com/contact and include a screenshot of the error message.\n')
+    
 
     if not verify_docker_install():
         print(
@@ -164,33 +165,33 @@ def main():
     for ind, choice in enumerate(actions):
         print("{}) {}".format(ind + 1, choice))
     while True:
-        choice = int(input("Pick an action [default=1] > ") or 1)
-        if choice == 4:
+        choice = str(input("Pick an action [default=1] > ") or 1)
+        if choice == '4':
             print("Quit!")
             exit(1)
-        if choice in [1, 2, 3]:
+        if choice in ['1', '2', '3']:
             action_choice = choice
             break
         else:
             print('Incorrect Choice')
 
-    if action_choice == 1:
+    if action_choice == '1':
         hardwares = ('Intel CPU', 'Raspberry', 'GPU (Nvidia Only)',
                      'Jetson Nano', 'Quit')
-        hardware = 1
+        hardware = '1'
         print('\n')
         for ind, choice in enumerate(hardwares):
             print("{}) {}".format(ind + 1, choice))
         while True:
 
-            choice = int(
+            choice = str(
                 input("What is the hardware of this machine [default=1] > ") or
                 1)
 
-            if choice == 4:
-                print("Quit!")
-                exit(1)
-            if choice in [1, 2, 3, 4]:
+            if choice == '5':
+                print("Quit!\n")
+                return main()
+            if choice in ['1', '2', '3', '4']:
                 hardware = choice
                 break
             else:
@@ -199,7 +200,7 @@ def main():
         token, license_key = get_token_input(get_license=True)
 
         auto_start_container = False
-        port = 8080
+        port = '8080'
         print('\nWould you like to start the container on boot?')
         print("1) yes")
         print("2) no")
@@ -207,26 +208,26 @@ def main():
         image = None
 
         while True:
-            choice = int(input('Pick an action [default=1] > ') or 1)
-            if choice in [1, 2]:
-                if choice == 1:
+            choice = str(input('Pick an action [default=1] > ') or 1)
+            if choice in ['1', '2']:
+                if choice == '1':
                     auto_start_container = True
                 break
             print('Incorrect choice')
 
-        port = int(input('\nSet the container port [default=8080] > ') or 8080)
+        port = str(input('\nSet the container port [default=8080] > ') or 8080)
 
         print("\nStarting Installation")
 
-        if hardware == 1:
+        if hardware == '1':
             image = 'platerecognizer/alpr'
             install(image, auto_start_container, port, token, license_key)
 
-        elif hardware == 2:
+        elif hardware == '2':
             image = 'platerecognizer/alpr-raspberry-pi'
             install(image, auto_start_container, port, token, license_key)
 
-        elif hardware == 3:
+        elif hardware == '3':
             image = 'platerecognizer/alpr-gpu'
             install(image,
                     auto_start_container,
@@ -235,7 +236,7 @@ def main():
                     license_key,
                     extra_args='--runtume nvidia')
 
-        elif hardware == 4:
+        elif hardware == '4':
             image = 'platerecognizer/alpr-jetson'
             install(image,
                     auto_start_container,
@@ -247,7 +248,7 @@ def main():
 
         return main()
 
-    elif action_choice == 2:
+    elif action_choice == '2':
         version = str(
             input('Which version would you like to install? [press Enter for latest version] ')
             or 'latest')
@@ -277,7 +278,7 @@ def main():
                 docker_version=docker_version,
                 image_version=version)
 
-    elif action_choice == 3:
+    elif action_choice == '3':
 
         image = get_image()
         if not 'platerecognizer' in image:
@@ -293,15 +294,15 @@ def main():
         print('2) Uninstall the SDK and remove the container. You can then install the SDK on another machine.')
         print('3) Quit')
         while True:
-            uninstall_choice = int(input('Pick an action [defaut=3] > ') or 3)
-            if uninstall_choice in [1, 2, 3]:
-                if uninstall_choice == 3:
+            uninstall_choice = str(input('Pick an action [defaut=3] > ') or 3)
+            if uninstall_choice in ['1', '2', '3']:
+                if uninstall_choice == '3':
                     print('Quitting!!\n')
                     return main()
                 break
 
         token, license_key = get_token_input(get_license=False)
-        if uninstall_choice == 1:
+        if uninstall_choice == '1':
             stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
                 token, image) 
@@ -311,7 +312,7 @@ def main():
             print('Uninstall complete!!\n')
             return main()
 
-        elif uninstall_choice == 2:
+        elif uninstall_choice == '2':
             container_id = stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
                 token, image)
