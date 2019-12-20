@@ -69,7 +69,10 @@ def install(image,
         license_key,
         image,
     )
-    os.system(run_cmd + "&")
+    if os.name == 'nt':
+        os.system('start /b "" {}'.format(run_cmd))
+    else:    
+        os.system(run_cmd + "&")
     if test_install(port, token):
         print("Installation successful")
     else:
@@ -90,7 +93,7 @@ def get_image():
     return images[0].replace("'", "")
 
 
-def verify_token(token, license_key):
+def verify_token(token, license_key, get_license=True):
     try:
         req = Request(
             'https://app.platerecognizer.com/v1/sdk-webhooks/{}/'.format(
@@ -99,31 +102,36 @@ def verify_token(token, license_key):
         res = urlopen(req).read()
         return True
     except URLError as e:
-        if '404' in e:
+        if '404' in str(e) and get_license:
             print('License Key is incorrect!!')
             return False
-        elif '403' in e:
+        elif str(403) in str(e):
             print('Api Token is incorrect!!')
             return False
-        return False
+        else:
+            return True    
+         
+
+    return False
 
 
-def get_token_input():
+def get_token_input(get_license=True, open_page=True):
     print(
         '\nSee your account credentials on https://app.platerecognizer.com/accounts/plan/. We opened up the account page on your browser.'
     )
-    webbrowser.open('https://app.platerecognizer.com/accounts/plan/')
+    if open_page:
+        webbrowser.open('https://app.platerecognizer.com/accounts/plan/#sdk')
     time.sleep(1)
     token = str(input('\nEnter the API Token for the SDK > ')).strip()
-    license_key = str(input('Enter the License Key for the SDK > ')).strip()
-
-    if not token or not license_key or not verify_token(token, license_key):
+    if get_license:
+        license_key = str(input('Enter the License Key for the SDK > ')).strip()
+    else:
+        license_key = True    
+    if not token or not license_key or not verify_token(token, license_key, get_license=get_license):
         print(
-            "Invalid Token or License Key. Check they are typed correctly (press Ctrl-C to exit)."
+            "We do not recognize this API Token or License Key in our system.  Please refer to your account page and try again.  Press Control-C to exit."
         )
-        webbrowser.open('https://app.platerecognizer.com/accounts/plan/')
-        time.sleep(1)
-        return get_token_input()
+        return get_token_input(get_license=get_license, open_page=False)
     else:
         return token, license_key
 
@@ -188,7 +196,7 @@ def main():
             else:
                 print('Incorrect Choice')
 
-        token, license_key = get_token_input()
+        token, license_key = get_token_input(get_license=True)
 
         auto_start_container = False
         port = 8080
@@ -241,9 +249,9 @@ def main():
 
     elif action_choice == 2:
         version = str(
-            input('Which version would you like to install? [default=latest] ')
+            input('Which version would you like to install? [press Enter for latest version] ')
             or 'latest')
-        token, license_key = get_token_input()
+        token, license_key = get_token_input(get_license=True)
         image = get_image()
         if not image:
             print(
@@ -282,17 +290,17 @@ def main():
         print(
             '\n1) Uninstall the SDK. You can then install it on another machine.'
         )
-        print('2) Uninstall the SDK and remove the container.')
+        print('2) Uninstall the SDK and remove the container. You can then install the SDK on another machine.')
         print('3) Quit')
         while True:
             uninstall_choice = int(input('Pick an action [defaut=3] > ') or 3)
             if uninstall_choice in [1, 2, 3]:
                 if uninstall_choice == 3:
-                    print('Quitting!!')
-                    exit(1)
+                    print('Quitting!!\n')
+                    return main()
                 break
 
-        token, license_key = get_token_input()
+        token, license_key = get_token_input(get_license=False)
         if uninstall_choice == 1:
             stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
@@ -308,6 +316,7 @@ def main():
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
                 token, image)
             os.system(cmd)
+            container_id =get_container_id(image)
             if container_id:
                 cmd = 'docker container rm {}'.format(container_id)
                 os.system(cmd)
