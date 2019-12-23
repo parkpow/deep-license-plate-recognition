@@ -65,6 +65,15 @@ You can also run the license plate reader on many files at once. To run the scri
 
 `python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
 
+### Bluring the license plate
+
+You can also blur the license plate with the following parameters: `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. you should also supply a directory to save the blurred images. use:
+
+`
+pip install pillow
+python plate_recognition.py --api-key MY_API_KEY --blur-amount 4 --blur-dir /path/to/save/blurred/images /path/to/vehicle.jpg
+`
+
 <br><br><br>
 
 ### [Running the ALPR Locally (SDK)](docker/)
