@@ -165,7 +165,7 @@ def main():
     for ind, choice in enumerate(actions):
         print("{}) {}".format(ind + 1, choice))
     while True:
-        choice = str(input("Pick an action [default=1] > ") or 1)
+        choice = str(input("Pick an action > ") or '')
         if choice == '4':
             print("Quit!")
             exit(1)
@@ -185,8 +185,8 @@ def main():
         while True:
 
             choice = str(
-                input("What is the hardware of this machine [default=1] > ") or
-                1)
+                input("What is the hardware of this machine  > ") or
+                '')
 
             if choice == '5':
                 print("Quit!\n")
@@ -208,14 +208,26 @@ def main():
         image = None
 
         while True:
-            choice = str(input('Pick an action [default=1] > ') or 1)
+            choice = str(input('Pick an action  > ') or '')
             if choice in ['1', '2']:
                 if choice == '1':
                     auto_start_container = True
                 break
             print('Incorrect choice')
 
-        port = str(input('\nSet the container port [default=8080] > ') or 8080)
+        while True:
+            try:
+                port = int(input('\nSet the container port [default=8080] > ') or 8080)
+                if 0 <= port <= 65535:
+                    break
+                else:
+                    print('Incorrect Value, Enter a value between 0 and 65535')
+
+            except:
+                print('Incorrect Value, Enter a value between 0 and 65535')
+
+
+
 
         print("\nStarting Installation")
 
@@ -278,6 +290,8 @@ def main():
                 docker_version=docker_version,
                 image_version=version)
 
+        return main()        
+
     elif action_choice == '3':
 
         image = get_image()
@@ -294,12 +308,14 @@ def main():
         print('2) Uninstall the SDK and remove the container. You can then install the SDK on another machine.')
         print('3) Quit')
         while True:
-            uninstall_choice = str(input('Pick an action [defaut=3] > ') or 3)
+            uninstall_choice = str(input('Pick an action > ') or '')
             if uninstall_choice in ['1', '2', '3']:
                 if uninstall_choice == '3':
                     print('Quitting!!\n')
                     return main()
                 break
+            else:
+                print('Incorrect choice')
 
         token, license_key = get_token_input(get_license=False)
         if uninstall_choice == '1':
