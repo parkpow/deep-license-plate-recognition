@@ -8,7 +8,7 @@ import os
 from collections import OrderedDict
 
 import requests
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageFilter
 
 
 def parse_arguments():
@@ -81,20 +81,19 @@ def main():
             if args.blur_amount:
                 for res in response.json()['results']:
                     box = res['box']
+                    crop_box = (int(box['xmin'] * .95), int(box['ymin'] * .95),
+                                int(box['xmax'] * 1.05),
+                                int(box['ymax'] * 1.05))
 
                     im = Image.open(path)
-                    mask = Image.new('L', im.size, 0)
-                    draw = ImageDraw.Draw(mask)
-                    draw.rectangle([(box['xmin'] * .95, box['ymin'] * .95),
-                                    (box['xmax'] * 1.05, box['ymax'] * 1.05)],
-                                   fill=255)
-                    mask.save('mask.png')
-
-                    blurred = im.filter(
-                        ImageFilter.GaussianBlur(int(args.blur_amount)))
-                    im.paste(blurred, mask=mask)
+                    ic = im.crop(crop_box)
+                    blur_image = ic.filter(
+                        ImageFilter.GaussianBlur(
+                            radius=float(args.blur_amount)))
+                    im.paste(blur_image, crop_box)
                     filename = os.path.basename(path)
                     blurred_image_path = os.path.join(args.blur_dir, filename)
+
                     im.save(blurred_image_path)
 
             result.append(response.json(object_pairs_hook=OrderedDict))

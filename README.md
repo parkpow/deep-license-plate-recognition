@@ -12,6 +12,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
+    - [Blurring the license plate](#blurring-the-license-plate)
   - [Automatic Image Transfer](#automatic-image-transfer)
   - [Code Samples](#code-samples)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
@@ -65,14 +66,14 @@ You can also run the license plate reader on many files at once. To run the scri
 
 `python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
 
-### Bluring the license plate
+### Blurring the license plate
 
 You can also blur the license plate with the following parameters: `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. you should also supply a directory to save the blurred images. use:
 
-`
+```
 pip install pillow
 python plate_recognition.py --api-key MY_API_KEY --blur-amount 4 --blur-dir /path/to/save/blurred/images /path/to/vehicle.jpg
-`
+```
 
 <br><br><br>
 
