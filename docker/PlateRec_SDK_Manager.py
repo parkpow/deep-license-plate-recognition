@@ -154,11 +154,10 @@ def main():
 
     if not verify_docker_install():
         print(
-            "Docker is not installed, Follow 'https://docs.docker.com/v17.09/engine/installation/' to install docker for your hardware"
+            "Docker is not installed, Follow 'https://docs.docker.com/install/' to install docker for your machine."
         )
         print('Program will exit in 30seconds (press Ctrl-C to exit now).')
-        webbrowser.open('https://docs.docker.com/v17.09/engine/installation/')
-
+        webbrowser.open('https://docs.docker.com/install/')
         time.sleep(30)
         exit(1)
 
