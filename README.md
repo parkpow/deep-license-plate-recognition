@@ -12,7 +12,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
-    - [Blurring the license plate](#blurring-the-license-plate)
+    - [Blurring the License Plate](#blurring-the-license-plate)
   - [Automatic Image Transfer](#automatic-image-transfer)
   - [Code Samples](#code-samples)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
