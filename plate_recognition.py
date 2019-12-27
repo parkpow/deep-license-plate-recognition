@@ -32,6 +32,7 @@ def parse_arguments():
     parser.add_argument(
         '--blur-amount',
         help='This blur the license plates to a degree provided.',
+        default=5,
         required=False)
     parser.add_argument(
         '--blur-dir',
@@ -52,10 +53,6 @@ def main():
         raise Exception('api-key is required')
     if len(paths) == 0:
         print('File {} does not exist.'.format(args.FILE))
-        return
-
-    if args.blur_amount and not args.blur_dir:
-        print('--blur-dir argument is missing')
         return
     elif args.blur_dir and not os.path.exists(args.blur_dir):
         print('{} does not exist'.format(args.blur_dir))
@@ -78,23 +75,20 @@ def main():
                         time.sleep(1)
                     else:
                         break
-            if args.blur_amount:
-                for res in response.json()['results']:
-                    box = res['box']
-                    crop_box = (int(box['xmin'] * .95), int(box['ymin'] * .95),
-                                int(box['xmax'] * 1.05),
-                                int(box['ymax'] * 1.05))
+        if args.blur_dir:
+            for res in response.json()['results']:
+                box = res['box']
+                crop_box = (int(box['xmin'] * .95), int(box['ymin'] * .95),
+                            int(box['xmax'] * 1.05), int(box['ymax'] * 1.05))
+                im = Image.open(path)
+                ic = im.crop(crop_box)
+                blur_image = ic.filter(
+                    ImageFilter.GaussianBlur(radius=float(args.blur_amount)))
+                im.paste(blur_image, crop_box)
+                filename = os.path.basename(path)
+                blurred_image_path = os.path.join(args.blur_dir, filename)
 
-                    im = Image.open(path)
-                    ic = im.crop(crop_box)
-                    blur_image = ic.filter(
-                        ImageFilter.GaussianBlur(
-                            radius=float(args.blur_amount)))
-                    im.paste(blur_image, crop_box)
-                    filename = os.path.basename(path)
-                    blurred_image_path = os.path.join(args.blur_dir, filename)
-
-                    im.save(blurred_image_path)
+                im.save(blurred_image_path)
 
             result.append(response.json(object_pairs_hook=OrderedDict))
     print(json.dumps(result, indent=2))
