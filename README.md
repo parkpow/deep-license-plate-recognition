@@ -13,9 +13,10 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
     - [Blurring the License Plate](#blurring-the-license-plate)
+  - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
+  - [Number Plate Recognition on a Live Camera Stream](#number-plate-recognition-on-a-live-camera-stream)
   - [Automatic Image Transfer](#automatic-image-transfer)
   - [Code Samples](#code-samples)
-  - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
 
 
 ## Reading License Plates from Images
@@ -85,20 +86,6 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 <br><br><br>
 
-## Automatic Image Transfer
-
-Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/).
-
-To get started: `python transfer.py --help`
-
-<br><br><br>
-
-## Code Samples
-
-See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
-
-<br><br><br>
-
 ## Number Plate Recognition on a Video
 
 To do ANPR on videos, you will also need to **install OpenCV**. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
@@ -116,7 +103,7 @@ OpenCV is also capable of reading **live video streams**. See this [page](https:
 
 <br><br><br>
 
-## Number Plate Recognition from a Live Camera Stream
+## Number Plate Recognition on a Live Camera Stream
 Follow the instructions above to **install OpenCv** including the installation of dependancies `requests` and `pillow`. Then run the script as shown below.
 
 `python anpr_camera_stream.py --camera RTSP_STREAM_URL --api-key MY_TOKEN --regions fr --output /path/to/save.csv`
@@ -137,6 +124,20 @@ date,license_plate,score,dscore,vehicle_type
 ```
 
 For testing purposes when you don't have a camera, you can install [CamOn Live Streaming app](https://play.google.com/store/apps/details?id=com.miv.rtspcamera) from the Google Play Store and use its RTSP url to stream your mobile phone's camera.
+
+<br><br><br>
+
+## Automatic Image Transfer
+
+Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/).
+
+To get started: `python transfer.py --help`
+
+<br><br><br>
+
+## Code Samples
+
+See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 
 <br><br><br>
 
