@@ -12,8 +12,8 @@ try:
     from urllib.request import Request, urlopen
     from urllib.error import URLError
 except ImportError:
-    from urllib2 import Request, urlopen
-    from urllib2 import URLError
+    from urllib2 import Request, urlopen  # type: ignore
+    from urllib2 import URLError  # type: ignore
 
 
 def verify_docker_install():
@@ -31,7 +31,7 @@ def test_install(port, token, counter=0):
         req = Request(url)
         req.get_method = lambda: 'POST'
         req.add_header('Authorization', 'Token {}'.format(token))
-        res = urlopen(req).read()
+        urlopen(req).read()
         return True
     except Exception:
         if counter < 20:
@@ -71,7 +71,7 @@ def install(image,
     )
     if os.name == 'nt':
         os.system('start /b "" {}'.format(run_cmd))
-    else:    
+    else:
         os.system(run_cmd + "&")
     if test_install(port, token):
         print("Installation successful")
@@ -83,7 +83,9 @@ def install(image,
     print(
         '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/alpr'
     )
-    print("To exit this program, just close this Command Line Interface window.\n")
+    print(
+        "To exit this program, just close this Command Line Interface window.\n"
+    )
 
 
 def get_image():
@@ -99,7 +101,7 @@ def verify_token(token, license_key, get_license=True):
             'https://app.platerecognizer.com/v1/sdk-webhooks/{}/'.format(
                 license_key))
         req.add_header('Authorization', 'Token {}'.format(token))
-        res = urlopen(req).read()
+        urlopen(req).read()
         return True
     except URLError as e:
         if '404' in str(e) and get_license:
@@ -109,8 +111,7 @@ def verify_token(token, license_key, get_license=True):
             print('Api Token is incorrect!!')
             return False
         else:
-            return True    
-         
+            return True
 
     return False
 
@@ -126,8 +127,9 @@ def get_token_input(get_license=True, open_page=True):
     if get_license:
         license_key = str(input('Enter the License Key for the SDK > ')).strip()
     else:
-        license_key = True    
-    if not token or not license_key or not verify_token(token, license_key, get_license=get_license):
+        license_key = True
+    if not token or not license_key or not verify_token(
+            token, license_key, get_license=get_license):
         print(
             "We do not recognize this API Token or License Key in our system.  Please refer to your account page and try again.  Press Control-C to exit."
         )
@@ -146,8 +148,9 @@ def stop_container(image):
 
 def main():
     print('Plate Recognizer SDK Manager.')
-    print('If you face any problems, please let us know at https://platerecognizer.com/contact and include a screenshot of the error message.\n')
-    
+    print(
+        'If you face any problems, please let us know at https://platerecognizer.com/contact and include a screenshot of the error message.\n'
+    )
 
     if not verify_docker_install():
         print(
@@ -185,8 +188,7 @@ def main():
         while True:
 
             choice = str(
-                input("What is the hardware of this machine  > ") or
-                '')
+                input("What is the hardware of this machine  > ") or '')
 
             if choice == '5':
                 print("Quit!\n")
@@ -217,17 +219,15 @@ def main():
 
         while True:
             try:
-                port = int(input('\nSet the container port [default=8080] > ') or 8080)
+                port = int(
+                    input('\nSet the container port [default=8080] > ') or 8080)
                 if 0 <= port <= 65535:
                     break
                 else:
                     print('Incorrect Value, Enter a value between 0 and 65535')
 
-            except:
+            except ValueError:
                 print('Incorrect Value, Enter a value between 0 and 65535')
-
-
-
 
         print("\nStarting Installation")
 
@@ -246,7 +246,7 @@ def main():
                     port,
                     token,
                     license_key,
-                    extra_args='--runtume nvidia')
+                    extra_args='--runtime nvidia')
 
         elif hardware == '4':
             image = 'platerecognizer/alpr-jetson'
@@ -255,15 +255,16 @@ def main():
                     port,
                     token,
                     license_key,
-                    extra_args='--runtume nvidia',
+                    extra_args='--runtime nvidia',
                     docker_version='nvidia-docker')
 
         return main()
 
     elif action_choice == '2':
         version = str(
-            input('Which version would you like to install? [press Enter for latest version] ')
-            or 'latest')
+            input(
+                'Which version would you like to install? [press Enter for latest version] '
+            ) or 'latest')
         token, license_key = get_token_input(get_license=True)
         image = get_image()
         if not image:
@@ -275,10 +276,10 @@ def main():
         extra_args = ''
         docker_version = 'docker'
         if 'jetson' in image:
-            extra_args = '--runtume nvidia'
+            extra_args = '--runtime nvidia'
             docker_version = 'nvidia-docker'
         elif 'gpu' in image:
-            extra_args = '--runtume nvidia'
+            extra_args = '--runtime nvidia'
 
         auto_start_container = False
         install(image,
@@ -290,22 +291,23 @@ def main():
                 docker_version=docker_version,
                 image_version=version)
 
-        return main()        
+        return main()
 
     elif action_choice == '3':
 
         image = get_image()
-        if not 'platerecognizer' in image:
+        if 'platerecognizer' not in image:
             print(
                 'PlateRecognizer SDK is not installed, Please select Install. (press Ctrl-C to exit).\n'
             )
             return main()
-            
 
         print(
             '\n1) Uninstall the SDK. You can then install it on another machine.'
         )
-        print('2) Uninstall the SDK and remove the container. You can then install the SDK on another machine.')
+        print(
+            '2) Uninstall the SDK and remove the container. You can then install the SDK on another machine.'
+        )
         print('3) Quit')
         while True:
             uninstall_choice = str(input('Pick an action > ') or '')
@@ -321,11 +323,9 @@ def main():
         if uninstall_choice == '1':
             stop_container(image)
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
-                token, image) 
-                
+                token, image)
 
             os.system(cmd)
-            print('Uninstall complete!!\n')
             return main()
 
         elif uninstall_choice == '2':
@@ -333,13 +333,13 @@ def main():
             cmd = 'docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}'.format(
                 token, image)
             os.system(cmd)
-            container_id =get_container_id(image)
+            container_id = get_container_id(image)
             if container_id:
                 cmd = 'docker container rm {}'.format(container_id)
                 os.system(cmd)
             cmd = 'docker rmi "{}"'.format(image)
             os.system(cmd)
-            print('Uninstall complete!!\n')
+            print('Container removed successfully!!\n')
             return main()
 
 
