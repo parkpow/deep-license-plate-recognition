@@ -8,7 +8,16 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
 
 ## SDK Guide
 
-We have launched our [On-Premise LPR SDK](https://platerecognizer.com/) that lets you run license plate recognition **locally** (no internet connection needed). Once you have [installed the SDK](https://platerecognizer.com/sdk/). You can use this command line script to interface with it. This script is a good starting point to interface the SDK with the rest of your application.
+Our [On-Premise LPR SDK](https://platerecognizer.com/) lets you run license plate recognition **locally** (no internet connection needed).
+
+### Installation
+
+* Guided SDK installation
+  * On **Windows**, [download](https://github.com/marcbelmont/deep-license-plate-recognition/releases) the executable.
+  * On **Linux** or **Mac**, call the script from the terminal: 
+  
+`wget https://raw.githubusercontent.com/marcbelmont/deep-license-plate-recognition/master/docker/PlateRec_SDK_Manager.py && python PlateRec_SDK_Manager.py`
+* Manual instructions to [install the SDK](https://platerecognizer.com/sdk/) are also available.
 
 ### Interfacing with the SDK
 
