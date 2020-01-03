@@ -90,7 +90,7 @@ def main():
 
                 im.save(blurred_image_path)
 
-            result.append(response.json(object_pairs_hook=OrderedDict))
+        result.append(response.json(object_pairs_hook=OrderedDict))
     print(json.dumps(result, indent=2))
 
 
