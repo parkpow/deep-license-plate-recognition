@@ -104,9 +104,9 @@ OpenCV is also capable of reading **live video streams**. See this [page](https:
 <br><br><br>
 
 ## Number Plate Recognition on a Live Camera Stream
-Follow the instructions above to **install OpenCv** including the installation of dependancies `requests` and `pillow`. Then run the script as shown below.
+Follow the instructions above to **install OpenCV** including the installation of dependencies `requests` and `pillow`. Then run the script as shown below.
 
-`python anpr_camera_stream.py --camera RTSP_STREAM_URL --api-key MY_TOKEN --regions fr --output /path/to/save.csv`
+`python anpr_camera_stream.py --show-image --camera rtsp://192.168.x.x:5554/camera --api-key MY_TOKEN --regions fr --output /path/to/save.csv`
 Run:
 `python anpr_campera_stream.py --help` for usage.
 
@@ -116,11 +116,6 @@ CSV output example:
 date,license_plate,score,dscore,vehicle_type
 12/19/19 05:33:10,nwk652,0.675,0.704,Car
 12/19/19 05:33:12,nmk669,0.625,0.823,Car
-12/19/19 05:33:20,hk552,0.784,0.704,Car
-12/19/19 05:33:21,nk552,0.719,0.765,Car
-12/19/19 05:33:24,nhk552,0.89,0.833,Car
-12/19/19 05:33:25,nhk552,0.901,0.848,Car
-
 ```
 
 For testing purposes when you don't have a camera, you can install [CamOn Live Streaming app](https://play.google.com/store/apps/details?id=com.miv.rtspcamera) from the Google Play Store and use its RTSP url to stream your mobile phone's camera.
