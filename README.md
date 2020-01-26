@@ -106,9 +106,14 @@ OpenCV is also capable of reading **live video streams**. See this [page](https:
 ## Number Plate Recognition on a Live Camera Stream
 Follow the instructions above to **install OpenCV** including the installation of dependencies `requests` and `pillow`. Then run the script as shown below.
 
+Usage:
+
+`python anpr_campera_stream.py --help`
+
+For example:
+
 `python anpr_camera_stream.py --show-image --camera rtsp://192.168.x.x:5554/camera --api-key MY_TOKEN --regions fr --output /path/to/save.csv`
-Run:
-`python anpr_campera_stream.py --help` for usage.
+
 
 CSV output example:
 
