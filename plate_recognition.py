@@ -76,7 +76,7 @@ def main():
                     else:
                         break
         if args.blur_dir:
-            for res in response.json()['results']:
+            for res in response.json().get('results', []):
                 box = res['box']
                 crop_box = (int(box['xmin'] * .95), int(box['ymin'] * .95),
                             int(box['xmax'] * 1.05), int(box['ymax'] * 1.05))
