@@ -145,3 +145,7 @@ See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/
 Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
 
 Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/).
+
+
+
+python anpr_camera_stream.py --camera rtsp://admin:123abc456@minhtuanvt2019.ddns.net:554/ISAPI/Streaming/channels/101/out.h264 --api-key 7df0b7c31f1ae124a44235aa7fc4d4a3bd1fb038 --regions vn --output save_1.csv
