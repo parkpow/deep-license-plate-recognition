@@ -45,6 +45,8 @@ class ThreadedCamera(object):
     def __init__(self, args):
         self.capture = cv2.VideoCapture(args.camera, cv2.CAP_FFMPEG)
         self.capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if not self.capture.isOpened():
+            print('No stream available: ' + args.camera)
         self.thread = Thread(target=self.update, args=())
         self.thread.daemon = True
         self.thread.start()
