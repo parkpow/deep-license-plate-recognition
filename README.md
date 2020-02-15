@@ -8,15 +8,15 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
   <img src="assets/demo.jpg">
 </p>
 
-  - [Reading License Plates from Images](#reading-license-plates-from-images)
+  - [Reading License Plates from **Images**](#reading-license-plates-from-images)
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
     - [Blurring the License Plate](#blurring-the-license-plate)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
-  - [Number Plate Recognition on a Live Camera Stream](#number-plate-recognition-on-a-live-camera-stream)
+  - [Number Plate Recognition on a **Live Camera Stream**](#number-plate-recognition-on-a-live-camera-stream)
   - [Automatic Image Transfer](#automatic-image-transfer)
-  - [Code Samples](#code-samples)
+  - [**Code Samples**](#code-samples)
 
 
 ## Reading License Plates from Images
@@ -137,7 +137,12 @@ To get started: `python transfer.py --help`
 
 ## Code Samples
 
-See sample projects to use the API in [C++](cpp/), [C#](csharp/) or [Java](java/). View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
+See our sample projects to easily get started with the API. 
+- Example program in [C++](cpp/).
+- Example program in [C#](csharp/).
+- Example program in [Java](java/).
+- [Android App](https://github.com/parkpow/alpr-anpr-android). It lets you take a picture and send it to our API.
+- View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 
 <br><br><br>
 
