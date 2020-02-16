@@ -149,3 +149,5 @@ Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/).
 
 
 python anpr_camera_stream.py --camera rtsp://admin:123abc456@minhtuanvt2019.ddns.net:554/ISAPI/Streaming/channels/101/out.h264 --api-key 7df0b7c31f1ae124a44235aa7fc4d4a3bd1fb038 --regions vn --output save_1.csv
+
+python anpr_camera_stream.py --camera rtsp://zentech:zentech123@minhtuanvt2019.ddns.net:1024/ISAPI/Streaming/channels/101 --api-key 7df0b7c31f1ae124a44235aa7fc4d4a3bd1fb038 --regions vn --output save_1.csv
