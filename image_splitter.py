@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import io
-import os
 import requests
 import time
 import image_slicer  # pip install image_slicer
@@ -14,7 +13,7 @@ def parse_arguments():
         description=
         'Read license plates from a RTSP stream and save the result in a CSV file.',
         epilog=
-        'For example: python image_spliter.py --api-key <API-TOKEN> --parts 4 /PATH/TO/highres.jpg'
+        'For example: python image_splitter.py --api-key <API-TOKEN> --parts 4 /PATH/TO/highres.jpg'
     )
     parser.add_argument('--parts',
                         help='Number of parts. idealy even number',
@@ -33,18 +32,42 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
-    args = parse_arguments()
-    paths = args.files
+def merge_results(results):
+    image_results = {
+        "processing_time":
+        sum([result[1]['processing_time'] for result in results])
+    }
+
+    for result in results:
+        coordinates = result[0].coords
+        if result[1]['results']:
+            lp_results = result[1]['results']
+            image_results['results'] = []
+            for lp_result in lp_results:
+                lp_result['box'] = dict(
+                    ymin=lp_result['box']["ymin"] + coordinates[1],
+                    xmin=lp_result['box']["xmin"] + coordinates[0],
+                    ymax=lp_result['box']["ymax"] + coordinates[1],
+                    xmax=lp_result['box']["xmax"] + coordinates[0],
+                )
+                vehicle_box = lp_result['vehicle']["box"]
+                lp_result['vehicle']["box"] = dict(
+                    ymin=vehicle_box["ymin"] + coordinates[1],
+                    xmin=vehicle_box["xmin"] + coordinates[0],
+                    ymax=vehicle_box["ymax"] + coordinates[1],
+                    xmax=vehicle_box["xmax"] + coordinates[0],
+                )
+                image_results['results'].append(lp_result)
+
+    return image_results
+
+
+def process_images(args):
+    paths = args.paths
     regions = args.regions
     parts = int(args.parts)
     camera_id = args.camera_id
-
-    if not args.sdk_url and not args.api_key:
-        raise Exception('api-key is required')
-    if len(paths) == 0:
-        print('File {} does not exist.'.format(args.FILE))
-        return
+    paths_results = []
 
     for path in paths:
         image_results = {}
@@ -52,12 +75,7 @@ def main():
         tiles = image_slicer.slice(path, parts, save=False)
         for ind, tile in enumerate(tiles):
             image = io.BytesIO()
-            filename, ext = os.path.splitext(path)
-            if 'png' in ext.lower():
-                ext = "PNG"
-            else:
-                ext = "JPEG"
-            tile.image.save(image, ext)
+            tile.image.save(image, 'JPEG')
             image.seek(0)
             if args.sdk_url:
                 response = requests.post(args.sdk_url + '/alpr',
@@ -75,32 +93,21 @@ def main():
                     time.sleep(1)
 
             results.append((tile, response.json()))
+        image_results = merge_results(results)
+        paths_results.append(image_results)
+    return paths_results
 
-        image_results["processing_time"] = sum(
-            [result[1]['processing_time'] for result in results])
 
-        for result in results:
-            coordinates = result[0].coords
-            if result[1]['results']:
-                lp_results = result[1]['results']
-                image_results['results'] = []
-                for lp_result in lp_results:
-                    lp_result['box'] = dict(
-                        ymin=lp_result['box']["ymin"] + coordinates[1],
-                        xmin=lp_result['box']["xmin"] + coordinates[0],
-                        ymax=lp_result['box']["ymax"] + coordinates[1],
-                        xmax=lp_result['box']["xmax"] + coordinates[0],
-                    )
-                    vehicle_box = lp_result['vehicle']["box"]
-                    lp_result['vehicle']["box"] = dict(
-                        ymin=vehicle_box["ymin"] + coordinates[1],
-                        xmin=vehicle_box["xmin"] + coordinates[0],
-                        ymax=vehicle_box["ymax"] + coordinates[1],
-                        xmax=vehicle_box["xmax"] + coordinates[0],
-                    )
-                    image_results['results'].append(lp_result)
+def main():
+    args = parse_arguments()
+    if not args.sdk_url and not args.api_key:
+        raise Exception('api-key is required')
+    if len(args.files) == 0:
+        print('File {} does not exist.'.format(args.FILE))
+        return
 
-        print(image_results)  # result for whole
+    results = process_images(args)
+    print(results)
 
 
 if __name__ == "__main__":
