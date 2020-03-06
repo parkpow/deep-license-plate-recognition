@@ -3,22 +3,22 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import json
-import time
 import os
+import time
 from collections import OrderedDict
 
 import requests
 from PIL import Image, ImageFilter
 
 
-def parse_arguments():
+def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
         description=
         'Read license plates from images and output the result as JSON.',
-        epilog=
-        'For example: python plate_recognition.py --api-key MY_API_KEY "/path/to/vehicle-*.jpg" \n '
-        'For Blurred images python plate_recognition.py  --api-key MY_API_KEY --blur-amount 4 --blur-dir /path/save/blurred/images "/path/to/vehicle-*.jpg"'
-    )
+        epilog='Examples:\n'
+        'To send images to our cloud service: '
+        'python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle-*.jpg\n',
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--api-key', help='Your API key.', required=False)
     parser.add_argument(
         '--regions',
@@ -29,68 +29,81 @@ def parse_arguments():
         '--sdk-url',
         help="Url to self hosted sdk  For example, http://localhost:8080",
         required=False)
+    parser.add_argument('files', nargs='+', help='Path to vehicle images')
+    args_hook(parser)
+    args = parser.parse_args()
+    if not args.sdk_url and not args.api_key:
+        raise Exception('api-key is required')
+    return args
+
+
+def recognition_api(fp, regions, api_key=None, sdk_url=None, config={}):
+    data = dict(regions=regions, config=json.dumps(config))
+    if sdk_url:
+        response = requests.post(sdk_url + '/alpr',
+                                 files=dict(upload=fp),
+                                 data=data)
+    else:
+        for _ in range(3):
+            fp.seek(0)
+            response = requests.post(
+                'https://api.platerecognizer.com/v1/plate-reader/',
+                files=dict(upload=fp),
+                data=data,
+                headers={'Authorization': 'Token ' + api_key})
+            if response.status_code == 429:  # Max calls per second reached
+                time.sleep(1)
+            else:
+                break
+    return response.json(object_pairs_hook=OrderedDict)
+
+
+def blur(args, path, api_res):
+    for res in api_res.get('results', []):
+        box = res['box']
+
+        crop_box = (int(box['xmin']), int(box['ymin']), int(box['xmax']),
+                    int(box['ymax']))
+        im = Image.open(path)
+        ic = im.crop(crop_box)
+        blur_image = ic.filter(
+            ImageFilter.GaussianBlur(radius=float(args.blur_amount)))
+        im.paste(blur_image, crop_box)
+        filename = os.path.basename(path)
+        blurred_image_path = os.path.join(args.blur_dir, filename)
+        im.save(blurred_image_path)
+
+
+def blurring_args(parser):
+    parser.epilog += 'To blur images: python plate_recognition.py  --sdk-url http://localhost:8080 --blur-amount 4 --blur-dir /path/save/blurred/images /path/to/vehicle-*.jpg'
     parser.add_argument(
         '--blur-amount',
-        help='This blur the license plates to a degree provided.',
+        help=
+        'Amount of blurring to apply on the license plates. Goes from 0 (no blur) to 50. Defaults to 5. ',
         default=5,
         required=False)
     parser.add_argument(
         '--blur-dir',
-        help='Path to directory where images is saved after blur.',
+        help='Path to the directory where blurred images are saved.',
         required=False)
-    parser.add_argument('files', nargs='+', help='Path to vehicle images')
-
-    return parser.parse_args()
 
 
 def main():
-    args = parse_arguments()
-    result = []
+    args = parse_arguments(blurring_args)
     paths = args.files
-    regions = args.regions
 
-    if not args.sdk_url and not args.api_key:
-        raise Exception('api-key is required')
-    if len(paths) == 0:
-        print('File {} does not exist.'.format(args.FILE))
-        return
-    elif args.blur_dir and not os.path.exists(args.blur_dir):
+    if args.blur_dir and not os.path.exists(args.blur_dir):
         print('{} does not exist'.format(args.blur_dir))
         return
 
+    result = []
     for path in paths:
         with open(path, 'rb') as fp:
-            if args.sdk_url:
-                response = requests.post(args.sdk_url + '/alpr',
-                                         files=dict(upload=fp),
-                                         data=dict(regions=regions))
-            else:
-                for _ in range(3):
-                    response = requests.post(
-                        'https://api.platerecognizer.com/v1/plate-reader/',
-                        files=dict(upload=fp),
-                        data=dict(regions=regions),
-                        headers={'Authorization': 'Token ' + args.api_key})
-                    if response.status_code == 429:  # Max calls per second reached
-                        time.sleep(1)
-                    else:
-                        break
+            api_res = recognition_api(fp, args.regions, args.api_key,
+                                      args.sdk_url)
         if args.blur_dir:
-            for res in response.json().get('results', []):
-                box = res['box']
-                crop_box = (int(box['xmin'] * .95), int(box['ymin'] * .95),
-                            int(box['xmax'] * 1.05), int(box['ymax'] * 1.05))
-                im = Image.open(path)
-                ic = im.crop(crop_box)
-                blur_image = ic.filter(
-                    ImageFilter.GaussianBlur(radius=float(args.blur_amount)))
-                im.paste(blur_image, crop_box)
-                filename = os.path.basename(path)
-                blurred_image_path = os.path.join(args.blur_dir, filename)
-
-                im.save(blurred_image_path)
-
-        result.append(response.json(object_pairs_hook=OrderedDict))
+            blur(args, path, api_res)
+        result.append(api_res)
     print(json.dumps(result, indent=2))
 
 
