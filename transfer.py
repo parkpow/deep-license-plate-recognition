@@ -187,6 +187,7 @@ def alpr(path, args):
         return
     except Exception as e:
         print(e)
+        return
     data = response.json()
     # TODO: skip data if there is no change
     if 'results' not in data:
@@ -272,7 +273,9 @@ def validate_env(args):
 
     if not args.use_parkpow and not args.output_file:
         messages.append("Pass argument --use-parkpow or the argument --output-file")
-
+    if 'http' not in args.alpr_api:
+        messages.append(
+            "--alpr-api is not a valid URL")        
     if '/v1/plate-reader' in args.alpr_api and not args.platerec_token:
         messages.append(
             "Missing argument --platerec-token or SDK argument --alpr-api")
