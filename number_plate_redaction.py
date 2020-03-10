@@ -4,7 +4,7 @@ from itertools import combinations
 
 from PIL import Image
 
-from plate_recognition import draw_bb, parse_arguments, recognition_api
+from plate_recognition import blur, draw_bb, parse_arguments, recognition_api
 
 
 def bb_iou(a, b):
@@ -81,6 +81,8 @@ def process_image(path, args, i):
     results = merge_results(results)
 
     if args.show_boxes:
+        blur(source_im, 5, results).show()
+    if 0:
         draw_bb(source_im, results['results']).show()
     return results
 

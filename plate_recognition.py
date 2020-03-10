@@ -59,11 +59,11 @@ def recognition_api(fp, regions, api_key=None, sdk_url=None, config={}):
     return response.json(object_pairs_hook=OrderedDict)
 
 
-def blur(args, path, api_res):
-    im = Image.open(path)
+def blur(im, blur_amount, api_res):
     for res in api_res.get('results', []):
         b = res['box']
         width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
+
         # Decrease padding size for large bounding boxes
         padding_x = int(max(0, width * (.3 * math.exp(-10 * width / im.width))))
         padding_y = int(
@@ -73,12 +73,10 @@ def blur(args, path, api_res):
         ic = im.crop(crop_box)
 
         # Increase amount of blur with size of bounding box
-        blur_amount = math.sqrt(width * height) * .2 * args.blur_amount / 10
+        blur_amount = math.sqrt(width * height) * .3 * blur_amount / 10
         blur_image = ic.filter(ImageFilter.GaussianBlur(radius=blur_amount))
         im.paste(blur_image, crop_box)
-    filename = os.path.basename(path)
-    blurred_image_path = os.path.join(args.blur_dir, filename)
-    im.save(blurred_image_path)
+    return im
 
 
 def draw_bb(im, data):
@@ -120,7 +118,11 @@ def main():
             api_res = recognition_api(fp, args.regions, args.api_key,
                                       args.sdk_url)
         if args.blur_dir:
-            blur(args, path, api_res)
+            im = blur(Image.open(path), args.blur_amount, api_res)
+            filename = os.path.basename(path)
+            blurred_image_path = os.path.join(args.blur_dir, filename)
+            im.save(blurred_image_path)
+
         result.append(api_res)
     print(json.dumps(result, indent=2))
 
