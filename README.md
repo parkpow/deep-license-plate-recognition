@@ -12,7 +12,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
-    - [Blurring the License Plate](#blurring-the-license-plate)
+    - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
   - [Number Plate Recognition on a **Live Camera Stream**](#number-plate-recognition-on-a-live-camera-stream)
   - [Automatic Image Transfer](#automatic-image-transfer)
@@ -67,14 +67,28 @@ You can also run the license plate reader on many files at once. To run the scri
 
 `python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
 
-### Blurring the license plate
+### Blurring License Plates and Redaction
 
-You can also blur the license plate with the following parameters: `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. you should also supply a directory to save the blurred images. use:
+You can also blur the license plate with `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. Blurred images are saved to `--blur-dir`. For example:
 
 ```
 pip install pillow
 python plate_recognition.py --api-key MY_API_KEY --blur-amount 4 --blur-dir /path/to/save/blurred/images /path/to/vehicle.jpg
 ```
+
+#### Redaction Mode
+
+The script `number_plate_redaction.py` differs from the default prediction script because it also detects plates that are **barely readable** and/or very small. 
+
+In addition, it can **split the image** in smaller images to better deal with high resolution images. This will use **3 lookups** instead of just 1. To use this options add `--split-image`.
+
+It returns the bounding boxes of all the license plates. They can be used to blur or mask the license plates.
+
+```
+python number_plate_redaction.py --help
+python number_plate_redaction.py --sdk-url http://localhost:8080 --split-image vehicels.jpg
+```
+
 
 <br><br><br>
 
