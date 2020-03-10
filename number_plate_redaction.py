@@ -58,11 +58,13 @@ def process_image(path, args, i):
     source_im = Image.open(path)
     images = [((0, 0), source_im)]  # Entire image
     # Top left and top right crops
-    y = 0
-    win_size = .55
-    width, height = source_im.width * win_size, source_im.height * win_size
-    for x in [0, (1 - win_size) * source_im.width]:
-        images.append(((x, y), source_im.crop((x, y, x + width, y + height))))
+    if args.split_image:
+        y = 0
+        win_size = .55
+        width, height = source_im.width * win_size, source_im.height * win_size
+        for x in [0, (1 - win_size) * source_im.width]:
+            images.append(((x, y), source_im.crop(
+                (x, y, x + width, y + height))))
 
     # Inference
     results = []
@@ -78,13 +80,19 @@ def process_image(path, args, i):
         results.append(dict(prediction=im_results, x=x, y=y))
     results = merge_results(results)
 
-    if 1:
+    if args.show_boxes:
         draw_bb(source_im, results['results']).show()
     return results
 
 
+def custom_args(parser):
+    parser.epilog += 'To analyse the image for redaction: python number_plate_redaction.py  --api-key MY_API_KEY --split-image /tmp/car.jpg'
+    parser.add_argument('--split-image', action='store_true', help='')
+    parser.add_argument('--show-boxes', action='store_true')
+
+
 def main():
-    args = parse_arguments()
+    args = parse_arguments(custom_args)
     result = []
     for i, path in enumerate(args.files):
         result.append(process_image(path, args, i))
