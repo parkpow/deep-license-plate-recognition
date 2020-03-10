@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import json
+import math
 import os
 import time
 from collections import OrderedDict
 
 import requests
-from PIL import Image, ImageFilter, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -59,19 +60,25 @@ def recognition_api(fp, regions, api_key=None, sdk_url=None, config={}):
 
 
 def blur(args, path, api_res):
+    im = Image.open(path)
     for res in api_res.get('results', []):
-        box = res['box']
-
-        crop_box = (int(box['xmin']), int(box['ymin']), int(box['xmax']),
-                    int(box['ymax']))
-        im = Image.open(path)
+        b = res['box']
+        width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
+        # Decrease padding size for large bounding boxes
+        padding_x = int(max(0, width * (.3 * math.exp(-10 * width / im.width))))
+        padding_y = int(
+            max(0, height * (.3 * math.exp(-10 * height / im.height))))
+        crop_box = (b['xmin'] - padding_x, b['ymin'] - padding_y,
+                    b['xmax'] + padding_x, b['ymax'] + padding_y)
         ic = im.crop(crop_box)
-        blur_image = ic.filter(
-            ImageFilter.GaussianBlur(radius=float(args.blur_amount)))
+
+        # Increase amount of blur with size of bounding box
+        blur_amount = math.sqrt(width * height) * .2 * args.blur_amount / 10
+        blur_image = ic.filter(ImageFilter.GaussianBlur(radius=blur_amount))
         im.paste(blur_image, crop_box)
-        filename = os.path.basename(path)
-        blurred_image_path = os.path.join(args.blur_dir, filename)
-        im.save(blurred_image_path)
+    filename = os.path.basename(path)
+    blurred_image_path = os.path.join(args.blur_dir, filename)
+    im.save(blurred_image_path)
 
 
 def draw_bb(im, data):
@@ -89,8 +96,9 @@ def blurring_args(parser):
     parser.add_argument(
         '--blur-amount',
         help=
-        'Amount of blurring to apply on the license plates. Goes from 0 (no blur) to 50. Defaults to 5. ',
+        'Amount of blurring to apply on the license plates. Goes from 0 (no blur) to 10. Defaults to 5. ',
         default=5,
+        type=float,
         required=False)
     parser.add_argument(
         '--blur-dir',
