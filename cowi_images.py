@@ -1,10 +1,10 @@
 import io
 import json
-from itertools import combinations
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
-from plate_recognition import parse_arguments, recognition_api
+from number_plate_redaction import merge_results
+from plate_recognition import draw_bb, parse_arguments, recognition_api
 
 CAMERA_OPTIONS = dict(
     front=dict(rotation=90, crop_bottom=.8, crop_top=.35),
@@ -22,16 +22,6 @@ def camera_args(parser):
                         choices=CAMERA_OPTIONS.keys())
 
 
-def draw_bb(im, data):
-    draw = ImageDraw.Draw(im)
-    for result in data:
-        b = result['box']
-        draw.rectangle(((b['xmin'], b['ymin']), (b['xmax'], b['ymax'])),
-                       (0, 255, 0))
-    im = im.resize((1920, 1050))
-    return im
-
-
 def rotate_bb(box, rotation, size):
     if rotation == 90:
         return dict(xmin=size[1] - box['ymin'],
@@ -43,50 +33,6 @@ def rotate_bb(box, rotation, size):
                     xmax=box['ymax'],
                     ymin=size[0] - box['xmin'],
                     ymax=size[0] - box['xmax'])
-
-
-def bb_iou(a, b):
-    # determine the (x, y)-coordinates of the intersection rectangle
-    x_a = max(a["xmin"], b["xmin"])
-    y_a = max(a["ymin"], b["ymin"])
-    x_b = min(a["xmax"], b["xmax"])
-    y_b = min(a["ymax"], b["ymax"])
-
-    # compute the area of both the prediction and ground-truth
-    # rectangles
-    area_a = (a["xmax"] - a["xmin"]) * (a["ymax"] - a["ymin"])
-    area_b = (b["xmax"] - b["xmin"]) * (b["ymax"] - b["ymin"])
-
-    # compute the area of intersection rectangle
-    area_inter = max(0, x_b - x_a) * max(0, y_b - y_a)
-    return area_inter / float(max(area_a + area_b - area_inter, 1))
-
-
-def clean_objs(objects, threshold=.1):
-    # Only keep the ones with best score or no overlap
-    for o1, o2 in combinations(objects, 2):
-        if 'remove' in o1 or 'remove' in o2 or bb_iou(o1['box'],
-                                                      o2['box']) <= threshold:
-            continue
-        if o1['score'] > o2['score']:
-            o2['remove'] = True
-        else:
-            o1['remove'] = True
-    return [x for x in objects if 'remove' not in x]
-
-
-def merge_results(images):
-    result = dict(results=[])
-    for data in images:
-        for item in data['prediction']['results']:
-            result['results'].append(item)
-            for b in [item['box'], item['vehicle'].get("box", {})]:
-                b['ymin'] += data['y']
-                b['xmin'] += data['x']
-                b['ymax'] += data['y']
-                b['xmax'] += data['x']
-    result['results'] = clean_objs(result['results'])
-    return result
 
 
 def process_image(path, args):
@@ -113,7 +59,7 @@ def process_image(path, args):
     results = []
     for (x, y), im in images:
         im_bytes = io.BytesIO()
-        im.save(im_bytes, 'JPEG')
+        im.save(im_bytes, 'JPEG', quality=95)
         im_bytes.seek(0)
         im_results = recognition_api(im_bytes,
                                      args.regions,

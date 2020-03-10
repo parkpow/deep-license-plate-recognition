@@ -8,7 +8,7 @@ import time
 from collections import OrderedDict
 
 import requests
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageDraw
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -72,6 +72,16 @@ def blur(args, path, api_res):
         filename = os.path.basename(path)
         blurred_image_path = os.path.join(args.blur_dir, filename)
         im.save(blurred_image_path)
+
+
+def draw_bb(im, data):
+    draw = ImageDraw.Draw(im)
+    for result in data:
+        b = result['box']
+        draw.rectangle(((b['xmin'], b['ymin']), (b['xmax'], b['ymax'])),
+                       (0, 255, 0))
+    im = im.resize((1920, 1050))
+    return im
 
 
 def blurring_args(parser):
