@@ -62,7 +62,7 @@ def process_image(path, args, i):
         y = 0
         win_size = .55
         width, height = source_im.width * win_size, source_im.height * win_size
-        for x in [0, (1 - win_size) * source_im.width]:
+        for x in [0, int((1 - win_size) * source_im.width)]:
             images.append(((x, y), source_im.crop(
                 (x, y, x + width, y + height))))
 
