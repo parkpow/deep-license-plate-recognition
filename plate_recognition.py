@@ -56,6 +56,9 @@ def recognition_api(fp, regions, api_key=None, sdk_url=None, config={}):
                 time.sleep(1)
             else:
                 break
+    if response.status_code != 201:
+        print(response.text)
+        exit(1)
     return response.json(object_pairs_hook=OrderedDict)
 
 
