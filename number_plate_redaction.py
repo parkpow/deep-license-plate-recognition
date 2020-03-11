@@ -52,7 +52,9 @@ def merge_results(images):
 
 
 def process_image(path, args, i):
-    config = dict(threshold_d=.2, threshold_o=.5, mode='redaction')
+    config = dict(threshold_d=args.detection_threshold,
+                  threshold_o=args.ocr_threshold,
+                  mode='redaction')
 
     # Predictions
     source_im = Image.open(path)
@@ -70,6 +72,8 @@ def process_image(path, args, i):
     results = []
     for (x, y), im in images:
         im_bytes = io.BytesIO()
+        if im.mode == 'RGBA':
+            im = im.convert('RGB')
         im.save(im_bytes, 'JPEG', quality=95)
         im_bytes.seek(0)
         im_results = recognition_api(im_bytes,
@@ -91,6 +95,18 @@ def custom_args(parser):
     parser.epilog += 'To analyse the image for redaction: python number_plate_redaction.py  --api-key MY_API_KEY --split-image /tmp/car.jpg'
     parser.add_argument('--split-image', action='store_true', help='')
     parser.add_argument('--show-boxes', action='store_true')
+    parser.add_argument(
+        '--detection-threshold',
+        type=float,
+        default=.2,
+        help='Keep all detections above this threshold. Between 0 and 1.')
+    parser.add_argument(
+        '--ocr-threshold',
+        type=float,
+        default=.5,
+        help=
+        'Keep all plates if the characters reading score is above this threshold. Between 0 and 1.'
+    )
 
 
 def main():
