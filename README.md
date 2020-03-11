@@ -69,16 +69,16 @@ You can also run the license plate reader on many files at once. To run the scri
 
 ### Blurring License Plates and Redaction
 
-You can also blur the license plate with `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. Blurred images are saved to `--blur-dir`. For example:
+You can also blur the license plate with `--blur-amount AMOUNT`. `AMOUNT` is a number between 0 and 50. Blurred images are saved to a new file with `_blurred` suffix. For example:
 
 ```
 pip install pillow
-python plate_recognition.py --api-key MY_API_KEY --blur-amount 4 --blur-dir /path/to/save/blurred/images /path/to/vehicle.jpg
+python plate_recognition.py --api-key MY_API_KEY --blur-amount 4 --blur-plates /path/to/vehicle.jpg
 ```
 
 #### Redaction Mode
 
-The script `number_plate_redaction.py` differs from the default prediction script because it also detects plates that are **barely readable** and/or very small. 
+The script `number_plate_redaction.py` differs from the default prediction script because it also detects plates that are **barely readable** and/or very small.
 
 In addition, it can **split the image** in smaller images to better deal with high resolution images. This will use **3 lookups** instead of just 1. To use this options add `--split-image`.
 
@@ -151,7 +151,7 @@ To get started: `python transfer.py --help`
 
 ## Code Samples
 
-See our sample projects to easily get started with the API. 
+See our sample projects to easily get started with the API.
 - Example program in [C++](cpp/).
 - Example program in [C#](csharp/).
 - Example program in [Java](java/).

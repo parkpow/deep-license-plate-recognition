@@ -4,9 +4,9 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import json
 import math
-import os
 import time
 from collections import OrderedDict
+from pathlib import Path
 
 import requests
 from PIL import Image, ImageDraw, ImageFilter
@@ -90,7 +90,7 @@ def draw_bb(im, data):
 
 
 def blurring_args(parser):
-    parser.epilog += 'To blur images: python plate_recognition.py  --sdk-url http://localhost:8080 --blur-amount 4 --blur-dir /path/save/blurred/images /path/to/vehicle-*.jpg'
+    parser.epilog += 'To blur images: python plate_recognition.py  --sdk-url http://localhost:8080 --blur-amount 4 --blur-plates /path/to/vehicle-*.jpg'
     parser.add_argument(
         '--blur-amount',
         help=
@@ -99,8 +99,9 @@ def blurring_args(parser):
         type=float,
         required=False)
     parser.add_argument(
-        '--blur-dir',
-        help='Path to the directory where blurred images are saved.',
+        '--blur-plates',
+        action='store_true',
+        help='Blur license plates and save image in filename_blurred.jpg.',
         required=False)
 
 
@@ -108,20 +109,16 @@ def main():
     args = parse_arguments(blurring_args)
     paths = args.files
 
-    if args.blur_dir and not os.path.exists(args.blur_dir):
-        print('{} does not exist'.format(args.blur_dir))
-        return
-
     result = []
     for path in paths:
         with open(path, 'rb') as fp:
             api_res = recognition_api(fp, args.regions, args.api_key,
                                       args.sdk_url)
-        if args.blur_dir:
+        if args.blur_plates:
             im = blur(Image.open(path), args.blur_amount, api_res)
-            filename = os.path.basename(path)
-            blurred_image_path = os.path.join(args.blur_dir, filename)
-            im.save(blurred_image_path)
+            filename = Path(path)
+            im.save(filename.parent / ('%s_blurred%s' %
+                                       (filename.stem, filename.suffix)))
 
         result.append(api_res)
     print(json.dumps(result, indent=2))
