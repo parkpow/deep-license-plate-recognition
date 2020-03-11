@@ -73,8 +73,9 @@ def blur(im, blur_amount, api_res):
         ic = im.crop(crop_box)
 
         # Increase amount of blur with size of bounding box
-        blur_amount = math.sqrt(width * height) * .3 * blur_amount / 10
-        blur_image = ic.filter(ImageFilter.GaussianBlur(radius=blur_amount))
+        blur_image = ic.filter(
+            ImageFilter.GaussianBlur(radius=math.sqrt(width * height) * .3 *
+                                     blur_amount / 10))
         im.paste(blur_image, crop_box)
     return im
 
