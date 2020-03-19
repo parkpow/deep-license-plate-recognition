@@ -29,5 +29,5 @@ def benchmark():
 
 
 elapsed_time = timeit.timeit(
-    benchmark, number=1) / 100  # number value should be set to 500
+    benchmark, number=1) / 100  # number value should be set to 50
 print("Elapsed time:", elapsed_time)
