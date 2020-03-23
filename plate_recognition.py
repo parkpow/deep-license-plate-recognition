@@ -38,7 +38,7 @@ def parse_arguments(args_hook=lambda _: _):
     return args
 
 
-def recognition_api(fp, regions, api_key=None, sdk_url=None, config={}):
+def recognition_api(fp, regions=[], api_key=None, sdk_url=None, config={}):
     data = dict(regions=regions, config=json.dumps(config))
     if sdk_url:
         response = requests.post(sdk_url + '/alpr',
