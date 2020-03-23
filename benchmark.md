@@ -1,10 +1,10 @@
 # SDK Benchmark
 
-**Test Conditions**
-- `assets/car-4k.jpg` is resized to target resolution.
-- API is called 50 times.
+The results are obtained using [benchmark.py](benchmark.py). 
 - SDK is started with one worker per vCPU.
-- Calls are parallelized with 4 threads.
+- The image used is `assets/car-4k.jpg` resized to target resolution.
+- API is called 50 times.
+- API calls are parallelized with 4 threads.
 
 **Notes**
 - Speed is duration / number_of_calls.
