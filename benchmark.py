@@ -26,7 +26,7 @@ def parse_arguments():
 def print_table(results):
     if not results:
         return
-    print('| Mode     | Resolution | Average | l_min  | l_max  |')
+    print('| Mode     | Resolution | Speed   | l_min  | l_max  |')
     print('| -------- | ---------- | ------- | ------ | ------ |')
     for result in results:
         print(
