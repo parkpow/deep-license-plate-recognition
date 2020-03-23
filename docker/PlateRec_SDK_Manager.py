@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
 
-import os
+import os, sys
 import subprocess
 import time
 import webbrowser
@@ -322,7 +322,7 @@ def main():
         print('Program will exit in 30seconds (press Ctrl-C to exit now).')
         webbrowser.open('https://docs.docker.com/install/')
         time.sleep(30)
-        exit(1)
+        sys.exit(1)
 
     actions = ('Install', 'Update', 'Uninstall', 'Quit')
     action_choice = 1
@@ -333,7 +333,7 @@ def main():
         choice = str(input("Pick an action > ") or '')
         if choice == '4':
             print("Quit!")
-            exit(1)
+            sys.exit(1)
         if choice in ['1', '2', '3']:
             action_choice = choice
             break
