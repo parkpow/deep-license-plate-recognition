@@ -1,9 +1,11 @@
 import argparse
+import math
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from timeit import default_timer
 
 from PIL import Image
+from psutil import cpu_percent, process_iter
 
 from plate_recognition import recognition_api
 
@@ -62,9 +64,32 @@ def benchmark(args, executor):
     return results
 
 
+def mem_usage():
+    usage = {}
+    for process in process_iter():
+        if 'main.py' in process.cmdline() or 'start.sh' in process.cmdline():
+            usage[process.pid] = process.memory_info()
+    return usage
+
+
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    sign = ''
+    if size_bytes < 0:
+        size_bytes *= -1
+        sign = '-'
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s%s %s" % (sign, s, size_name[i])
+
+
 def main():
     args = parse_arguments()
-
+    initial_mem = mem_usage()
+    cpu_percent()  # first time this is called it will return a meaningless 0.0
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         # Warmup
         list(
@@ -74,6 +99,14 @@ def main():
         # Benchmark
         results = benchmark(args, executor)
 
+    # Memory Usage
+    print('CPU: %s%%' % cpu_percent())
+    for pid, mem in mem_usage().items():
+        print('PID: %5s, RES %10s (%10s), SHR %10s (%10s)' %
+              (pid, convert_size(
+                  mem.rss), convert_size(mem.rss - initial_mem[pid].rss),
+               convert_size(mem.shared),
+               convert_size(mem.shared - initial_mem[pid].shared)))
     print_table(results)
 
 
