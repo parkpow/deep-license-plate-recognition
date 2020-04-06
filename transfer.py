@@ -29,7 +29,7 @@ try:
 except ImportError:
     print('A dependency is missing. Please install: '
           'https://jsonlines.readthedocs.io/en/latest/#installation')
-    exit(1)      
+    exit(1)
 
 _queue = queue.Queue(256)  # type: ignore
 
@@ -47,10 +47,10 @@ Important! Before starting the image transfer:
 
 
 Here is an example of how to call this script if using Local SDK:
-python transfer.py --source /home/alpr/camera-images/ --archive /home/alpr/archived-images/ --alpr-api http://localhost:8080/alpr --parkpow-token MY_TOKEN --cam-pos 2
+python transfer.py --source /home/alpr/camera-images/ --archive /home/alpr/archived-images/ --alpr-api http://localhost:8080/v1/plate-reader/ --parkpow-token MY_TOKEN --cam-pos 2
 
 Example of how to call this script is using the Cloud Api
-python transfer.py --source /home/alpr/camera-images/ --archive /home/alpr/archived-images/ --alpr-api https://api.platerecognizer.com/v1/plate-reader --platerec-token MY_PLATEREC_TOKEN --parkpow-token MY_TOKEN --cam-pos 2
+python transfer.py --source /home/alpr/camera-images/ --archive /home/alpr/archived-images/ --alpr-api https://api.platerecognizer.com/v1/plate-reader/ --platerec-token MY_PLATEREC_TOKEN --parkpow-token MY_TOKEN --cam-pos 2
 
 
 The path of each image must contain a directory with the camera name.
@@ -95,10 +95,9 @@ If it the --api-url is not defined, the results will be saved in the output file
         help='URL of Cloud/SDK API.',
         default='https://api.platerecognizer.com/v1/plate-reader')
 
-    parser.add_argument(
-        '--use-parkpow',
-        help='Upload results to ParkPow',
-        action='store_true')
+    parser.add_argument('--use-parkpow',
+                        help='Upload results to ParkPow',
+                        action='store_true')
 
     parser.add_argument('--output-file',
                         help="Json file with response",
@@ -168,7 +167,7 @@ def alpr(path, args):
                                          files=dict(upload=fp),
                                          timeout=10)
         else:
-            time.sleep(1) # Wait for the whole image to arrive
+            time.sleep(1)  # Wait for the whole image to arrive
             filename = os.path.basename(path)
             response = requests.post(
                 args.alpr_api,
@@ -272,17 +271,18 @@ def validate_env(args):
         messages.append('%s does not exist.' % args.source)
 
     if not args.use_parkpow and not args.output_file:
-        messages.append("Pass argument --use-parkpow or the argument --output-file")
-    if 'http' not in args.alpr_api:
         messages.append(
-            "--alpr-api is not a valid URL")        
-    if '/v1/plate-reader' in args.alpr_api and not args.platerec_token:
+            "Pass argument --use-parkpow or the argument --output-file")
+    if 'http' not in args.alpr_api:
+        messages.append("--alpr-api is not a valid URL")
+    if 'api.platerecognizer.com' in args.alpr_api and not args.platerec_token:
         messages.append(
             "Missing argument --platerec-token or SDK argument --alpr-api")
 
-    elif '/alpr' in args.alpr_api:
+    elif 'api.platerecognizer.com' not in args.alpr_api:
         try:
-            response = requests.get(args.alpr_api.rsplit('/', 1)[0], timeout=2)
+            response = requests.get(args.alpr_api.rsplit('/v1', 1)[0],
+                                    timeout=2)
         except Exception:
             response = None
         if not response or response.status_code != 200:
@@ -291,8 +291,7 @@ def validate_env(args):
     if args.use_parkpow:
         api_url = 'https://app.parkpow.com/api/v1/log-vehicle'
         try:
-            response = requests.get(api_url.rsplit('/', 1)[0] +
-                                    '/parking-list',
+            response = requests.get(api_url.rsplit('/', 1)[0] + '/parking-list',
                                     headers={
                                         'Authorization':
                                         'Token {}'.format(args.parkpow_token)

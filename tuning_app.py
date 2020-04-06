@@ -35,10 +35,6 @@ def main():
                               sdk_url=sdk_url,
                               mmc=mmc,
                               config=config)
-    draw_bb(
-        image, res['results'],
-        None, lambda result: '%s [%s] (%s, %s)' % (result['plate'], result[
-            'region']['code'], result['score'], result['dscore']))
     vehicles = []
     for result in res['results']:
         if 'vehicle' in result:
@@ -52,10 +48,14 @@ def main():
                 details.append('{color} {score:.2f}'.format(**color[0]))
             result['vehicle']['details'] = ', '.join(details)
             vehicles.append(result['vehicle'])
-    st.image(
-        draw_bb(
-            image, vehicles, None, lambda vehicle: '%s (%s) [%s]' % (vehicle[
-                'type'], vehicle['score'], vehicle['details'])))
+    draw_bb(
+        image, vehicles, None, lambda vehicle: '%s (%s) [%s]' % (vehicle[
+            'type'], vehicle['score'], vehicle['details']))
+    draw_bb(
+        image, res['results'],
+        None, lambda result: '%s [%s] (%s, %s)' % (result['plate'], result[
+            'region']['code'], result['score'], result['dscore']))
+    st.image(image)
     res
 
 

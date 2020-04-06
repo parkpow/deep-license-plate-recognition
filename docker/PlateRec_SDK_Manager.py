@@ -27,7 +27,7 @@ def verify_docker_install():
 
 def test_install(port, token, counter=0):
     try:
-        url = 'http://localhost:{}/alpr'.format(port)
+        url = 'http://localhost:{}/v1/plate-reader/'.format(port)
         req = Request(url)
         req.get_method = lambda: 'POST'
         req.add_header('Authorization', 'Token {}'.format(token))
@@ -81,7 +81,7 @@ def install_pr(image,
     print("\nUse the command below to run the sdk again.")
     print(run_cmd)
     print(
-        '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/alpr'
+        '\nTo use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/v1/plate-reader/'
     )
     print(
         "To exit this program, just close this Command Line Interface window.\n"

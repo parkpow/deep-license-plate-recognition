@@ -67,7 +67,7 @@ def recognition_api(fp,
         data['timestamp'] = timestamp
     if sdk_url:
         fp.seek(0)
-        response = requests.post(sdk_url + '/alpr',
+        response = requests.post(sdk_url + '/v1/plate-reader/',
                                  files=dict(upload=fp),
                                  data=data)
     else:
