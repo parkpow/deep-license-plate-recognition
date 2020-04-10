@@ -111,7 +111,11 @@ def blur(im, blur_amount, api_res):
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
     draw = ImageDraw.Draw(im)
-    font = ImageFont.load_default()
+    font_path = Path('assets/DejaVuSansMono.ttf')
+    if font_path.exists():
+        font = ImageFont.truetype(str(font_path), 10)
+    else:
+        font = ImageFont.load_default()
     rect_color = (0, 255, 0)
     for result in data:
         b = result['box']
@@ -126,7 +130,7 @@ def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
         if text_func:
             text = text_func(result)
             text_width, text_height = font.getsize(text)
-            margin = math.ceil(0.2 * text_height)
+            margin = math.ceil(0.05 * text_height)
             draw.rectangle(
                 [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
                  (b['xmin'] + text_width + 2 * margin, b['ymin'])],

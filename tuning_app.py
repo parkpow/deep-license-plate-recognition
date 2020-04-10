@@ -1,3 +1,5 @@
+import copy
+
 import streamlit as st
 from PIL import Image
 
@@ -23,18 +25,40 @@ def sidebar():
     return config, regions, mmc, sdk_url
 
 
-def main():
-    config, regions, mmc, sdk_url = sidebar()
-    my_file = st.file_uploader('Pick an image', type=['jpg', 'png'])
-    if not my_file:
-        return
-    image = Image.open(my_file)
+def max_width():
+    max_width_str = f"max-width: 2000px;"
+    st.markdown(
+        f"""
+    <style>
+    .reportview-container .main .block-container{{
+        {max_width_str}
+    }}
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+
+@st.cache
+def recognition(my_file, regions, sdk_url, mmc, config):
     with st.spinner('Processing'):
         res = recognition_api(my_file,
                               regions=regions,
                               sdk_url=sdk_url,
                               mmc=mmc,
                               config=config)
+    return res
+
+
+def main():
+    max_width()
+    config, regions, mmc, sdk_url = sidebar()
+    my_file = st.file_uploader('Pick an image', type=['jpg', 'png'])
+    if not my_file:
+        return
+    image = Image.open(my_file)
+    res = recognition(my_file, regions, sdk_url, mmc, config)
+    res = copy.deepcopy(res)
     vehicles = []
     for result in res['results']:
         if 'vehicle' in result:
@@ -48,14 +72,16 @@ def main():
                 details.append('{color} {score:.2f}'.format(**color[0]))
             result['vehicle']['details'] = ', '.join(details)
             vehicles.append(result['vehicle'])
-    draw_bb(
-        image, vehicles, None, lambda vehicle: '%s (%s) [%s]' % (vehicle[
-            'type'], vehicle['score'], vehicle['details']))
-    draw_bb(
-        image, res['results'],
-        None, lambda result: '%s [%s] (%s, %s)' % (result['plate'], result[
-            'region']['code'], result['score'], result['dscore']))
-    st.image(image)
+    overlay = st.checkbox('Show Overlay', value=True)
+    if overlay:
+        draw_bb(
+            image, vehicles, None, lambda vehicle: '%s (%s) [%s]' % (vehicle[
+                'type'], vehicle['score'], vehicle['details']))
+        draw_bb(
+            image, res['results'],
+            None, lambda result: '%s [%s] (%s, %s)' % (result['plate'].upper(
+            ), result['region']['code'], result['score'], result['dscore']))
+    st.image(image, width=image.width)
     res
 
 
