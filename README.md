@@ -13,6 +13,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
     - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
+    - [Benchmark](benchmark.md)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
   - [Number Plate Recognition on a **Live Camera Stream**](#number-plate-recognition-on-a-live-camera-stream)
   - [Automatic Image Transfer](#automatic-image-transfer)
@@ -28,7 +29,7 @@ pip install requests
 python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle.jpg
 ```
 
-The **result** includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. The JSON output can easily be consumed by your application.
+The **result** includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. View the details of the results on our [documentation](http://docs.platerecognizer.com/#license-plate-recognition).
 
 ```javascript
 [
