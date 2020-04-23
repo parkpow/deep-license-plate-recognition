@@ -37,11 +37,6 @@ def parse_arguments(args_hook=lambda _: _):
     parser.add_argument('--camera-id',
                         help="Name of the source camera.",
                         required=False)
-
-    parser.add_argument(
-        '--mmc',
-        action='store_true',
-        help='Predict vehicle make and model (SDK only). It has to be enabled.')
     parser.add_argument('files', nargs='+', help='Path to vehicle images')
     args_hook(parser)
     args = parser.parse_args()
@@ -92,13 +87,7 @@ def blur(im, blur_amount, api_res):
     for res in api_res.get('results', []):
         b = res['box']
         width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
-
-        # Decrease padding size for large bounding boxes
-        padding_x = int(max(0, width * (.3 * math.exp(-10 * width / im.width))))
-        padding_y = int(
-            max(0, height * (.3 * math.exp(-10 * height / im.height))))
-        crop_box = (b['xmin'] - padding_x, b['ymin'] - padding_y,
-                    b['xmax'] + padding_x, b['ymax'] + padding_y)
+        crop_box = (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
         ic = im.crop(crop_box)
 
         # Increase amount of blur with size of bounding box
@@ -202,6 +191,10 @@ def custom_args(parser):
                         help='Format of the result.',
                         default='json',
                         choices='json csv'.split())
+    parser.add_argument(
+        '--mmc',
+        action='store_true',
+        help='Predict vehicle make and model (SDK only). It has to be enabled.')
     parser.add_argument(
         '--blur-amount',
         help=

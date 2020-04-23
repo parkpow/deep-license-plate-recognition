@@ -1,6 +1,8 @@
 import io
 import json
+import math
 from itertools import combinations
+from pathlib import Path
 
 from PIL import Image
 
@@ -51,6 +53,25 @@ def merge_results(images):
     return result
 
 
+def inside(a, b):
+    return (a["xmin"] > b["xmin"] and a["ymin"] > b["ymin"] and
+            a["xmax"] < b["xmax"] and a["ymax"] < b["ymax"])
+
+
+def post_processing(results):
+    new_list = []
+    for item in results['results']:
+        if item['score'] < .2 and any([
+                inside(x['box'], item['box'])
+                for x in results['results']
+                if x != item
+        ]):
+            continue
+        new_list.append(item)
+    results['results'] = new_list
+    return results
+
+
 def process_image(path, args, i):
     config = dict(threshold_d=args.detection_threshold,
                   threshold_o=args.ocr_threshold,
@@ -58,6 +79,8 @@ def process_image(path, args, i):
 
     # Predictions
     source_im = Image.open(path)
+    if source_im.mode != 'RGB':
+        source_im = source_im.convert('RGB')
     images = [((0, 0), source_im)]  # Entire image
     # Top left and top right crops
     if args.split_image:
@@ -72,8 +95,6 @@ def process_image(path, args, i):
     results = []
     for (x, y), im in images:
         im_bytes = io.BytesIO()
-        if im.mode == 'RGBA':
-            im = im.convert('RGB')
         im.save(im_bytes, 'JPEG', quality=95)
         im_bytes.seek(0)
         im_results = recognition_api(im_bytes,
@@ -82,10 +103,31 @@ def process_image(path, args, i):
                                      args.sdk_url,
                                      config=config)
         results.append(dict(prediction=im_results, x=x, y=y))
-    results = merge_results(results)
+    results = post_processing(merge_results(results))
+    results['filename'] = Path(path).name
 
-    if args.show_boxes:
-        blur(source_im, 5, results).show()
+    # Set bounding box padding
+    for item in results['results']:
+        # Decrease padding size for large bounding boxes
+        b = item['box']
+        width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
+        padding_x = int(
+            max(0, width * (.3 * math.exp(-10 * width / source_im.width))))
+        padding_y = int(
+            max(0, height * (.3 * math.exp(-10 * height / source_im.height))))
+        b['xmin'] = b['xmin'] - padding_x
+        b['ymin'] = b['ymin'] - padding_y
+        b['xmax'] = b['xmax'] + padding_x
+        b['ymax'] = b['ymax'] + padding_y
+
+    if args.show_boxes or args.save_blurred:
+        im = blur(source_im, 5, results)
+        if args.show_boxes:
+            im.show()
+        if args.save_blurred:
+            filename = Path(path)
+            im.save(filename.parent / ('%s_blurred%s' %
+                                       (filename.stem, filename.suffix)))
     if 0:
         draw_bb(source_im, results['results']).show()
     return results
@@ -93,8 +135,19 @@ def process_image(path, args, i):
 
 def custom_args(parser):
     parser.epilog += 'To analyse the image for redaction: python number_plate_redaction.py  --api-key MY_API_KEY --split-image /tmp/car.jpg'
-    parser.add_argument('--split-image', action='store_true', help='')
-    parser.add_argument('--show-boxes', action='store_true')
+    parser.add_argument(
+        '--split-image',
+        action='store_true',
+        help=
+        'Do extra lookups on parts of the image. Useful on high resolution images.'
+    )
+    parser.add_argument('--show-boxes',
+                        action='store_true',
+                        help='Display the resulting blurred image.')
+    parser.add_argument(
+        '--save-blurred',
+        action='store_true',
+        help='Blur license plates and save image in filename_blurred.jpg.')
     parser.add_argument(
         '--detection-threshold',
         type=float,
@@ -113,7 +166,14 @@ def main():
     args = parse_arguments(custom_args)
     result = []
     for i, path in enumerate(args.files):
-        result.append(process_image(path, args, i))
+        if Path(path).is_file():
+            result.append(process_image(path, args, i))
+    if 0:
+        for im_result in result:
+            for i, x in enumerate(im_result['results']):
+                im_result['results'][i] = dict(dscore=x['dscore'],
+                                               score=x['score'],
+                                               box=x['box'])
     print(json.dumps(result, indent=2))
 
 
