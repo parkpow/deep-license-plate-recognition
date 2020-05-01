@@ -56,7 +56,7 @@ def main():
     my_file = st.file_uploader('Pick an image', type=['jpg', 'png'])
     if not my_file:
         return
-    image = Image.open(my_file)
+    image = Image.open(my_file).convert('RGB')
     res = recognition(my_file, regions, sdk_url, mmc, config)
     res = copy.deepcopy(res)
     vehicles = []
