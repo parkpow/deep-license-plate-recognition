@@ -16,5 +16,6 @@ PlateReader.Read("Web Api Url", "File path", "Regions", "Token");
 ```
 - Command Line:
 ```
-PlateRecognizer.exe /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg"
+PlateRecognizer.exe /F:/tmp/car.jpg /T:MY_TOKEN /R:fr,it
+PlateRecognizer.exe /T:MY_TOKEN /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg"
 ```

@@ -25,6 +25,7 @@ namespace PlateRecognizer
         /// <returns></returns>
         public static PlateReaderResult Read(string postUrl, string fileName, byte[] fileData, string regions, string token)
         {
+
             try
             {
                 PlateReaderResult result = null;
@@ -99,7 +100,7 @@ namespace PlateRecognizer
                     "application/octet-stream");
 
                 formDataStream.Write(Encoding.UTF8.GetBytes(header), 0, Encoding.UTF8.GetByteCount(header));
-              
+
                 // Write the file data directly to the Stream, rather than serializing it to a string.
                 formDataStream.Write(fileData, 0, fileData.Length);
             }
