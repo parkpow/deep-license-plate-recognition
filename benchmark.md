@@ -3,14 +3,14 @@
 The results are obtained using [benchmark.py](benchmark.py).
 - SDK is started with one worker per vCPU.
 - The image used is `assets/car-4k.jpg` resized to target resolution.
-- API is called 50 times.
-- API calls are parallelized with 4 threads.
+- API is called 50 times for each configuration.
+- API calls are parallelized. The client code makes **4 calls concurrently**.
 
-**Notes**
-- Speed is duration / number_of_calls.
-- All numbers are in milliseconds.
-- l_min is the fastest API call and l_max is the slowest API call (measured in a thread).
-- In fast mode, number of detection steps is always 1. May result in lower accuracy when using images with small vehicles.
+#### Notes
+- **Speed** is duration / number_of_calls.
+- All numbers are in **milliseconds**.
+- **l_min** is the fastest API call and **l_max** is the slowest API call (measured in a thread).
+- In **fast** mode, number of detection steps is always 1. May result in lower accuracy when using images with small vehicles.
 
 ## Google Cloud Instance
 
