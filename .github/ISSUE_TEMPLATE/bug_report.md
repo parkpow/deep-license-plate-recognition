@@ -1,6 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
@@ -21,6 +24,8 @@ If applicable, add the image you are trying to recognize.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows]
+ - Version: 
+ - Hardware:
 
 **Additional context**
 Add any other context about the problem here.
