@@ -19,9 +19,12 @@ def sidebar():
     regions = st.sidebar.text_input('Regions').split()
     fast = st.sidebar.checkbox('Fast Mode')
     mmc = st.sidebar.checkbox('MMC')
+    redaction = st.sidebar.checkbox('Redaction')
     config = dict(threshold_d=threshold_d, threshold_o=threshold_o)
     if fast:
         config['mode'] = 'fast'
+    if redaction:
+        config['mode'] = 'redaction'
     return config, regions, mmc, sdk_url
 
 
@@ -53,7 +56,8 @@ def recognition(my_file, regions, sdk_url, mmc, config):
 def main():
     max_width()
     config, regions, mmc, sdk_url = sidebar()
-    my_file = st.file_uploader('Pick an image', type=['jpg', 'png'])
+    my_file = st.file_uploader('Pick an image',
+                               type=['jpg', 'png', 'jpeg', 'gif', 'bmp'])
     if not my_file:
         return
     image = Image.open(my_file).convert('RGB')
