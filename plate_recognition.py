@@ -186,6 +186,7 @@ def save_results(results, args):
 def custom_args(parser):
     parser.epilog += 'To blur images: python plate_recognition.py --sdk-url http://localhost:8080 --blur-amount 4 --blur-plates /path/to/vehicle-*.jpg\n'
     parser.epilog += 'To save results: python plate_recognition.py --sdk-url http://localhost:8080 -o data.csv --format csv /path/to/vehicle-*.jpg\n'
+    parser.add_argument('--engine-config', help='Engine configuration.')
     parser.add_argument('-o', '--output-file', help='Save result to file.')
     parser.add_argument('--format',
                         help='Format of the result.',
@@ -214,12 +215,21 @@ def main():
     paths = args.files
 
     results = []
+    engine_config = {}
+    if args.engine_config:
+        try:
+            json.loads(args.engine_config)
+        except json.JSONDecodeError as e:
+            print(e)
+            return
+
     for path in paths:
         with open(path, 'rb') as fp:
             api_res = recognition_api(fp,
                                       args.regions,
                                       args.api_key,
                                       args.sdk_url,
+                                      config=engine_config,
                                       camera_id=args.camera_id,
                                       mmc=args.mmc)
         if args.blur_plates:
