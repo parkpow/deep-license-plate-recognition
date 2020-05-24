@@ -121,8 +121,8 @@ The results are obtained using [benchmark.py](benchmark.py).
 ### Jetson Nano (estimates)
 | Mode    | Resolution | Speed |
 | ------- | ---------- | ----- |
-| regular | 1280x720   | 300   |
-| fast    | 1280x720   | 250   |
+| regular | 1280x720   | 700   |
+| fast    | 1280x720   | 350   |
 
 ### LattePanda Alpha (estimates)
 | Mode    | Resolution | Speed |
