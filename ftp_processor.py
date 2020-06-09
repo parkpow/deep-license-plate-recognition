@@ -39,6 +39,7 @@ def parse_arguments(args_hook=lambda _: _):
 
 
 def custom_args(parser):
+    parser.epilog += 'To process images and save result as json: python ftp_processor.py --sdk-url http://localhost:8080  --ftp-host hostname --ftp-user username --ftp-password password\n'
     parser.add_argument('-t', '--timestamp', help='Timestamp.', required=False)
     parser.add_argument('--ftp-host', help='FTP host.', required=True)
     parser.add_argument('--ftp-user', help='FTP user.', required=True)
@@ -48,18 +49,15 @@ def custom_args(parser):
         '--delete',
         help='Remove images from the FTP server after processing.',
         default=False)
+    parser.add_argument('-o', '--output-file', help='Save result to file.')
+    parser.add_argument('--format',
+                        help='Format of the result.',
+                        default='json',
+                        choices='json csv'.split())
 
 
 def main():
     args = parse_arguments(custom_args)
-
-    engine_config = {}
-    if args.engine_config:
-        try:
-            json.loads(args.engine_config)
-        except json.JSONDecodeError as e:
-            print(e)
-            return
 
     ftp = FTP()
     ftp.connect(args.ftp_host)
@@ -78,10 +76,8 @@ def main():
                                               args.regions,
                                               args.api_key,
                                               args.sdk_url,
-                                              config=engine_config,
                                               camera_id=args.camera_id,
-                                              timestamp=args.timestamp,
-                                              mmc=args.mmc)
+                                              timestamp=args.timestamp)
                     results.append(api_res)
                 if args.delete:
                     ftp.delete(ftp_file)
