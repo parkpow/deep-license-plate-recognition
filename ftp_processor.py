@@ -1,10 +1,12 @@
 import argparse
-import imghdr
 import json
+import logging
 import tempfile
 from ftplib import FTP
 
 from plate_recognition import recognition_api, save_results
+
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -49,6 +51,10 @@ def custom_args(parser):
         '--delete',
         help='Remove images from the FTP server after processing.',
         default=False)
+    parser.add_argument('-f',
+                        '--folder',
+                        help='Specify folder with images on the FTP server.',
+                        default='/')
     parser.add_argument('-o', '--output-file', help='Save result to file.')
     parser.add_argument('--format',
                         help='Format of the result.',
@@ -62,25 +68,24 @@ def main():
     ftp = FTP()
     ftp.connect(args.ftp_host)
     ftp.login(args.ftp_user, args.ftp_password)
-    ftp.cwd('/drivehqshare/marcemile/GroupWrite')
+    ftp.cwd(args.folder)
     ftp_files = ftp.nlst()
 
     results = []
 
     for ftp_file in ftp_files:
-        with tempfile.NamedTemporaryFile(mode='wb') as image:
+        logging.info(ftp_file)
+        with tempfile.NamedTemporaryFile(mode='rb+') as image:
             ftp.retrbinary(f'RETR {ftp_file}', image.write)
-            if imghdr.what(image.name):  # check is it image or not
-                with open(image.name, 'rb') as fp:
-                    api_res = recognition_api(fp,
-                                              args.regions,
-                                              args.api_key,
-                                              args.sdk_url,
-                                              camera_id=args.camera_id,
-                                              timestamp=args.timestamp)
-                    results.append(api_res)
-                if args.delete:
-                    ftp.delete(ftp_file)
+            api_res = recognition_api(image,
+                                      args.regions,
+                                      args.api_key,
+                                      args.sdk_url,
+                                      camera_id=args.camera_id,
+                                      timestamp=args.timestamp)
+            results.append(api_res)
+        if args.delete:
+            ftp.delete(ftp_file)
 
     if args.output_file:
         save_results(results, args)

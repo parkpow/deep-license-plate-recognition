@@ -101,6 +101,16 @@ To use a locally hosted sdk, pass the url to the docker container as follows:
 
 <br><br><br>
 
+### Process images from the FTP server
+
+To process images from the FTP server run `ftp_processor` script:
+
+`python ftp_processor.py --api-key MY_API_KEY --ftp-host hostname --ftp-user user --ftp-password password --folder /path/to/server_folder`
+
+To remove images from FTP server after processing, add `--delete` key to args.
+
+<br><br><br>
+
 ## Number Plate Recognition on a Video
 
 To do ANPR on videos, you will also need to **install OpenCV**. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
