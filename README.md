@@ -12,6 +12,7 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
     - [Lookups For a Specific Region](#lookups-for-a-specific-region)
     - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
     - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
+    - [Process images from the FTP server](#process-images-from-the-ftp-server)
     - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
     - [Benchmark](benchmark.md)
   - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)

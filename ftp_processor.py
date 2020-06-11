@@ -50,7 +50,7 @@ def custom_args(parser):
         '-d',
         '--delete',
         help='Remove images from the FTP server after processing.',
-        default=False)
+        action='store_true')
     parser.add_argument('-f',
                         '--folder',
                         help='Specify folder with images on the FTP server.',
