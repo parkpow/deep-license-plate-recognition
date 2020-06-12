@@ -70,13 +70,14 @@ def main():
     ftp.login(args.ftp_user, args.ftp_password)
     ftp.cwd(args.folder)
     ftp_files = ftp.nlst()
+    logging.info('Connected. Found %s file(s) in %s.', len(ftp_file), args.folder) 
 
     results = []
 
     for ftp_file in ftp_files:
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(mode='rb+') as image:
-            ftp.retrbinary(f'RETR {ftp_file}', image.write)
+            ftp.retrbinary('RETR ' + ftp_file, image.write)
             api_res = recognition_api(image,
                                       args.regions,
                                       args.api_key,
