@@ -77,7 +77,8 @@ def main():
 
     for ftp_file in ftp_files:
         logging.info(ftp_file)
-        with tempfile.NamedTemporaryFile(mode='rb+') as image:
+        with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
+                                         mode='rb+') as image:
             ftp.retrbinary('RETR ' + ftp_file, image.write)
             api_res = recognition_api(image,
                                       args.regions,
