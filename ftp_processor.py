@@ -70,7 +70,8 @@ def main():
     ftp.login(args.ftp_user, args.ftp_password)
     ftp.cwd(args.folder)
     ftp_files = ftp.nlst()
-    logging.info('Connected. Found %s file(s) in %s.', len(ftp_file), args.folder) 
+    logging.info('Connected. Found %s file(s) in %s.', len(ftp_files),
+                 args.folder)
 
     results = []
 
