@@ -19,10 +19,14 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
 
 ## Reading License Plates from Images
 
-Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source=github&utm_medium=website). Replace **MY_API_KEY** with your API key and run the following command:
+Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source=github&utm_medium=website). Replace **MY_API_KEY** with your API key and run the command below.
 
 ```
-pip install requests
+# Getting started!
+git clone https://github.com/marcbelmont/deep-license-plate-recognition.git
+cd deep-license-plate-recognition
+pip install requests pillow
+
 python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle.jpg
 ```
 

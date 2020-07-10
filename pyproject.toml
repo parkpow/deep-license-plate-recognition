@@ -8,7 +8,6 @@ authors = ["Marc Belmont"]
 python = "^3.6.1"
 Pillow = "^7.1"
 requests = "^2.23.0"
-opencv-python = "^4.2.0"
 psutil = "^5.7.0"
 streamlit = "^0.57.3"
 
