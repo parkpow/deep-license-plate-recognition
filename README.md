@@ -9,21 +9,17 @@ Integrate with our ALPR API in a few lines of code. Get an easy to use JSON resp
 </p>
 
   - [Reading License Plates from **Images**](#reading-license-plates-from-images)
-    - [Lookups For a Specific Region](#lookups-for-a-specific-region)
-    - [Process Multiple Files (Batch Mode)](#process-multiple-files-batch-mode)
-    - [Running the ALPR Locally (SDK)](#running-the-alpr-locally-sdk)
-    - [Process images from the FTP server](#process-images-from-the-ftp-server)
+    - [Process images from an FTP server](#process-images-from-an-ftp-server)
     - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
     - [Benchmark](benchmark.md)
-  - [Number Plate Recognition on a Video](#number-plate-recognition-on-a-video)
-  - [Number Plate Recognition on a **Live Camera Stream**](#number-plate-recognition-on-a-live-camera-stream)
+  - [Number Plate Recognition on a **Video** or Camera Stream](https://platerecognizer.com/stream/?utm_source=github&utm_medium=website)
   - [Automatic Image Transfer](#automatic-image-transfer)
   - [**Code Samples**](#code-samples)
 
 
 ## Reading License Plates from Images
 
-Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key and run the following command:
+Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source=github&utm_medium=website). Replace **MY_API_KEY** with your API key and run the following command:
 
 ```
 pip install requests
@@ -55,7 +51,7 @@ The **result** includes the bounding `box`es (rectangle around object) and the `
 ```
 
 
-### Lookups For a Specific Region
+#### Lookups For a Specific Region
 
 You can match the license plate patterns of a specific region.
 
@@ -63,11 +59,20 @@ You can match the license plate patterns of a specific region.
 
 
 
-### Process Multiple Files (Batch Mode)
+#### Process Multiple Files (Batch Mode)
 
 You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
 
 `python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
+
+
+#### Running the ALPR Locally (SDK)
+
+To use a locally hosted sdk, pass the url to the docker container as follows:
+
+`python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
+
+<br><br><br>
 
 ### Blurring License Plates and Redaction
 
@@ -83,71 +88,21 @@ python number_plate_redaction.py --api-key API_KEY vehicels.jpg
 python number_plate_redaction.py --sdk-url http://localhost:8080 --split-image vehicels.jpg
 ```
 
-
 <br><br><br>
 
-### [Running the ALPR Locally (SDK)](docker/)
-
-To use a locally hosted sdk, pass the url to the docker container as follows:
-
-`python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
-
-<br><br><br>
-
-### Process images from the FTP server
+### Process images from an FTP server
 
 To process images from the FTP server run `ftp_processor` script:
 
 `python ftp_processor.py --api-key MY_API_KEY --ftp-host hostname --ftp-user user --ftp-password password --folder /path/to/server_folder`
 
-To remove images from FTP server after processing, add `--delete` key to args.
-
-<br><br><br>
-
-## Number Plate Recognition on a Video
-
-To do ANPR on videos, you will also need to **install OpenCV**. Here are the [installation](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html) instructions. Those 2 python packages are also needed:
-
-```
-pip install requests
-pip install pillow
-```
-
-The script `alpr_video.py` lets you perform license plate recognition on a video file. It looks at each frame of the video and reads license plates. If you are only interested in one part of the video, you may use the `--start` and `--end` arguments. Additionally, you can use the `--skip` argument to read 1 in every N frames. It will speed up the analysis of large videos. Here's an example:
-
-`python alpr_video.py --api MY_API_KEY --start 900 --end 2000 --skip 3 /path/to/cars.mp4`
-
-OpenCV is also capable of reading **live video streams**. See this [page](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html) for an example.
-
-<br><br><br>
-
-## Number Plate Recognition on a Live Camera Stream
-Follow the instructions above to **install OpenCV** including the installation of dependencies `requests` and `pillow`. Then run the script as shown below.
-
-Usage:
-
-`python anpr_campera_stream.py --help`
-
-For example:
-
-`python anpr_camera_stream.py --show-image --camera rtsp://192.168.x.x:5554/camera --api-key MY_TOKEN --regions fr --output /path/to/save.csv`
-
-
-CSV output example:
-
-```
-date,license_plate,score,dscore,vehicle_type
-12/19/19 05:33:10,nwk652,0.675,0.704,Car
-12/19/19 05:33:12,nmk669,0.625,0.823,Car
-```
-
-For testing purposes when you don't have a camera, you can install [CamOn Live Streaming app](https://play.google.com/store/apps/details?id=com.miv.rtspcamera) from the Google Play Store and use its RTSP url to stream your mobile phone's camera.
+To remove images from FTP server after processing, add the argument `--delete`.
 
 <br><br><br>
 
 ## Automatic Image Transfer
 
-Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/).
+Monitor a folder and automatically process images (Cloud or SDK) as they are added. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/?utm_source=github&utm_medium=website).
 
 To get started: `python transfer.py --help`
 
@@ -166,6 +121,6 @@ See our sample projects to easily get started with the API.
 <br><br><br>
 
 ---
-Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
+Have questions?  [Let us know](https://platerecognizer.com/contact?utm_source=github&utm_medium=website) how we can help.
 
-Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/).
+Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/?utm_source=github&utm_medium=website).
