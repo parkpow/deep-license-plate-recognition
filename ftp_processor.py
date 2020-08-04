@@ -61,9 +61,10 @@ def custom_args(parser):
                         help='Format of the result.',
                         default='json',
                         choices='json csv'.split())
-    parser.add_argument('-i', '--interval', help='Interval')
+    parser.add_argument('-i', '--interval', type=int, help='Interval')
 
-def ftp_process(args,skip=None):
+
+def ftp_process(args, skip=None):
     ftp = FTP()
     ftp.connect(args.ftp_host)
     ftp.login(args.ftp_user, args.ftp_password)
@@ -75,7 +76,8 @@ def ftp_process(args,skip=None):
     results = []
 
     for ftp_file in ftp_files:
-        if skip and ftp_file in skip:continue
+        if skip and ftp_file in skip:
+            continue
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
                                          mode='rb+') as image:
@@ -97,17 +99,17 @@ def ftp_process(args,skip=None):
 
     return ftp_files
 
+
 def main():
     args = parse_arguments(custom_args)
-    if args.interval and str(args.interval).isdigit() and int(args.interval)>0:
+    if args.interval > 0:
         # Keep track of processed file names
         processed = None
         while True:
-            processed = ftp_process(args,processed)
+            processed = ftp_process(args, processed)
             time.sleep(int(args.interval))
     else:
         ftp_process(args)
-
 
 
 if __name__ == '__main__':
