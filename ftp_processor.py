@@ -61,7 +61,12 @@ def custom_args(parser):
                         help='Format of the result.',
                         default='json',
                         choices='json csv'.split())
-    parser.add_argument('-i', '--interval', type=int, help='Interval')
+    parser.add_argument(
+        '-i',
+        '--interval',
+        type=int,
+        help=
+        'Periodically fetch new images from the server every interval seconds.')
 
 
 def ftp_process(args, skip=None):
@@ -102,12 +107,12 @@ def ftp_process(args, skip=None):
 
 def main():
     args = parse_arguments(custom_args)
-    if args.interval > 0:
+    if args.interval and args.interval > 0:
         # Keep track of processed file names
         processed = None
         while True:
             processed = ftp_process(args, processed)
-            time.sleep(int(args.interval))
+            time.sleep(args.interval)
     else:
         ftp_process(args)
 
