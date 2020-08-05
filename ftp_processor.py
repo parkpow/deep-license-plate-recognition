@@ -3,6 +3,7 @@ import json
 import logging
 import tempfile
 from ftplib import FTP
+import time
 
 from plate_recognition import recognition_api, save_results
 
@@ -60,11 +61,15 @@ def custom_args(parser):
                         help='Format of the result.',
                         default='json',
                         choices='json csv'.split())
+    parser.add_argument(
+        '-i',
+        '--interval',
+        type=int,
+        help=
+        'Periodically fetch new images from the server every interval seconds.')
 
 
-def main():
-    args = parse_arguments(custom_args)
-
+def ftp_process(args, skip=None):
     ftp = FTP()
     ftp.connect(args.ftp_host)
     ftp.login(args.ftp_user, args.ftp_password)
@@ -76,6 +81,8 @@ def main():
     results = []
 
     for ftp_file in ftp_files:
+        if skip and ftp_file in skip:
+            continue
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
                                          mode='rb+') as image:
@@ -94,6 +101,20 @@ def main():
         save_results(results, args)
     else:
         print(json.dumps(results, indent=2))
+
+    return ftp_files
+
+
+def main():
+    args = parse_arguments(custom_args)
+    if args.interval and args.interval > 0:
+        # Keep track of processed file names
+        processed = None
+        while True:
+            processed = ftp_process(args, processed)
+            time.sleep(args.interval)
+    else:
+        ftp_process(args)
 
 
 if __name__ == '__main__':
