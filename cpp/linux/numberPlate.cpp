@@ -23,10 +23,10 @@ namespace
 }
 
 Json::Value sendRequest(string auth_token, string fileName) {
-	
+
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	
+
 	curl_off_t speed_upload, total_time;
 	curl_mime *form = NULL;
 	curl_mimepart *field = NULL;
@@ -42,6 +42,13 @@ Json::Value sendRequest(string auth_token, string fileName) {
 	field = curl_mime_addpart(form);
 	curl_mime_name(field, "upload");
 	curl_mime_filedata(field, fileName.c_str());
+
+	// Add more fields
+	curl_mimepart *part = NULL;
+	part = curl_mime_addpart(form);
+	curl_mime_name(part, "config");
+	curl_mime_data(part, "{\"mode\":\"redaction\"}", CURL_ZERO_TERMINATED);
+
 	curl_easy_setopt(hnd, CURLOPT_MIMEPOST, form);
 
 	struct curl_slist *headers = NULL;
@@ -74,7 +81,7 @@ Json::Value sendRequest(string auth_token, string fileName) {
 			(total_time / 1000000), (long)(total_time % 1000000));
 	}
 
-	curl_easy_cleanup(hnd); 
+	curl_easy_cleanup(hnd);
 	curl_mime_free(form);
 
 	Json::Value jsonData;
