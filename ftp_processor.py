@@ -94,8 +94,10 @@ def ftp_process(args, skip=None):
                                       camera_id=args.camera_id,
                                       timestamp=args.timestamp)
             results.append(api_res)
-        if skip is not None: skip.append(ftp_file)
-        if args.delete: ftp.delete(ftp_file)
+        if skip is not None:
+            skip.append(ftp_file)
+        if args.delete:
+            ftp.delete(ftp_file)
 
     if args.output_file:
         save_results(results, args)
