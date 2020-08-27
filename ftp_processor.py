@@ -81,7 +81,7 @@ def ftp_process(args, skip=None):
     results = []
 
     for ftp_file in ftp_files:
-        if skip and ftp_file in skip:
+        if skip is not None and ftp_file in skip:
             continue
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
@@ -94,6 +94,8 @@ def ftp_process(args, skip=None):
                                       camera_id=args.camera_id,
                                       timestamp=args.timestamp)
             results.append(api_res)
+        if skip is not None:
+            skip.append(ftp_file)
         if args.delete:
             ftp.delete(ftp_file)
 
@@ -109,9 +111,12 @@ def main():
     args = parse_arguments(custom_args)
     if args.interval and args.interval > 0:
         # Keep track of processed file names
-        processed = None
+        processed = []
         while True:
-            processed = ftp_process(args, processed)
+            try:
+                ftp_process(args, processed)
+            except Exception as e:
+                print(f'ERROR: {e}')
             time.sleep(args.interval)
     else:
         ftp_process(args)
