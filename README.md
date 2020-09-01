@@ -106,7 +106,7 @@ To remove images from FTP server after processing, add the argument `--delete`.
 
 ## Automatic Image Transfer
 
-Automatic Image Transfer is a command line tool that runs our [ALPR Engine](https://platerecognizer.com). It monitors a folder and automatically process images (Cloud or SDK) as they are added. Once processed, images are moved to an archive directory. It can also forward the results to our parking management service [Parkpow](https://parkpow.com/?utm_source=github&utm_medium=website).
+Automatic Image Transfer is a command line tool that runs our [ALPR Engine](https://platerecognizer.com). It **monitors a folder** and automatically process images (Cloud or SDK) as they are added. Once processed, images are moved to an archive directory. It can also **forward the results** to our parking management service [Parkpow](https://parkpow.com/?utm_source=github&utm_medium=website).
 
 To get started: `python transfer.py --help`
 
