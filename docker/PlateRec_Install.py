@@ -22,6 +22,45 @@ PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/?utm_source=installer
 IMAGE = 'platerecognizer/alpr-stream'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
+BASE_CONFIG = """
+# Instructions:
+# https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit
+
+# List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone = UTC
+
+[cameras]
+  # Full list of regions: http://docs.platerecognizer.com/#countries
+  # regions = fr, gb
+
+  # Sample 1 out of X frames. A high number will result in less compute.
+  # A low number is preferred for a stream with fast moving vehicles
+  # sample = 2
+
+  # Maximum delay in seconds before a prediction is returned
+  # max_prediction_delay = 6
+
+  # Maximum time in seconds that a result stays in memory
+  # memory_decay = 300
+
+  # Enable make, model and color prediction. Your account must have that option.
+  # mmc = true
+
+  image_format = $(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg
+
+  [[camera-1]]
+    active = yes
+    url = rtsp://192.168.0.108:8080/video/h264
+    name = Camera One
+
+    # Output methods. Uncomment line to enable.
+    # - Save to CSV. The corresponding frame is stored as an image in the same directory.
+    # - Send to Webhook. The recognition data and vehicle image are encoded in
+    # multipart/form-data and sent to webhook_target.
+    csv_file = camera-1.csv
+    # webhook_target = http://webhook.site/
+    # webhook_image = yes
+"""
 
 
 def get_os():
@@ -73,16 +112,16 @@ def pull_docker(image=IMAGE):
 
 
 def read_config(home):
-    config = Path.joinpath(Path(home), 'config.ini')
-    conf = ''
     try:
+        config = Path.joinpath(Path(home), 'config.ini')
+        conf = ''
         f = open(config, 'r')
+        for line in f:
+            conf += line
+        f.close()
+        return conf
     except IOError:  # file not found
-        f = open('base_stream_conf.ini', 'r')
-    for line in f:
-        conf += line
-    f.close()
-    return conf
+        return BASE_CONFIG
 
 
 def write_config(home, config):
@@ -129,6 +168,7 @@ app.layout = html.Div(children=[
     ],
            style=NONE,
            id='p-docker'),
+    dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
     html.Button('Refresh', style=NONE, id='refresh-docker'),
     html.Div(children=[
         html.P('Docker image found on your system, you may update it:'),
@@ -198,16 +238,17 @@ app.layout = html.Div(children=[
     Output('p-docker', 'style'),
     Output('refresh-docker', 'style'),
     Output('div-next', 'style'),
-    Output('div-update', 'style')
+    Output('div-update', 'style'),
+    Output('loading-refresh', 'children')
 ], [Input('refresh-docker', 'n_clicks')])
 def update_docker(n_clicks):
     if verify_docker_install():
         if get_image(IMAGE):
-            return NONE, NONE, BLOCK, BLOCK
+            return NONE, NONE, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, NONE
+            return NONE, NONE, BLOCK, NONE, None
     else:
-        return BLOCK, BLOCK, NONE, NONE
+        return BLOCK, BLOCK, NONE, NONE, None
 
 
 @app.callback([
