@@ -154,7 +154,7 @@ def verify_token(token, license_key, get_license=True):
             return True, None
 
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SKETCHY])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.YETI])
 
 app.layout = dbc.Container(children=[
     html.H1(children='Plate Recognizer Installer'),
