@@ -1,1 +1,2 @@
 six
+dash-bootstrap-components==0.10.6

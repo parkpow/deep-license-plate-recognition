@@ -5,6 +5,7 @@ import webbrowser
 from pathlib import Path
 
 import dash
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
@@ -16,12 +17,12 @@ except ImportError:
     from urllib2 import Request, urlopen  # type: ignore
     from urllib2 import URLError  # type: ignore
 
-EXTERNAL_STYLESHEETS = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 DOCKER_URL = 'https://docs.docker.com/install/'
 PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/?utm_source=installer&utm_medium=app'
 IMAGE = 'platerecognizer/alpr-stream'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
+FLEX = {'display': 'flex'}
 BASE_CONFIG = """
 # Instructions:
 # https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit
@@ -153,102 +154,138 @@ def verify_token(token, license_key, get_license=True):
             return True, None
 
 
-app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SKETCHY])
 
-app.layout = html.Div(children=[
-    html.H1(children='PlateRec Installer'),
-    html.P('Host OS:'),
-    dcc.Input(value=get_os(), type='text', id='input-os', disabled=True),
-    html.Br(),
-    html.Br(),
-    html.P(children=[
-        "Docker is not installed, Follow ",
-        html.A(DOCKER_URL, href=DOCKER_URL),
-        " to install docker for your machine."
-    ],
-           style=NONE,
-           id='p-docker'),
-    dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
-    html.Button('Refresh', style=NONE, id='refresh-docker'),
-    html.Div(children=[
-        html.P('Docker image found on your system, you may update it:'),
-        dcc.Loading(type="circle", children=html.Div(id="loading-update")),
-        html.Button('Update', id='update-image'),
-        html.Span(' You have the latest version.', style=NONE,
-                  id='span-update'),
-        html.Br(),
-        html.Br(),
+app.layout = dbc.Container(children=[
+    html.H1(children='Plate Recognizer Installer'),
+    dbc.Form(children=[
+        dbc.FormGroup([
+            dbc.Label(get_os(), id='input-os', width=2),
+            dbc.Label('Host OS', html_for='input-os', width=10),
+        ],
+                      row=True),
+        dbc.FormGroup([
+            dbc.Col(dbc.Button(
+                'Refresh', color='secondary', id='refresh-docker'),
+                    width=2),
+            dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
+            dbc.Label([
+                "Docker is not installed, Follow ",
+                html.A(DOCKER_URL, href=DOCKER_URL, target='_blank'),
+                " to install docker for your machine."
+            ],
+                      html_for='refresh-docker',
+                      width=10),
+        ],
+                      row=True,
+                      style=NONE,
+                      id='refresh'),
+        dbc.FormGroup([
+            dbc.Col([
+                dbc.Button('Update', color='secondary', id='update-image'),
+                html.Span(
+                    ' Updated', id='span-update', className='align-middle'),
+            ],
+                    width=2),
+            dcc.Loading(type="circle", children=html.Div(id="loading-update")),
+            dbc.Label('Docker image found on your system, you may update it.',
+                      html_for='update-image',
+                      width=10),
+        ],
+                      row=True,
+                      style=NONE,
+                      id='update'),
+    ]),
+    dbc.Form(children=[
+        dbc.FormGroup([
+            dbc.Col(
+                dbc.Input(type='text', id='input-token', placeholder='Token'),
+                width=2,
+            ),
+            dbc.Label([
+                'Please enter your Plate Recognizer API Token. Go ',
+                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+            ],
+                      html_for='input-token',
+                      width=10),
+        ],
+                      row=True),
+        dbc.FormGroup([
+            dbc.Col(
+                dbc.Input(
+                    type='text', id='input-key', placeholder='License Key'),
+                width=2,
+            ),
+            dbc.Label([
+                'Please enter the Stream License Key. Go ',
+                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+            ],
+                      html_for='input-key',
+                      width=10),
+        ],
+                      row=True),
+        dbc.FormGroup([
+            dbc.Col(
+                dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
+                          type='text',
+                          id='input-home',
+                          placeholder='Path to directory'),
+                width=2,
+            ),
+            dbc.Label('Path to directory of your Stream installation',
+                      html_for='input-home',
+                      width=10),
+        ],
+                      className='mb-2',
+                      row=True),
+        dbc.FormGroup([
+            dbc.Label([
+                dbc.Checkbox(id="check-boot", className="form-check-input"),
+                'Do you want Stream to automatically boot on system startup?'
+            ],
+                      html_for="check-boot",
+                      className='pl-0',
+                      width=12),
+        ],
+                      check=True,
+                      className='mb-1'),
     ],
              style=NONE,
-             id='div-update'),
+             id='form'),
     html.Div(children=[
-        html.P(children=[
-            'Please enter your Plate Recognizer API Token. Go ',
-            html.A('here', href=PLAN_LINK), ' to get it.'
-        ],
-               id='p-token'),
-        dcc.Input(value='', type='text', id='input-token'),
-        html.Br(),
-        html.Br(),
-        html.P(children=[
-            'Please enter the Stream License Key. Go ',
-            html.A('here', href=PLAN_LINK), ' to get it.'
-        ],
-               id='p-key'),
-        dcc.Input(value='', type='text', id='input-key'),
-        html.Br(),
-        html.Br(),
-        html.P('Specify the directory for your Stream installation:'),
-        dcc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
-                  type='text',
-                  id='input-home'),
-        html.Br(),
-        html.Br(),
-        dcc.Checklist(options=[{
-            'label':
-            'Do you want Stream to automatically boot on system startup?',
-            'value': 'yes'
-        }],
-                      value=[
-                          'yes',
-                      ],
-                      id='check-boot'),
-        html.Br(),
         html.P('Stream config:'),
-        dcc.Textarea(placeholder='config',
-                     value='',
+        dbc.Textarea(bs_size='sm',
+                     id='area-config',
                      style={
                          'width': '70%',
-                         'height': '300px',
-                         'background-color': 'lightgray',
-                         'font-size': '13px'
-                     },
-                     id='area-config'),
-        html.Br(),
+                         'height': '300px'
+                     }),
         html.P(children='', style={'color': 'red'}, id='p-status'),
+        html.Code(id='command'),
         dcc.Loading(type="circle", children=html.Div(id="loading-submit")),
-        html.Button('Submit', id='button-submit'),
+        dbc.Button(
+            'Submit', color='primary', id='button-submit', className='mt-2'),
     ],
-             style=NONE,
-             id='div-next')
+             id='footer',
+             style=NONE)
 ])
 
 
 @app.callback([
-    Output('p-docker', 'style'),
-    Output('refresh-docker', 'style'),
-    Output('div-next', 'style'),
-    Output('div-update', 'style'),
+    Output('refresh', 'style'),
+    Output('update', 'style'),
+    Output('form', 'style'),
+    Output('footer', 'style'),
     Output('loading-refresh', 'children')
 ], [Input('refresh-docker', 'n_clicks')])
 def update_docker(n_clicks):
     if verify_docker_install():
         if get_image(IMAGE):
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, NONE, None
+            return NONE, NONE, BLOCK, BLOCK, None
     else:
-        return BLOCK, BLOCK, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, None
 
 
 @app.callback([
@@ -269,24 +306,23 @@ def change_path(home):
 
 
 @app.callback([
-    Output('button-submit', 'style'),
     Output('p-status', 'children'),
+    Output('command', 'children'),
     Output('loading-submit', 'children')
 ], [
     Input('button-submit', 'n_clicks'),
-    State('input-os', 'value'),
     State('input-token', 'value'),
     State('input-key', 'value'),
     State('input-home', 'value'),
-    State('check-boot', 'value'),
+    State('check-boot', 'checked'),
     State('area-config', 'value')
 ])
-def submit(n_clicks, os_, token, key, home, boot, config):
+def submit(n_clicks, token, key, home, boot, config):
     if n_clicks:
         is_valid, error = verify_token(token, key)
         if is_valid:
             if not write_config(home, config):
-                return BLOCK, "Cannot use selected directory. Please choose another one.", None
+                return "Cannot use selected directory. Please choose another one.", '', None
             command = 'docker run --rm -t ' \
                       '--name stream ' \
                       f'-v {home}:/user-data ' \
@@ -294,20 +330,22 @@ def submit(n_clicks, os_, token, key, home, boot, config):
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
                       f'{IMAGE}'
-            if os_ != 'Windows':
+            if get_os() != 'Windows':
                 command = command.replace('-v', '--user `id -u`:`id -g` -v')
-            if 'jetson' in os_.lower():  # todo: detect jetson correctly
+            if os.path.exists('/etc/nv_tegra_release'):
                 command = command.replace(
                     '-t', '--runtime nvidia --privileged --group-add video -t')
                 command += ':jetson'
             if boot:
                 command = command.replace('--rm', '--restart unless-stopped')
-            pull_docker()
-            return NONE, command, None
+            if not get_image(IMAGE):
+                pull_docker()
+            message = 'You can now start Stream. Open a terminal and type the command below. You can save this command for future use.'
+            return message, command, None
         else:
-            return BLOCK, error, None
+            return error, '', None
     else:
-        return BLOCK, '', None
+        return '', '', None
 
 
 if __name__ == '__main__':
