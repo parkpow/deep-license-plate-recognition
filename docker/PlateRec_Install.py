@@ -1,3 +1,4 @@
+import argparse
 import os
 import platform
 import subprocess
@@ -17,15 +18,8 @@ except ImportError:
     from urllib2 import Request, urlopen  # type: ignore
     from urllib2 import URLError  # type: ignore
 
-DOCKER_URL = 'https://docs.docker.com/install/'
-PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/?utm_source=installer&utm_medium=app'
-IMAGE = 'platerecognizer/alpr-stream'
-NONE = {'display': 'none'}
-BLOCK = {'display': 'block'}
-FLEX = {'display': 'flex'}
-BASE_CONFIG = """
-# Instructions:
-# https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit
+BASE_CONFIG = """# Open Stream configuration documentation:
+# https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj
 
 # List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 timezone = UTC
@@ -60,8 +54,7 @@ timezone = UTC
     # multipart/form-data and sent to webhook_target.
     csv_file = camera-1.csv
     # webhook_target = http://webhook.site/
-    # webhook_image = yes
-"""
+    # webhook_image = yes"""
 
 
 def get_os():
@@ -105,7 +98,7 @@ def get_image(image):
     return images[0].replace('"', '')
 
 
-def pull_docker(image=IMAGE):
+def pull_docker(image):
     if get_container_id(image):
         stop_container(image)
     pull_cmd = f'docker pull {image}:latest'
@@ -154,120 +147,162 @@ def verify_token(token, license_key, get_license=True):
             return True, None
 
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.YETI])
+DOCKER_URL = 'https://docs.docker.com/install/' if get_os(
+) != 'Windows' else 'https://platerecognizer.com/help/docker/#install-SDK'
+PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
+IMAGE = 'platerecognizer/alpr-stream'
+NONE = {'display': 'none'}
+BLOCK = {'display': 'block'}
+FLEX = {'display': 'flex'}
+
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.YETI],
+    external_scripts=[
+        'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
+    ])
 
 app.layout = dbc.Container(children=[
     html.H1(children='Plate Recognizer Installer'),
     dbc.Form(children=[
         dbc.FormGroup([
-            dbc.Label(get_os(), id='input-os', width=2),
-            dbc.Label('Host OS', html_for='input-os', width=10),
+            dbc.Label('Host OS', html_for='input-os', width=6),
+            dbc.Label(get_os(), id='input-os', width=3),
         ],
                       row=True),
         dbc.FormGroup([
-            dbc.Col(dbc.Button(
-                'Refresh', color='secondary', id='refresh-docker'),
-                    width=2),
-            dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
             dbc.Label([
                 "Docker is not installed, Follow ",
                 html.A(DOCKER_URL, href=DOCKER_URL, target='_blank'),
                 " to install docker for your machine."
             ],
                       html_for='refresh-docker',
-                      width=10),
+                      width=6),
+            dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
+            dbc.Col(dbc.Button(
+                'Refresh', color='secondary', id='refresh-docker'),
+                    width=3),
         ],
                       row=True,
                       style=NONE,
                       id='refresh'),
         dbc.FormGroup([
+            dbc.Label('Docker image found on your system, you may update it.',
+                      html_for='update-image',
+                      width=6),
+            dcc.Loading(type="circle", children=html.Div(id="loading-update")),
             dbc.Col([
                 dbc.Button('Update', color='secondary', id='update-image'),
                 html.Span(
                     ' Updated', id='span-update', className='align-middle'),
             ],
-                    width=2),
-            dcc.Loading(type="circle", children=html.Div(id="loading-update")),
-            dbc.Label('Docker image found on your system, you may update it.',
-                      html_for='update-image',
-                      width=10),
+                    width=3),
         ],
                       row=True,
                       style=NONE,
                       id='update'),
     ]),
-    dbc.Form(children=[
-        dbc.FormGroup([
-            dbc.Col(
-                dbc.Input(type='text', id='input-token', placeholder='Token'),
-                width=2,
-            ),
-            dbc.Label([
-                'Please enter your Plate Recognizer API Token. Go ',
-                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+    dbc.Form(
+        children=[
+            dbc.FormGroup([
+                dbc.Label([
+                    'Please enter your Plate Recognizer API Token. Go ',
+                    html.A('here', href=PLAN_LINK, target='_blank'),
+                    ' to get it.'
+                ],
+                          html_for='input-token',
+                          width=6),
+                dbc.Col(
+                    dbc.Input(
+                        type='text', id='input-token', placeholder='Token'),
+                    width=3,
+                ),
             ],
-                      html_for='input-token',
-                      width=10),
-        ],
-                      row=True),
-        dbc.FormGroup([
-            dbc.Col(
-                dbc.Input(
-                    type='text', id='input-key', placeholder='License Key'),
-                width=2,
-            ),
-            dbc.Label([
-                'Please enter the Stream License Key. Go ',
-                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+                          row=True),
+            dbc.FormGroup([
+                dbc.Label([
+                    'Please enter the Stream License Key. Go ',
+                    html.A('here', href=PLAN_LINK, target='_blank'),
+                    ' to get it.'
+                ],
+                          html_for='input-key',
+                          width=6),
+                dbc.Col(
+                    dbc.Input(
+                        type='text', id='input-key', placeholder='License Key'),
+                    width=3,
+                ),
             ],
-                      html_for='input-key',
-                      width=10),
-        ],
-                      row=True),
-        dbc.FormGroup([
-            dbc.Col(
-                dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
-                          type='text',
-                          id='input-home',
-                          placeholder='Path to directory'),
-                width=2,
-            ),
-            dbc.Label('Path to directory of your Stream installation',
-                      html_for='input-home',
-                      width=10),
-        ],
-                      className='mb-2',
-                      row=True),
-        dbc.FormGroup([
-            dbc.Label([
-                dbc.Checkbox(id="check-boot", className="form-check-input"),
-                'Do you want Stream to automatically boot on system startup?'
+                          row=True),
+            dbc.FormGroup([
+                dbc.Label('Path to directory of your Stream installation',
+                          html_for='input-home',
+                          width=6),
+                dbc.Col(
+                    dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
+                              type='text',
+                              id='input-home',
+                              placeholder='Path to directory'),
+                    width=3,
+                ),
             ],
-                      html_for="check-boot",
-                      className='pl-0',
-                      width=12),
+                          className='mb-2',
+                          row=True),
+            dbc.FormGroup(
+                [
+                    dbc.Label(
+                        [
+                            'Do you want Stream to automatically boot on system startup?'
+                        ],
+                        html_for="check-boot",
+                        # className='pl-0',
+                        width=6),
+                    dbc.Col(dbc.Checkbox(id='check-boot',
+                                         className='align-bottom'),
+                            width=3)
+                ],
+                row=True,
+            ),
         ],
-                      check=True,
-                      className='mb-1'),
-    ],
-             style=NONE,
-             id='form'),
-    html.Div(children=[
-        html.P('Stream config:'),
-        dbc.Textarea(bs_size='sm',
-                     id='area-config',
-                     style={
-                         'width': '70%',
-                         'height': '300px'
-                     }),
-        html.P(children='', style={'color': 'red'}, id='p-status'),
-        html.Code(id='command'),
-        dcc.Loading(type="circle", children=html.Div(id="loading-submit")),
-        dbc.Button(
-            'Submit', color='primary', id='button-submit', className='mt-2'),
-    ],
-             id='footer',
-             style=NONE)
+        style=NONE,
+        id='form'),
+    html.Div(
+        children=[
+            html.P('Stream configuration:'),
+            dbc.Textarea(bs_size='sm',
+                         id='area-config',
+                         style={
+                             'width': '74.5%',
+                             'height': '300px'
+                         }),
+            html.P(children='',
+                   style={'color': 'red'},
+                   className='mb-0',
+                   id='p-status'),
+            dbc.Card([
+                dbc.CardBody([
+                    html.
+                    H5('You can now start Stream. Open a terminal and type the command below. You can save this command for future use.',
+                       className='card-title'),
+                    html.P(className='card-text', id='command'),
+                    html.Button('copy to clipboard',
+                                id='copy',
+                                **{'data-clipboard-target': '#command'},
+                                className='btn btn-sm btn-warning',
+                                style={'borderRadius': '15px'}),
+                ]),
+            ],
+                     id='card',
+                     className='mt-3',
+                     style=NONE),
+            # html.Code(id='command'),
+            dcc.Loading(type='circle', children=html.Div(id='loading-submit')),
+            dbc.Button(
+                'Submit', color='primary', id='button-submit',
+                className='my-3'),
+        ],
+        id='footer',
+        style=NONE),
 ])
 
 
@@ -295,7 +330,7 @@ def update_docker(n_clicks):
 ], [Input('update-image', 'n_clicks')])
 def update_image(n_clicks):
     if n_clicks:
-        pull_docker()
+        pull_docker(IMAGE)
         return True, {'display': 'inline', 'color': 'green'}, None
     return False, NONE, None
 
@@ -307,6 +342,7 @@ def change_path(home):
 
 @app.callback([
     Output('p-status', 'children'),
+    Output('card', 'style'),
     Output('command', 'children'),
     Output('loading-submit', 'children')
 ], [
@@ -339,15 +375,24 @@ def submit(n_clicks, token, key, home, boot, config):
             if boot:
                 command = command.replace('--rm', '--restart unless-stopped')
             if not get_image(IMAGE):
-                pull_docker()
-            message = 'You can now start Stream. Open a terminal and type the command below. You can save this command for future use.'
-            return message, command, None
+                pull_docker(IMAGE)
+            return '', {'display': 'block', 'width': '74.5%'}, command, None
         else:
-            return error, '', None
+            return error, NONE, '', None
     else:
-        return '', '', None
+        return '', NONE, '', None
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--debug', action='store_true')
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    webbrowser.open('http://127.0.0.1:8050/')
-    app.run_server(debug=False)
+    args = parse_arguments()
+    if args.debug:
+        app.run_server(debug=True)
+    else:
+        webbrowser.open('http://127.0.0.1:8050/')
+        app.run_server(debug=False)
