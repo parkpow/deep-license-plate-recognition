@@ -134,12 +134,6 @@ def ftp_process(args, skip=None):
 
         process_files(ftp, ftp_files, args, skip)
 
-        # Delete the folder
-        if args.delete:
-            ftp.rmd(folder_path)
-        elif skip is not None:
-            skip.append(folder_path)
-
 
 def main():
     args = parse_arguments(custom_args)
