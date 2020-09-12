@@ -9,6 +9,9 @@ from plate_recognition import recognition_api, save_results
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
+# Keep track of processed file names
+processed = None
+
 
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
@@ -69,24 +72,17 @@ def custom_args(parser):
         'Periodically fetch new images from the server every interval seconds.')
 
 
-def ftp_process(args, skip=None):
-    ftp = FTP()
-    ftp.connect(args.ftp_host)
-    ftp.login(args.ftp_user, args.ftp_password)
-    ftp.cwd(args.folder)
-    ftp_files = ftp.nlst()
-    logging.info('Connected. Found %s file(s) in %s.', len(ftp_files),
-                 args.folder)
+def process_files(ftp_client, ftp_files, args):
 
     results = []
 
     for ftp_file in ftp_files:
-        if skip is not None and ftp_file in skip:
+        if not args.delete and processed is not None and ftp_file in processed:
             continue
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
                                          mode='rb+') as image:
-            ftp.retrbinary('RETR ' + ftp_file, image.write)
+            ftp_client.retrbinary('RETR ' + ftp_file, image.write)
             api_res = recognition_api(image,
                                       args.regions,
                                       args.api_key,
@@ -94,27 +90,62 @@ def ftp_process(args, skip=None):
                                       camera_id=args.camera_id,
                                       timestamp=args.timestamp)
             results.append(api_res)
-        if skip is not None:
-            skip.append(ftp_file)
+
         if args.delete:
-            ftp.delete(ftp_file)
+            ftp_client.delete(ftp_file)
+        elif processed is not None:
+            processed.append(ftp_file)
 
     if args.output_file:
         save_results(results, args)
     else:
         print(json.dumps(results, indent=2))
 
-    return ftp_files
+
+def ftp_process(args):
+    ftp = FTP()
+    ftp.connect(args.ftp_host)
+    ftp.login(args.ftp_user, args.ftp_password)
+    logging.info(f'Connected to FTP server at {args.ftp_host}')
+    ftp.cwd(args.folder)
+    file_list = []
+    dirs = []
+    nondirs = []
+
+    # Process all files in root. Separate folders and files
+    ftp.retrlines('LIST', lambda x: file_list.append(x.split()))
+    for info in file_list:
+        ls_type, name = info[0], info[-1]
+        if ls_type.startswith('d'):
+            dirs.append(name)
+        else:
+            nondirs.append(name)
+
+    logging.info('Found %s file(s) in %s.', len(file_list), args.folder)
+
+    # Process files
+    process_files(ftp, nondirs, args)
+
+    # Process day folders
+    for folder in dirs:
+        folder_path = f'{args.folder}/{folder}'
+        ftp.cwd(folder_path)
+        # This time we asume all are images,
+        # so we don't have to check for folder
+        ftp_files = ftp.nlst()
+        logging.info('Found %s file(s) in %s.', len(ftp_files), folder_path)
+
+        process_files(ftp, ftp_files, args)
 
 
 def main():
     args = parse_arguments(custom_args)
     if args.interval and args.interval > 0:
-        # Keep track of processed file names
+        global processed
         processed = []
         while True:
             try:
-                ftp_process(args, processed)
+                ftp_process(args)
             except Exception as e:
                 print(f'ERROR: {e}')
             time.sleep(args.interval)
