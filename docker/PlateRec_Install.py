@@ -101,7 +101,7 @@ def get_image(image):
 def pull_docker(image):
     if get_container_id(image):
         stop_container(image)
-    pull_cmd = f'docker pull {image}:latest'
+    pull_cmd = f'docker pull {image}'
     os.system(pull_cmd)
 
 
@@ -158,6 +158,7 @@ FLEX = {'display': 'flex'}
 app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.YETI],
+    assets_folder=os.path.join(os.path.abspath('.'), 'assets'),
     external_scripts=[
         'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
     ])
@@ -202,107 +203,95 @@ app.layout = dbc.Container(children=[
                       style=NONE,
                       id='update'),
     ]),
-    dbc.Form(
-        children=[
-            dbc.FormGroup([
-                dbc.Label([
-                    'Please enter your Plate Recognizer API Token. Go ',
-                    html.A('here', href=PLAN_LINK, target='_blank'),
-                    ' to get it.'
-                ],
-                          html_for='input-token',
-                          width=6),
-                dbc.Col(
-                    dbc.Input(
-                        type='text', id='input-token', placeholder='Token'),
-                    width=3,
-                ),
+    dbc.Form(children=[
+        dbc.FormGroup([
+            dbc.Label([
+                'Please enter your Plate Recognizer API Token. Go ',
+                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
             ],
-                          row=True),
-            dbc.FormGroup([
-                dbc.Label([
-                    'Please enter the Stream License Key. Go ',
-                    html.A('here', href=PLAN_LINK, target='_blank'),
-                    ' to get it.'
-                ],
-                          html_for='input-key',
-                          width=6),
-                dbc.Col(
-                    dbc.Input(
-                        type='text', id='input-key', placeholder='License Key'),
-                    width=3,
-                ),
-            ],
-                          row=True),
-            dbc.FormGroup([
-                dbc.Label('Path to directory of your Stream installation',
-                          html_for='input-home',
-                          width=6),
-                dbc.Col(
-                    dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
-                              type='text',
-                              id='input-home',
-                              placeholder='Path to directory'),
-                    width=3,
-                ),
-            ],
-                          className='mb-2',
-                          row=True),
-            dbc.FormGroup(
-                [
-                    dbc.Label(
-                        [
-                            'Do you want Stream to automatically boot on system startup?'
-                        ],
-                        html_for="check-boot",
-                        # className='pl-0',
-                        width=6),
-                    dbc.Col(dbc.Checkbox(id='check-boot',
-                                         className='align-bottom'),
-                            width=3)
-                ],
-                row=True,
+                      html_for='input-token',
+                      width=6),
+            dbc.Col(
+                dbc.Input(type='text', id='input-token', placeholder='Token'),
+                width=3,
             ),
         ],
-        style=NONE,
-        id='form'),
-    html.Div(
-        children=[
-            html.P('Stream configuration:'),
-            dbc.Textarea(bs_size='sm',
-                         id='area-config',
-                         style={
-                             'width': '74.5%',
-                             'height': '300px'
-                         }),
-            html.P(children='',
-                   style={'color': 'red'},
-                   className='mb-0',
-                   id='p-status'),
-            dbc.Card([
-                dbc.CardBody([
-                    html.
-                    H5('You can now start Stream. Open a terminal and type the command below. You can save this command for future use.',
-                       className='card-title'),
-                    html.P(className='card-text', id='command'),
-                    html.Button('copy to clipboard',
-                                id='copy',
-                                **{'data-clipboard-target': '#command'},
-                                className='btn btn-sm btn-warning',
-                                style={'borderRadius': '15px'}),
-                ]),
+                      row=True),
+        dbc.FormGroup([
+            dbc.Label([
+                'Please enter the Stream License Key. Go ',
+                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
             ],
-                     id='card',
-                     className='mt-3',
-                     style=NONE),
-            # html.Code(id='command'),
-            dcc.Loading(type='circle', children=html.Div(id='loading-submit')),
-            dbc.Button(
-                'Submit', color='primary', id='button-submit',
-                className='my-3'),
+                      html_for='input-key',
+                      width=6),
+            dbc.Col(
+                dbc.Input(
+                    type='text', id='input-key', placeholder='License Key'),
+                width=3,
+            ),
         ],
-        id='footer',
-        style=NONE),
+                      row=True),
+        dbc.FormGroup([
+            dbc.Label('Path to directory of your Stream installation',
+                      html_for='input-home',
+                      width=6),
+            dbc.Col(
+                dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
+                          type='text',
+                          id='input-home',
+                          placeholder='Path to directory'),
+                width=3,
+            ),
+        ],
+                      className='mb-2',
+                      row=True),
+        dbc.FormGroup(
+            [
+                dbc.Label([
+                    'Do you want Stream to automatically boot on system startup?'
+                ],
+                          html_for="check-boot",
+                          width=6),
+                dbc.Col(dbc.Checkbox(id='check-boot', className='align-bottom'),
+                        width=3)
+            ],
+            row=True,
+        ),
+    ],
+             style=NONE,
+             id='form'),
+    html.Div(children=[
+        html.P('Stream configuration:'),
+        dbc.Textarea(bs_size='sm',
+                     id='area-config',
+                     style={
+                         'width': '74.5%',
+                         'height': '300px'
+                     }),
+        html.
+        P(children='', style={'color': 'red'}, className='mb-0', id='p-status'),
+        dbc.Card([
+            dbc.CardBody([
+                html.
+                H5('You can now start Stream. Open a terminal and type the command below. You can save this command for future use.',
+                   className='card-title'),
+                html.P(className='card-text', id='command'),
+                html.Button('copy to clipboard',
+                            id='copy',
+                            **{'data-clipboard-target': '#command'},
+                            className='btn btn-sm btn-warning',
+                            style={'borderRadius': '15px'}),
+            ]),
+        ],
+                 id='card',
+                 className='mt-3',
+                 style=NONE),
+        dcc.Loading(type='circle', children=html.Div(id='loading-submit')),
+        dbc.Button(
+            'Submit', color='primary', id='button-submit', className='my-3'),
+    ],
+             id='footer',
+             style=NONE),
 ])
 
 
@@ -359,23 +348,26 @@ def submit(n_clicks, token, key, home, boot, config):
         if is_valid:
             if not write_config(home, config):
                 return "Cannot use selected directory. Please choose another one.", '', None
-            command = 'docker run --rm -t ' \
-                      '--name stream ' \
-                      f'-v {home}:/user-data ' \
-                      '--user `id -u`:`id -g` ' \
-                      f'-e LICENSE_KEY={key} ' \
-                      f'-e TOKEN={token} ' \
-                      f'{IMAGE}'
+            user_info = ''
+            nvidia = ''
+            jetson = ''
+            autoboot = '--rm'
             if get_os() != 'Windows':
-                command = command.replace('-v', '--user `id -u`:`id -g` -v')
+                user_info = '--user `id -u`:`id -g`'
             if os.path.exists('/etc/nv_tegra_release'):
-                command = command.replace(
-                    '-t', '--runtime nvidia --privileged --group-add video -t')
-                command += ':jetson'
+                nvidia = '--runtime nvidia --privileged --group-add video'
+                jetson = ':jetson'
             if boot:
-                command = command.replace('--rm', '--restart unless-stopped')
+                autoboot = '--restart unless-stopped'
             if not get_image(IMAGE):
                 pull_docker(IMAGE)
+            command = f'docker run {autoboot} -t ' \
+                      f'{nvidia} --name stream ' \
+                      f'-v {home}:/user-data ' \
+                      f'{user_info} ' \
+                      f'-e LICENSE_KEY={key} ' \
+                      f'-e TOKEN={token} ' \
+                      f'{IMAGE}{jetson}'
             return '', {'display': 'block', 'width': '74.5%'}, command, None
         else:
             return error, NONE, '', None
