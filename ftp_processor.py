@@ -9,6 +9,9 @@ from plate_recognition import recognition_api, save_results
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
+# Keep track of processed file names
+processed = None
+
 
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
@@ -69,12 +72,12 @@ def custom_args(parser):
         'Periodically fetch new images from the server every interval seconds.')
 
 
-def process_files(ftp_client, ftp_files, args, skip):
+def process_files(ftp_client, ftp_files, args):
 
     results = []
 
     for ftp_file in ftp_files:
-        if not args.delete and skip is not None and ftp_file in skip:
+        if not args.delete and processed is not None and ftp_file in processed:
             continue
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
@@ -90,8 +93,8 @@ def process_files(ftp_client, ftp_files, args, skip):
 
         if args.delete:
             ftp_client.delete(ftp_file)
-        elif skip is not None:
-            skip.append(ftp_file)
+        elif processed is not None:
+            processed.append(ftp_file)
 
     if args.output_file:
         save_results(results, args)
@@ -99,7 +102,7 @@ def process_files(ftp_client, ftp_files, args, skip):
         print(json.dumps(results, indent=2))
 
 
-def ftp_process(args, skip=None):
+def ftp_process(args):
     ftp = FTP()
     ftp.connect(args.ftp_host)
     ftp.login(args.ftp_user, args.ftp_password)
@@ -121,7 +124,7 @@ def ftp_process(args, skip=None):
     logging.info('Found %s file(s) in %s.', len(file_list), args.folder)
 
     # Process files
-    process_files(ftp, nondirs, args, skip)
+    process_files(ftp, nondirs, args)
 
     # Process day folders
     for folder in dirs:
@@ -132,17 +135,17 @@ def ftp_process(args, skip=None):
         ftp_files = ftp.nlst()
         logging.info('Found %s file(s) in %s.', len(ftp_files), folder_path)
 
-        process_files(ftp, ftp_files, args, skip)
+        process_files(ftp, ftp_files, args)
 
 
 def main():
     args = parse_arguments(custom_args)
     if args.interval and args.interval > 0:
-        # Keep track of processed file names
+        global processed
         processed = []
         while True:
             try:
-                ftp_process(args, processed)
+                ftp_process(args)
             except Exception as e:
                 print(f'ERROR: {e}')
             time.sleep(args.interval)
