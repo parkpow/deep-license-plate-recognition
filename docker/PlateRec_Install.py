@@ -18,10 +18,7 @@ except ImportError:
     from urllib2 import Request, urlopen  # type: ignore
     from urllib2 import URLError  # type: ignore
 
-BASE_CONFIG = """# Open Stream configuration documentation:
-# https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj
-
-# List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+BASE_CONFIG = """#List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 timezone = UTC
 
 [cameras]
@@ -150,6 +147,7 @@ def verify_token(token, license_key, get_license=True):
 DOCKER_URL = 'https://docs.docker.com/install/' if get_os(
 ) != 'Windows' else 'https://platerecognizer.com/help/docker/#install-SDK'
 PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
+STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
 IMAGE = 'platerecognizer/alpr-stream'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
@@ -262,7 +260,12 @@ app.layout = dbc.Container(children=[
              style=NONE,
              id='form'),
     html.Div(children=[
-        html.P('Stream configuration:'),
+        html.P([
+            'Stream configuration. ',
+            html.A('Open Stream configuration documentation.',
+                   href=STREAM_DOCS_LINK,
+                   target='_blank'),
+        ]),
         dbc.Textarea(bs_size='sm',
                      id='area-config',
                      style={
