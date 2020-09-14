@@ -155,6 +155,7 @@ FLEX = {'display': 'flex'}
 
 app = dash.Dash(
     __name__,
+    title='Plate Recognizer Installer',
     external_stylesheets=[dbc.themes.YETI],
     assets_folder=os.path.join(os.path.abspath('.'), 'assets'),
     external_scripts=[
