@@ -160,7 +160,8 @@ app = dash.Dash(
     external_stylesheets=[dbc.themes.YETI],
     assets_folder=os.path.join(os.path.abspath('.'), 'assets'),
     external_scripts=[
-        'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
+        'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js',
+        'https://cdn.jsdelivr.net/gh/marcbelmont/deep-license-plate-recognition/docker/assets/script.js'
     ])
 
 app.layout = dbc.Container(children=[
