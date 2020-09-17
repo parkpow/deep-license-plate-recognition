@@ -206,8 +206,8 @@ app.layout = dbc.Container(children=[
     dbc.Form(children=[
         dbc.FormGroup([
             dbc.Label([
-                'Please enter your Plate Recognizer API Token. Go ',
-                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+                'Please enter your Plate Recognizer ',
+                html.A('API Token', href=PLAN_LINK, target='_blank'), ':'
             ],
                       html_for='input-token',
                       width=6),
@@ -219,8 +219,9 @@ app.layout = dbc.Container(children=[
                       row=True),
         dbc.FormGroup([
             dbc.Label([
-                'Please enter the Stream License Key. Go ',
-                html.A('here', href=PLAN_LINK, target='_blank'), ' to get it.'
+                'Please enter your ',
+                html.A('Stream License Key', href=PLAN_LINK, target='_blank'),
+                ':'
             ],
                       html_for='input-key',
                       width=6),
@@ -232,7 +233,7 @@ app.layout = dbc.Container(children=[
         ],
                       row=True),
         dbc.FormGroup([
-            dbc.Label('Path to directory of your Stream installation',
+            dbc.Label('Path to your Stream installation directory:',
                       html_for='input-home',
                       width=6),
             dbc.Col(
@@ -248,7 +249,7 @@ app.layout = dbc.Container(children=[
         dbc.FormGroup(
             [
                 dbc.Label([
-                    'Do you want Stream to automatically boot on system startup?'
+                    'Do you want Stream to automatically start on system startup?'
                 ],
                           html_for="check-boot",
                           width=6),
@@ -262,10 +263,9 @@ app.layout = dbc.Container(children=[
              id='form'),
     html.Div(children=[
         html.P([
-            'Stream configuration. ',
-            html.A('Open Stream configuration documentation.',
-                   href=STREAM_DOCS_LINK,
-                   target='_blank'),
+            'Edit your Stream configuration file. See the ',
+            html.A('documentation', href=STREAM_DOCS_LINK, target='_blank'),
+            ' for details.'
         ]),
         dbc.Textarea(bs_size='sm',
                      id='area-config',
@@ -293,7 +293,7 @@ app.layout = dbc.Container(children=[
                  style=NONE),
         dcc.Loading(type='circle', children=html.Div(id='loading-submit')),
         dbc.Button(
-            'Submit', color='primary', id='button-submit', className='my-3'),
+            'Continue', color='primary', id='button-submit', className='my-3'),
     ],
              id='footer',
              style=NONE),
@@ -355,13 +355,13 @@ def submit(n_clicks, token, key, home, boot, config):
                 return "Cannot use selected directory. Please choose another one.", '', None
             user_info = ''
             nvidia = ''
-            jetson = ''
+            image_tag = ''
             autoboot = '--rm'
             if get_os() != 'Windows':
                 user_info = '--user `id -u`:`id -g`'
             if os.path.exists('/etc/nv_tegra_release'):
                 nvidia = '--runtime nvidia --privileged --group-add video'
-                jetson = ':jetson'
+                image_tag = ':jetson'
             if boot:
                 autoboot = '--restart unless-stopped'
             if not get_image(IMAGE):
@@ -372,7 +372,7 @@ def submit(n_clicks, token, key, home, boot, config):
                       f'{user_info} ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
-                      f'{IMAGE}{jetson}'
+                      f'{IMAGE}{image_tag}'
             return '', {'display': 'block', 'width': '74.5%'}, command, None
         else:
             return error, NONE, '', None
