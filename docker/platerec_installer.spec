@@ -2,8 +2,8 @@
 
 # Building the executable:
 #
-# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-linux "pyinstaller PlateRec_Install.spec -F"
-# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-windows "pyinstaller PlateRec_Install.spec -F"
+# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
+# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
 
 import sys
 
@@ -17,7 +17,7 @@ else:
     pathex = ['/src']
 
 a = Analysis(  # noqa
-    ['PlateRec_Install.py'],
+    ['platerec_installer.py'],
     pathex=pathex,
     binaries=[],
     datas=[(site_packages + 'dash_core_components/', 'dash_core_components'),

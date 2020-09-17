@@ -388,6 +388,17 @@ def parse_arguments():
 
 if __name__ == '__main__':
     args = parse_arguments()
+    print('''
+############################################
+# Thank you for choosing Plate Recognizer! #
+############################################
+
+- To continue open http://127.0.0.1:8050/ in your web browser.
+
+- When you are done with the installation, you can close this window.
+
+############################################
+''')
     if args.debug:
         app.run_server(debug=True)
     else:
