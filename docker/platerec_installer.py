@@ -228,7 +228,10 @@ app.layout = dbc.Container(children=[
                       html_for='input-token',
                       width=6),
             dbc.Col(
-                dbc.Input(type='text', id='input-token', placeholder='Token'),
+                dbc.Input(type='text',
+                          id='input-token',
+                          placeholder='Token',
+                          persistence=True),
                 width=3,
             ),
         ],
@@ -242,8 +245,10 @@ app.layout = dbc.Container(children=[
                       html_for='input-key',
                       width=6),
             dbc.Col(
-                dbc.Input(
-                    type='text', id='input-key', placeholder='License Key'),
+                dbc.Input(type='text',
+                          id='input-key',
+                          placeholder='License Key',
+                          persistence=True),
                 width=3,
             ),
         ],
