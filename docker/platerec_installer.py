@@ -91,7 +91,7 @@ def stop_container(image):
 
 
 def get_home():
-    return str(Path.joinpath(Path.home(), 'stream'))
+    return str(Path.home() / 'stream')
 
 
 def get_image(image):
@@ -261,7 +261,8 @@ app.layout = dbc.Container(children=[
                 dbc.Input(value=get_home(),
                           type='text',
                           id='input-home',
-                          placeholder='Path to directory'),
+                          placeholder='Path to directory',
+                          persistence=True),
                 width=3,
             ),
         ],
