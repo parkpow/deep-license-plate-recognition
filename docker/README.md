@@ -1,4 +1,4 @@
-# Automatic License Plate Recognition SDK
+# Automatic License Plate Recognition
 
 Accurate, fast and easy to use API for license plate recognition. Trained on data from over 100 countries and regions around the world. The core of our license plate detection system is based on state of the art deep neural networks architectures. Our [On-Premise LPR SDK](https://platerecognizer.com/) lets you run license plate recognition **locally** (no internet connection needed).
 
@@ -6,6 +6,8 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
 <p align="center">
   <img src="../assets/demo.jpg">
 </p>
+
+## Snapshot SDK
 
 ### Installation
 
@@ -41,6 +43,15 @@ You may also read **more than one images** in a directory.
 ```
 python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle1.jpg /path/to/vehicle3.jpg /path/to/vehicle2.jpg 
 ```
+
+## Stream
+
+Highly-accurate ALPR software that processes live camera or video feeds quickly & efficiently. Stream runs On-Premise on a variety of machines.
+
+- Guided installation.
+  - Download [Linux Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer)
+  - Download [Windows Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer.exe)
+- [Step by step installation](https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit)
 
 ---
 Have questions?  [Let us know](https://platerecognizer.com/contact) how we can help.
