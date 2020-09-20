@@ -1,4 +1,4 @@
-# Automatic License Plate Recognition
+# On-premise Automatic License Plate Recognition
 
 Accurate, fast and easy to use API for license plate recognition. Trained on data from over 100 countries and regions around the world. The core of our license plate detection system is based on state of the art deep neural networks architectures. Our [On-Premise LPR SDK](https://platerecognizer.com/) lets you run license plate recognition **locally** (no internet connection needed).
 
