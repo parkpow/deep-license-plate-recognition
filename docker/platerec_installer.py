@@ -2,6 +2,7 @@ import argparse
 import os
 import platform
 import subprocess
+import sys
 import webbrowser
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 try:
     from urllib.request import Request, urlopen
@@ -88,6 +90,10 @@ def stop_container(image):
     return container_id
 
 
+def get_home():
+    return str(Path.home() / 'stream')
+
+
 def get_image(image):
     images = subprocess.check_output(
         ['docker', 'images', '--format', '"{{.Repository}}"',
@@ -137,11 +143,22 @@ def verify_token(token, license_key, get_license=True):
         return True, None
     except URLError as e:
         if '404' in str(e) and get_license:
-            return False, 'License Key is incorrect!!'
+            return False, 'The License Key cannot be found. Please try again.'
         elif str(403) in str(e):
-            return False, 'Api Token is incorrect!!'
+            return False, 'The API Token cannot be found. Please try again.'
         else:
             return True, None
+
+
+def resource_path(relative_path):
+    # get absolute path to resource
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 DOCKER_URL = 'https://docs.docker.com/install/' if get_os(
@@ -156,11 +173,10 @@ FLEX = {'display': 'flex'}
 app = dash.Dash(
     __name__,
     title='Plate Recognizer Installer',
+    assets_folder=resource_path('assets'),
     external_stylesheets=[dbc.themes.YETI],
-    assets_folder=os.path.join(os.path.abspath('.'), 'assets'),
     external_scripts=[
-        'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js',
-        'https://cdn.jsdelivr.net/gh/marcbelmont/deep-license-plate-recognition/docker/assets/script.js'
+        'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
     ])
 
 app.layout = dbc.Container(children=[
@@ -212,7 +228,10 @@ app.layout = dbc.Container(children=[
                       html_for='input-token',
                       width=6),
             dbc.Col(
-                dbc.Input(type='text', id='input-token', placeholder='Token'),
+                dbc.Input(type='text',
+                          id='input-token',
+                          placeholder='Token',
+                          persistence=True),
                 width=3,
             ),
         ],
@@ -226,8 +245,10 @@ app.layout = dbc.Container(children=[
                       html_for='input-key',
                       width=6),
             dbc.Col(
-                dbc.Input(
-                    type='text', id='input-key', placeholder='License Key'),
+                dbc.Input(type='text',
+                          id='input-key',
+                          placeholder='License Key',
+                          persistence=True),
                 width=3,
             ),
         ],
@@ -237,10 +258,11 @@ app.layout = dbc.Container(children=[
                       html_for='input-home',
                       width=6),
             dbc.Col(
-                dbc.Input(value=str(Path.joinpath(Path.home(), 'stream')),
+                dbc.Input(value=get_home(),
                           type='text',
                           id='input-home',
-                          placeholder='Path to directory'),
+                          placeholder='Path to directory',
+                          persistence=True),
                 width=3,
             ),
         ],
@@ -286,6 +308,12 @@ app.layout = dbc.Container(children=[
                             **{'data-clipboard-target': '#command'},
                             className='btn btn-sm btn-warning',
                             style={'borderRadius': '15px'}),
+                html.Span(id='copy-status',
+                          className='align-middle ml-2',
+                          style={
+                              'fontSize': '13px',
+                              'color': 'green'
+                          })
             ]),
         ],
                  id='card',
@@ -352,7 +380,7 @@ def submit(n_clicks, token, key, home, boot, config):
         is_valid, error = verify_token(token, key)
         if is_valid:
             if not write_config(home, config):
-                return "Cannot use selected directory. Please choose another one.", '', None
+                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, '', None
             user_info = ''
             nvidia = ''
             image_tag = ''
@@ -378,6 +406,14 @@ def submit(n_clicks, token, key, home, boot, config):
             return error, NONE, '', None
     else:
         return '', NONE, '', None
+
+
+@app.callback(Output('copy-status', 'children'), [Input('copy', 'n_clicks')])
+def copy_to_clipboard(n_clicks):
+    if n_clicks:
+        return 'Item copied to clipboard.'
+    else:
+        raise PreventUpdate
 
 
 def parse_arguments():
