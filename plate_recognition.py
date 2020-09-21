@@ -52,7 +52,8 @@ def recognition_api(fp,
                     config={},
                     camera_id=None,
                     timestamp=None,
-                    mmc=None):
+                    mmc=None,
+                    exit_on_error=True):
     data = dict(regions=regions, config=json.dumps(config))
     if camera_id:
         data['camera_id'] = camera_id
@@ -60,6 +61,7 @@ def recognition_api(fp,
         data['mmc'] = mmc
     if timestamp:
         data['timestamp'] = timestamp
+    response = None
     if sdk_url:
         fp.seek(0)
         response = requests.post(sdk_url + '/v1/plate-reader/',
@@ -77,9 +79,12 @@ def recognition_api(fp,
                 time.sleep(1)
             else:
                 break
+    if not response:
+        return {}
     if response.status_code < 200 or response.status_code > 300:
         print(response.text)
-        exit(1)
+        if exit_on_error:
+            exit(1)
     return response.json(object_pairs_hook=OrderedDict)
 
 

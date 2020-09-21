@@ -88,7 +88,8 @@ def process_files(ftp_client, ftp_files, args):
                                       args.api_key,
                                       args.sdk_url,
                                       camera_id=args.camera_id,
-                                      timestamp=args.timestamp)
+                                      timestamp=args.timestamp,
+                                      exit_on_error=False)
             results.append(api_res)
 
         if args.delete:
