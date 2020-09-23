@@ -11,7 +11,6 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 
 try:
     from urllib.request import Request, urlopen
@@ -69,10 +68,9 @@ def get_os():
 
 def verify_docker_install():
     try:
-        subprocess.check_output("docker info".split())
+        subprocess.check_output("docker info".split(), stderr=-1)
         return True
-    except (OSError, subprocess.CalledProcessError) as e:
-        print(e)
+    except (OSError, subprocess.CalledProcessError):
         return False
 
 
@@ -189,9 +187,9 @@ app.layout = dbc.Container(children=[
                       row=True),
         dbc.FormGroup([
             dbc.Label([
-                "Docker is not installed, Follow ",
+                "Do you have Docker? If so, please run it now. "
+                "If not, then please go here to install Docker on your machine: ",
                 html.A(DOCKER_URL, href=DOCKER_URL, target='_blank'),
-                " to install docker for your machine."
             ],
                       html_for='refresh-docker',
                       width=6),
@@ -319,7 +317,6 @@ app.layout = dbc.Container(children=[
                  id='card',
                  className='mt-3',
                  style=NONE),
-        dcc.Loading(type='circle', children=html.Div(id='loading-submit')),
         dbc.Button(
             'Continue', color='primary', id='button-submit', className='my-3'),
     ],
@@ -366,21 +363,21 @@ def change_path(home):
     Output('p-status', 'children'),
     Output('card', 'style'),
     Output('command', 'children'),
-    Output('loading-submit', 'children')
 ], [
+    Input('area-config', 'value'),
     Input('button-submit', 'n_clicks'),
     State('input-token', 'value'),
     State('input-key', 'value'),
     State('input-home', 'value'),
     State('check-boot', 'checked'),
-    State('area-config', 'value')
 ])
-def submit(n_clicks, token, key, home, boot, config):
-    if n_clicks:
+def submit(config, n_clicks, token, key, home, boot):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'button-submit.n_clicks':
         is_valid, error = verify_token(token, key)
         if is_valid:
             if not write_config(home, config):
-                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, '', None
+                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, ''
             user_info = ''
             nvidia = ''
             image_tag = ''
@@ -401,19 +398,19 @@ def submit(n_clicks, token, key, home, boot, config):
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
                       f'{IMAGE}{image_tag}'
-            return '', {'display': 'block', 'width': '74.5%'}, command, None
+            return '', {'display': 'block', 'width': '74.5%'}, command
         else:
-            return error, NONE, '', None
+            return error, NONE, ''
     else:
-        return '', NONE, '', None
+        return '', NONE, ''
 
 
 @app.callback(Output('copy-status', 'children'), [Input('copy', 'n_clicks')])
 def copy_to_clipboard(n_clicks):
-    if n_clicks:
+    if dash.callback_context.triggered[0]['prop_id'] == 'copy.n_clicks':
         return 'Item copied to clipboard.'
     else:
-        raise PreventUpdate
+        return ''
 
 
 def parse_arguments():
