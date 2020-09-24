@@ -436,4 +436,4 @@ if __name__ == '__main__':
         app.run_server(debug=True)
     else:
         webbrowser.open('http://127.0.0.1:8050/')
-        app.run_server(debug=False)
+        app.run_server(debug=False, dev_tools_silence_routes_logging=True)
