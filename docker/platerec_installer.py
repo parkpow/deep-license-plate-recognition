@@ -161,12 +161,25 @@ def resource_path(relative_path):
 
 DOCKER_URL = 'https://docs.docker.com/install/' if get_os(
 ) != 'Windows' else 'https://platerecognizer.com/help/docker/#install-SDK'
+SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
 PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
 STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
 IMAGE = 'platerecognizer/alpr-stream'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
 FLEX = {'display': 'flex'}
+
+DOCKER_INFO = [
+    "Do you have Docker? If so, please run it now. "
+    "If not, then please go here to install Docker on your machine: ",
+    html.A(DOCKER_URL, href=DOCKER_URL, target='_blank')
+]
+if get_os() == 'Windows':
+    DOCKER_INFO += [
+        ". Make sure to check the box (next to C) for ",
+        html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
+        " and the click “Apply & Restart”."
+    ]
 
 app = dash.Dash(
     __name__,
@@ -186,13 +199,7 @@ app.layout = dbc.Container(children=[
         ],
                       row=True),
         dbc.FormGroup([
-            dbc.Label([
-                "Do you have Docker? If so, please run it now. "
-                "If not, then please go here to install Docker on your machine: ",
-                html.A(DOCKER_URL, href=DOCKER_URL, target='_blank'),
-            ],
-                      html_for='refresh-docker',
-                      width=6),
+            dbc.Label(DOCKER_INFO, html_for='refresh-docker', width=6),
             dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
             dbc.Col(dbc.Button(
                 'Refresh', color='secondary', id='refresh-docker'),
