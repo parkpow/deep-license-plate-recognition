@@ -22,7 +22,7 @@ namespace
 	}
 }
 
-Json::Value sendRequest(string auth_token, string fileName) {
+Json::Value sendRequest(string auth_token, string fileName, string mode) {
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -44,10 +44,21 @@ Json::Value sendRequest(string auth_token, string fileName) {
 	curl_mime_filedata(field, fileName.c_str());
 
 	// Add more fields
-	curl_mimepart *part = NULL;
-	part = curl_mime_addpart(form);
-	curl_mime_name(part, "config");
-	curl_mime_data(part, "{\"mode\":\"redaction\"}", CURL_ZERO_TERMINATED);
+	// config mode
+	if(mode.length()) {
+        curl_mimepart *part = NULL;
+        part = curl_mime_addpart(form);
+        curl_mime_name(part, "config");
+
+        if (strcmp(mode.c_str(),"redacted") == 0){
+            curl_mime_data(part, "{\"mode\":\"redacted\"}", CURL_ZERO_TERMINATED);
+        } else if (strcmp(mode.c_str(),"fast") == 0){
+            curl_mime_data(part, "{\"mode\":\"fast\"}", CURL_ZERO_TERMINATED);
+        } else{
+            cout << "Unknown config mode : "+mode+"\n Valid Options: fast, redacted\n";
+            exit(1);
+        }
+    }
 
 	curl_easy_setopt(hnd, CURLOPT_MIMEPOST, form);
 
@@ -106,11 +117,11 @@ int main(int argc, char *argv[])
 {
 	string token = "MY_API_KEY";
 	Json::Value data;
-	if (argc == 2) {
-		data = sendRequest(token, argv[1]);
+	if (argc >= 2) {
+		data = sendRequest(token, argv[1], argv[2]);
 	}
 	else {
-		cout << "Error:Invalid Arguments!\nUsage: program.exe <Image>";
+		cout << "Error:Invalid Arguments!\nUsage: program.exe <Image>\n program.exe <Image> <ConfigMode>";
 	}
 
 	ofstream file;
