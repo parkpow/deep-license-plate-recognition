@@ -66,6 +66,16 @@ def get_os():
     return os_system
 
 
+def get_docker_link():
+    docker_links = {
+        'Windows': 'https://platerecognizer.com/help/docker/#install-SDK',
+        'Linux': 'https://docs.docker.com/install/',
+        'Mac OS':
+        'https://hub.docker.com/editions/community/docker-ce-desktop-mac/'
+    }
+    return docker_links.get(get_os())
+
+
 def verify_docker_install():
     try:
         subprocess.check_output("docker info".split(), stderr=-1)
@@ -159,8 +169,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-DOCKER_URL = 'https://docs.docker.com/install/' if get_os(
-) != 'Windows' else 'https://platerecognizer.com/help/docker/#install-SDK'
+DOCKER_LINK = get_docker_link()
 SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
 PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
 STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
@@ -172,7 +181,7 @@ FLEX = {'display': 'flex'}
 DOCKER_INFO = [
     "Do you have Docker? If so, please run it now. "
     "If not, then please go here to install Docker on your machine: ",
-    html.A(DOCKER_URL, href=DOCKER_URL, target='_blank')
+    html.A(DOCKER_LINK, href=DOCKER_LINK, target='_blank')
 ]
 if get_os() == 'Windows':
     DOCKER_INFO += [
