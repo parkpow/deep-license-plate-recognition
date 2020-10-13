@@ -51,6 +51,7 @@ Highly-accurate ALPR software that processes live camera or video feeds quickly 
 - Guided installation.
   - Download [Linux Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer)
   - Download [Windows Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer.exe)
+  - Download [Mac Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer-MacOS)
 - [Step by step installation](https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit)
 
 ---
