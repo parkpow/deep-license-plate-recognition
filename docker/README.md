@@ -7,6 +7,9 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
   <img src="../assets/demo.jpg">
 </p>
 
+- [Snapshot SDK](#snapshot-sdk)
+- [Stream](#stream)
+
 ## Snapshot SDK
 
 ### Installation
