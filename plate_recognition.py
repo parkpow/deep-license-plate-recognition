@@ -26,7 +26,7 @@ def parse_arguments(args_hook=lambda _: _):
     parser.add_argument(
         '-r',
         '--regions',
-        help='Match the license plate pattern fo specific region',
+        help='Match the license plate pattern of a specific region',
         required=False,
         action="append")
     parser.add_argument(
