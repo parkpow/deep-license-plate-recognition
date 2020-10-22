@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 try:
     from urllib.request import Request, urlopen
@@ -98,8 +99,8 @@ def stop_container(image):
     return container_id
 
 
-def get_home():
-    return str(Path.home() / 'stream')
+def get_home(product='stream'):
+    return str(Path.home() / product)
 
 
 def get_image(image):
@@ -141,11 +142,11 @@ def write_config(home, config):
         return False
 
 
-def verify_token(token, license_key, get_license=True):
+def verify_token(token, license_key, get_license=True, product='stream'):
+    path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
     try:
-        req = Request(
-            'https://app.platerecognizer.com/v1/stream/license/{}/'.format(
-                license_key))
+        req = Request('https://app.platerecognizer.com/v1/{}/{}/'.format(
+            path, license_key))
         req.add_header('Authorization', 'Token {}'.format(token))
         urlopen(req).read()
         return True, None
@@ -171,12 +172,18 @@ def resource_path(relative_path):
 
 DOCKER_LINK = get_docker_link()
 SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
-PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
+STREAM_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
+SDK_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=installer&utm_medium=app'
 STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
-IMAGE = 'platerecognizer/alpr-stream'
+STREAM_IMAGE = 'platerecognizer/alpr-stream'
+SDK_IMAGE = 'platerecognizer/alpr'
+STREAM = 'stream'
+SNAPSHOT = 'snapshot'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
 FLEX = {'display': 'flex'}
+WIDTH = '91.5%'
+DISPLAY_CARD = {'display': 'block', 'width': WIDTH}
 
 DOCKER_INFO = [
     "Do you have Docker? If so, please run it now. "
@@ -190,6 +197,268 @@ if get_os() == 'Windows':
         " and the click “Apply & Restart”."
     ]
 
+
+def get_os_label(product):
+    return dbc.FormGroup([
+        dbc.Label('Host OS', html_for=f'input-os-{product}', width=7),
+        dbc.Label(get_os(), id=f'input-os-{product}', width=4),
+    ],
+                         row=True)
+
+
+def get_refresh(product):
+    return dbc.FormGroup([
+        dbc.Label(DOCKER_INFO, html_for=f'refresh-docker-{product}', width=7),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-refresh-{product}')),
+        dbc.Col(dbc.Button(
+            'Refresh', color='secondary', id=f'refresh-docker-{product}'),
+                width=4),
+    ],
+                         row=True,
+                         style=NONE,
+                         id=f'refresh-{product}')
+
+
+def get_update(product):
+    return dbc.FormGroup([
+        dbc.Label(
+            'Docker image found on your system, you may update or uninstall it:',
+            html_for=f'update-image-{product}',
+            width=7),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-update-{product}')),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-uninstall-{product}')),
+        dbc.Col([
+            dbc.Button(
+                'Update', color='secondary', id=f'update-image-{product}'),
+            html.Span(' Updated',
+                      id=f'span-update-{product}',
+                      className='align-middle'),
+            dbc.Button('Uninstall',
+                       color='danger',
+                       id=f'uninstall-image-{product}',
+                       style={'float': 'right'}),
+            html.Span('',
+                      id=f'span-uninstall-{product}',
+                      className='align-middle',
+                      style={
+                          'float': 'right',
+                          'color': 'red'
+                      }),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader('Uninstall'),
+                    dbc.ModalBody(
+                        'Are you sure you want to uninstall an image?'),
+                    dbc.ModalFooter([
+                        dbc.Button(
+                            'OK', color='danger', id=f'ok-uninstall-{product}'),
+                        dbc.Button('Cancel', id=f'cancel-uninstall-{product}')
+                    ]),
+                ],
+                id=f'modal-uninstall-{product}',
+                centered=True,
+            ),
+        ],
+                width=4),
+    ],
+                         row=True,
+                         style=NONE,
+                         id=f'update-{product}')
+
+
+def get_token(product):
+    link = STREAM_PLAN_LINK if product == 'stream' else SDK_PLAN_LINK
+    return dbc.FormGroup([
+        dbc.Label([
+            'Please enter your Plate Recognizer ',
+            html.A('API Token', href=link, target='_blank'), ':'
+        ],
+                  html_for=f'input-token-{product}',
+                  width=7),
+        dbc.Col(
+            dbc.Input(type='text',
+                      id=f'input-token-{product}',
+                      placeholder='Token',
+                      persistence=True),
+            width=4,
+        ),
+    ],
+                         row=True)
+
+
+def get_license_key(product):
+    link = STREAM_PLAN_LINK if product == 'stream' else SDK_PLAN_LINK
+    return dbc.FormGroup([
+        dbc.Label([
+            'Please enter your ',
+            html.A(f'{product.capitalize()} License Key',
+                   href=link,
+                   target='_blank'), ':'
+        ],
+                  html_for=f'input-key-{product}',
+                  width=7),
+        dbc.Col(
+            dbc.Input(type='text',
+                      id=f'input-key-{product}',
+                      placeholder='License Key',
+                      persistence=True),
+            width=4,
+        ),
+    ],
+                         row=True)
+
+
+def get_directory(product):
+    return dbc.FormGroup([
+        dbc.Label(
+            f'Path to your {product.capitalize()} installation directory:',
+            html_for=f'input-home-{product}',
+            width=7),
+        dbc.Col(dbc.Input(value=get_home(),
+                          type='text',
+                          id=f'input-home-{product}',
+                          placeholder='Path to directory',
+                          persistence=True),
+                width=4),
+    ],
+                         className='mb-2',
+                         row=True)
+
+
+def get_boot(product):
+    return dbc.FormGroup([
+        dbc.Label([
+            f'Do you want {product.capitalize()} to automatically start on system startup?'
+        ],
+                  html_for=f'check-boot-{product}',
+                  width=7),
+        dbc.Col(dbc.Checkbox(id=f'check-boot-{product}',
+                             className='align-bottom'),
+                width=4)
+    ],
+                         row=True)
+
+
+def get_hardware_dropdown(product):
+    return dbc.FormGroup([
+        dbc.Label('What is the hardware of this machine?',
+                  html_for=f'dropdown-hardware-{product}',
+                  width=7),
+        dbc.Col(
+            dcc.Dropdown(options=[
+                {
+                    'label': 'Intel CPU',
+                    'value': 'sdk'
+                },
+                {
+                    'label': 'Raspberry',
+                    'value': 'raspberry-pi'
+                },
+                {
+                    'label': 'GPU (Nvidia Only)',
+                    'value': 'gpu'
+                },
+                {
+                    'label': 'Jetson Nano',
+                    'value': 'jetson'
+                },
+            ],
+                         value='sdk',
+                         clearable=False,
+                         id=f'dropdown-hardware-{product}',
+                         style={'borderRadius': '0'},
+                         persistence=True),
+            width=4,
+        ),
+    ],
+                         className='mb-2',
+                         row=True)
+
+
+def get_config_label(product):
+    return html.P([
+        'Edit your Stream configuration file. See the ',
+        html.A('documentation', href=STREAM_DOCS_LINK, target='_blank'),
+        ' for details.'
+    ])
+
+
+def get_config_body(product):
+    return dbc.Textarea(bs_size='sm',
+                        id=f'area-config-{product}',
+                        style={
+                            'width': WIDTH,
+                            'height': '300px'
+                        })
+
+
+def get_status(product):
+    return html.P(children='',
+                  style={'color': 'red'},
+                  className='mb-0',
+                  id=f'p-status-{product}')
+
+
+def get_info(product):
+    return html.H5(
+        f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.',
+        className='card-title')
+
+
+def get_card_text(product):
+    return html.P(className='card-text', id=f'command-{product}')
+
+
+def get_clipboard(product):
+    return html.Button('copy to clipboard',
+                       id=f'copy-{product}',
+                       **{'data-clipboard-target': f'#command-{product}'},
+                       className='btn btn-sm btn-warning',
+                       style={'borderRadius': '15px'})
+
+
+def get_copy_status(product):
+    return html.Span(id=f'copy-status-{product}',
+                     className='align-middle ml-2',
+                     style={
+                         'fontSize': '13px',
+                         'color': 'green'
+                     })
+
+
+def get_continue(product):
+    return dbc.Button('Continue',
+                      color='primary',
+                      id=f'button-submit-{product}',
+                      className='my-3')
+
+
+def get_loading_submit(product):
+    return dcc.Loading(type='circle',
+                       children=html.Div(id=f'loading-submit-{product}'))
+
+
+def get_image_name(hardware):
+    if hardware == 'raspberry-pi':
+        return SDK_IMAGE + '-raspberry-pi'
+    elif hardware == 'gpu':
+        return SDK_IMAGE + '-gpu'
+    elif hardware == 'jetson':
+        return SDK_IMAGE + '-jetson'
+    else:
+        return SDK_IMAGE
+
+
+def get_confirm(product):
+    return dcc.ConfirmDialogProvider(
+        children=html.Button('Click Me',),
+        id='danger-danger-provider',
+        message='Danger danger! Are you sure you want to continue?'),
+
+
 app = dash.Dash(
     __name__,
     title='Plate Recognizer Installer',
@@ -199,158 +468,106 @@ app = dash.Dash(
         'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
     ])
 
-app.layout = dbc.Container(children=[
-    html.H1(children='Plate Recognizer Installer'),
-    dbc.Form(children=[
-        dbc.FormGroup([
-            dbc.Label('Host OS', html_for='input-os', width=6),
-            dbc.Label(get_os(), id='input-os', width=3),
-        ],
-                      row=True),
-        dbc.FormGroup([
-            dbc.Label(DOCKER_INFO, html_for='refresh-docker', width=6),
-            dcc.Loading(type="circle", children=html.Div(id="loading-refresh")),
-            dbc.Col(dbc.Button(
-                'Refresh', color='secondary', id='refresh-docker'),
-                    width=3),
-        ],
-                      row=True,
-                      style=NONE,
-                      id='refresh'),
-        dbc.FormGroup([
-            dbc.Label('Docker image found on your system, you may update it.',
-                      html_for='update-image',
-                      width=6),
-            dcc.Loading(type="circle", children=html.Div(id="loading-update")),
-            dbc.Col([
-                dbc.Button('Update', color='secondary', id='update-image'),
-                html.Span(
-                    ' Updated', id='span-update', className='align-middle'),
+app.layout = dbc.Container([
+    html.H2(children='Plate Recognizer Installer',
+            className='text-center my-3'),
+    dbc.Tabs([
+        dbc.Tab([
+            dbc.Form([
+                get_os_label(STREAM),
+                get_refresh(STREAM),
+                get_update(STREAM),
             ],
-                    width=3),
-        ],
-                      row=True,
-                      style=NONE,
-                      id='update'),
-    ]),
-    dbc.Form(children=[
-        dbc.FormGroup([
-            dbc.Label([
-                'Please enter your Plate Recognizer ',
-                html.A('API Token', href=PLAN_LINK, target='_blank'), ':'
+                     className='mt-2'),
+            dbc.Form([
+                get_token(STREAM),
+                get_license_key(STREAM),
+                get_directory(STREAM),
+                get_boot(STREAM),
             ],
-                      html_for='input-token',
-                      width=6),
-            dbc.Col(
-                dbc.Input(type='text',
-                          id='input-token',
-                          placeholder='Token',
-                          persistence=True),
-                width=3,
-            ),
-        ],
-                      row=True),
-        dbc.FormGroup([
-            dbc.Label([
-                'Please enter your ',
-                html.A('Stream License Key', href=PLAN_LINK, target='_blank'),
-                ':'
-            ],
-                      html_for='input-key',
-                      width=6),
-            dbc.Col(
-                dbc.Input(type='text',
-                          id='input-key',
-                          placeholder='License Key',
-                          persistence=True),
-                width=3,
-            ),
-        ],
-                      row=True),
-        dbc.FormGroup([
-            dbc.Label('Path to your Stream installation directory:',
-                      html_for='input-home',
-                      width=6),
-            dbc.Col(
-                dbc.Input(value=get_home(),
-                          type='text',
-                          id='input-home',
-                          placeholder='Path to directory',
-                          persistence=True),
-                width=3,
-            ),
-        ],
-                      className='mb-2',
-                      row=True),
-        dbc.FormGroup(
-            [
-                dbc.Label([
-                    'Do you want Stream to automatically start on system startup?'
+                     style=NONE,
+                     id=f'form-{STREAM}'),
+            html.Div([
+                get_config_label(STREAM),
+                get_config_body(STREAM),
+                get_status(STREAM),
+                dbc.Card([
+                    dbc.CardBody([
+                        get_info(STREAM),
+                        get_card_text(STREAM),
+                        get_clipboard(STREAM),
+                        get_copy_status(STREAM)
+                    ]),
                 ],
-                          html_for="check-boot",
-                          width=6),
-                dbc.Col(dbc.Checkbox(id='check-boot', className='align-bottom'),
-                        width=3)
+                         id=f'card-{STREAM}',
+                         className='mt-3',
+                         style=NONE),
+                get_loading_submit(STREAM),
+                get_continue(STREAM),
             ],
-            row=True,
-        ),
-    ],
-             style=NONE,
-             id='form'),
-    html.Div(children=[
-        html.P([
-            'Edit your Stream configuration file. See the ',
-            html.A('documentation', href=STREAM_DOCS_LINK, target='_blank'),
-            ' for details.'
-        ]),
-        dbc.Textarea(bs_size='sm',
-                     id='area-config',
-                     style={
-                         'width': '74.5%',
-                         'height': '300px'
-                     }),
-        html.
-        P(children='', style={'color': 'red'}, className='mb-0', id='p-status'),
-        dbc.Card([
-            dbc.CardBody([
-                html.
-                H5('You can now start Stream. Open a terminal and type the command below. You can save this command for future use.',
-                   className='card-title'),
-                html.P(className='card-text', id='command'),
-                html.Button('copy to clipboard',
-                            id='copy',
-                            **{'data-clipboard-target': '#command'},
-                            className='btn btn-sm btn-warning',
-                            style={'borderRadius': '15px'}),
-                html.Span(id='copy-status',
-                          className='align-middle ml-2',
-                          style={
-                              'fontSize': '13px',
-                              'color': 'green'
-                          })
-            ]),
+                     id=f'footer-{STREAM}',
+                     style=NONE),
         ],
-                 id='card',
-                 className='mt-3',
-                 style=NONE),
-        dbc.Button(
-            'Continue', color='primary', id='button-submit', className='my-3'),
+                label=STREAM.capitalize(),
+                tab_id=STREAM,
+                className='offset-md-1'),
+        dbc.Tab([
+            dbc.Form([
+                get_os_label(SNAPSHOT),
+                get_refresh(SNAPSHOT),
+                get_update(SNAPSHOT),
+            ],
+                     className='mt-2'),
+            dbc.Form([
+                get_token(SNAPSHOT),
+                get_license_key(SNAPSHOT),
+                get_boot(SNAPSHOT),
+                get_hardware_dropdown(SNAPSHOT)
+            ],
+                     style=NONE,
+                     id=f'form-{SNAPSHOT}'),
+            html.Div([
+                get_status(SNAPSHOT),
+                dbc.Card([
+                    dbc.CardBody([
+                        get_info(SNAPSHOT),
+                        get_card_text(SNAPSHOT),
+                        get_clipboard(SNAPSHOT),
+                        get_copy_status(SNAPSHOT)
+                    ]),
+                ],
+                         id=f'card-{SNAPSHOT}',
+                         className='mt-3',
+                         style=NONE),
+                get_loading_submit(SNAPSHOT),
+                get_continue(SNAPSHOT),
+            ],
+                     id=f'footer-{SNAPSHOT}',
+                     style=NONE),
+        ],
+                label=SNAPSHOT.capitalize(),
+                tab_id=SNAPSHOT,
+                className='offset-md-1')
     ],
-             id='footer',
-             style=NONE),
+             id='tabs',
+             active_tab=STREAM,
+             style={'width': '84%'},
+             className='offset-md-1 justify-content-center'),
 ])
 
 
 @app.callback([
-    Output('refresh', 'style'),
-    Output('update', 'style'),
-    Output('form', 'style'),
-    Output('footer', 'style'),
-    Output('loading-refresh', 'children')
-], [Input('refresh-docker', 'n_clicks')])
-def update_docker(n_clicks):
+    Output('refresh-stream', 'style'),
+    Output('update-stream', 'style'),
+    Output('form-stream', 'style'),
+    Output('footer-stream', 'style'),
+    Output('loading-refresh-stream', 'children')
+], [
+    Input('refresh-docker-stream', 'n_clicks'),
+])
+def refresh_docker_stream(n_clicks):
     if verify_docker_install():
-        if get_image(IMAGE):
+        if get_image(STREAM_IMAGE):
             return NONE, FLEX, BLOCK, BLOCK, None
         else:
             return NONE, NONE, BLOCK, BLOCK, None
@@ -359,41 +576,187 @@ def update_docker(n_clicks):
 
 
 @app.callback([
-    Output('update-image', 'disabled'),
-    Output('span-update', 'style'),
-    Output('loading-update', 'children')
-], [Input('update-image', 'n_clicks')])
-def update_image(n_clicks):
-    if n_clicks:
-        pull_docker(IMAGE)
-        return True, {'display': 'inline', 'color': 'green'}, None
+    Output('refresh-snapshot', 'style'),
+    Output('update-snapshot', 'style'),
+    Output('form-snapshot', 'style'),
+    Output('footer-snapshot', 'style'),
+    Output('loading-refresh-snapshot', 'children')
+], [
+    Input('refresh-docker-snapshot', 'n_clicks'),
+    Input('dropdown-hardware-snapshot', 'value')
+])
+def refresh_docker_snapshot(n_clicks, hardware):
+    if verify_docker_install():
+        if get_image(get_image_name(hardware)):
+            return NONE, FLEX, BLOCK, BLOCK, None
+        else:
+            return NONE, NONE, BLOCK, BLOCK, None
+    else:
+        return FLEX, NONE, NONE, NONE, None
+
+
+@app.callback([
+    Output('update-image-stream', 'disabled'),
+    Output('span-update-stream', 'style'),
+    Output('loading-update-stream', 'children')
+], [Input('update-image-stream', 'n_clicks'),
+    Input('tabs', 'active_tab')])
+def update_image_stream(n_clicks, tab):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'update-image-stream.n_clicks':
+        pull_docker(STREAM_IMAGE)
+        return False, {'display': 'inline', 'color': 'green'}, None
     return False, NONE, None
 
 
-@app.callback(Output('area-config', 'value'), [Input('input-home', 'value')])
+@app.callback([
+    Output('update-image-snapshot', 'disabled'),
+    Output('span-update-snapshot', 'style'),
+    Output('loading-update-snapshot', 'children')
+], [
+    Input('update-image-snapshot', 'n_clicks'),
+    Input('tabs', 'active_tab'),
+    Input('dropdown-hardware-snapshot', 'value')
+])
+def update_image_snapshot(n_clicks, tab, hardware):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'update-image-snapshot.n_clicks':
+        pull_docker(get_image_name(hardware))
+        return False, {'display': 'inline', 'color': 'green'}, None
+    return False, NONE, None
+
+
+@app.callback(
+    Output('modal-uninstall-stream', 'is_open'),
+    [
+        Input('uninstall-image-stream', 'n_clicks'),
+        Input('ok-uninstall-stream', 'n_clicks'),
+        Input('cancel-uninstall-stream', 'n_clicks'),
+    ],
+    [State('modal-uninstall-stream', 'is_open')],
+)
+def toggle_modal_stream(n1, n2, n3, is_open):
+    if n1 or n2 or n3:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output('modal-uninstall-snapshot', 'is_open'),
+    [
+        Input('uninstall-image-snapshot', 'n_clicks'),
+        Input('ok-uninstall-snapshot', 'n_clicks'),
+        Input('cancel-uninstall-snapshot', 'n_clicks'),
+    ],
+    [State('modal-uninstall-snapshot', 'is_open')],
+)
+def toggle_modal_snapshot(n1, n2, n3, is_open):
+    if n1 or n2 or n3:
+        return not is_open
+    return is_open
+
+
+@app.callback([
+    Output('loading-uninstall-stream', 'children'),
+    Output('span-uninstall-stream', 'children'),
+], [
+    Input('ok-uninstall-stream', 'n_clicks'),
+    Input('update-image-stream', 'n_clicks'),
+    State('input-token-stream', 'value'),
+    State('input-key-stream', 'value'),
+])
+def uninstall_stream(n_clicks, update, token, key):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'update-image-stream.n_clicks':
+        return [None, '']
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'ok-uninstall-stream.n_clicks':
+        if not get_image(STREAM_IMAGE):
+            return [None, 'Image already uninstalled.']
+        verification = verify_token(token, key, product=STREAM)
+        if verification[0]:
+            stop_container(STREAM_IMAGE)
+            cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {STREAM_IMAGE}'
+            os.system(cmd)
+            container_id = get_container_id(STREAM_IMAGE)
+            if container_id:
+                cmd = f'docker container rm {container_id}'
+                os.system(cmd)
+            cmd = f'docker rmi "{STREAM_IMAGE}" -f'
+            os.system(cmd)
+            cmd = 'docker image prune -f'
+            os.system(cmd)
+            return [None, 'Image successfully uninstalled.']
+        else:
+            return [None, verification[1]]
+    raise PreventUpdate
+
+
+@app.callback([
+    Output('loading-uninstall-snapshot', 'children'),
+    Output('span-uninstall-snapshot', 'children'),
+], [
+    Input('ok-uninstall-snapshot', 'n_clicks'),
+    Input('update-image-snapshot', 'n_clicks'),
+    Input('dropdown-hardware-snapshot', 'value'),
+    State('input-token-snapshot', 'value'),
+    State('input-key-snapshot', 'value'),
+    State('dropdown-hardware-snapshot', 'value')
+])
+def uninstall_snapshot(n_clicks, update, switch, token, key, hardware):
+    if dash.callback_context.triggered[0]['prop_id'] in [
+            'update-image-snapshot.n_clicks', 'dropdown-hardware-snapshot.value'
+    ]:
+        return [None, '']
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
+        if not get_image(get_image_name(hardware)):
+            return [None, 'Image already uninstalled.']
+        verification = verify_token(token, key, product=SNAPSHOT)
+        if verification[0]:
+            stop_container(get_image_name(hardware))
+            cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {get_image_name(hardware)}'
+            os.system(cmd)
+            container_id = get_container_id(get_image_name(hardware))
+            if container_id:
+                cmd = f'docker container rm {container_id}'
+                os.system(cmd)
+            cmd = f'docker rmi "{get_image_name(hardware)}" -f'
+            os.system(cmd)
+            cmd = 'docker image prune -f'
+            os.system(cmd)
+            return [None, 'Image successfully uninstalled.']
+        else:
+            return [None, verification[1]]
+    raise PreventUpdate
+
+
+@app.callback(Output('area-config-stream', 'value'),
+              [Input('input-home-stream', 'value')])
 def change_path(home):
     return read_config(home)
 
 
 @app.callback([
-    Output('p-status', 'children'),
-    Output('card', 'style'),
-    Output('command', 'children'),
+    Output('p-status-stream', 'children'),
+    Output('card-stream', 'style'),
+    Output('command-stream', 'children'),
+    Output('loading-submit-stream', 'children')
 ], [
-    Input('area-config', 'value'),
-    Input('button-submit', 'n_clicks'),
-    State('input-token', 'value'),
-    State('input-key', 'value'),
-    State('input-home', 'value'),
-    State('check-boot', 'checked'),
+    Input('area-config-stream', 'value'),
+    Input('button-submit-stream', 'n_clicks'),
+    Input('input-token-stream', 'value'),
+    Input('input-key-stream', 'value'),
+    Input('input-home-stream', 'value'),
+    Input('check-boot-stream', 'checked'),
 ])
-def submit(config, n_clicks, token, key, home, boot):
+def submit_stream(config, n_clicks, token, key, home, boot):
     if dash.callback_context.triggered[0][
-            'prop_id'] == 'button-submit.n_clicks':
-        is_valid, error = verify_token(token, key)
+            'prop_id'] == 'button-submit-stream.n_clicks':
+        is_valid, error = verify_token(token, key, product='stream')
         if is_valid:
             if not write_config(home, config):
-                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, ''
+                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, '', None
             user_info = ''
             nvidia = ''
             image_tag = ''
@@ -405,25 +768,79 @@ def submit(config, n_clicks, token, key, home, boot):
                 image_tag = ':jetson'
             if boot:
                 autoboot = '--restart unless-stopped'
-            if not get_image(IMAGE):
-                pull_docker(IMAGE)
+            if not get_image(STREAM_IMAGE):
+                pull_docker(STREAM_IMAGE)
             command = f'docker run {autoboot} -t ' \
                       f'{nvidia} --name stream ' \
                       f'-v {home}:/user-data ' \
                       f'{user_info} ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
-                      f'{IMAGE}{image_tag}'
-            return '', {'display': 'block', 'width': '74.5%'}, command
+                      f'{STREAM_IMAGE}{image_tag}'
+            return '', DISPLAY_CARD, command, None
         else:
-            return error, NONE, ''
+            return error, NONE, '', None
     else:
-        return '', NONE, ''
+        return '', NONE, '', None
 
 
-@app.callback(Output('copy-status', 'children'), [Input('copy', 'n_clicks')])
-def copy_to_clipboard(n_clicks):
-    if dash.callback_context.triggered[0]['prop_id'] == 'copy.n_clicks':
+@app.callback([
+    Output('p-status-snapshot', 'children'),
+    Output('card-snapshot', 'style'),
+    Output('command-snapshot', 'children'),
+    Output('loading-submit-snapshot', 'children')
+], [
+    Input('button-submit-snapshot', 'n_clicks'),
+    Input('input-token-snapshot', 'value'),
+    Input('input-key-snapshot', 'value'),
+    Input('check-boot-snapshot', 'checked'),
+    Input('dropdown-hardware-snapshot', 'value'),
+])
+def submit_snapshot(n_clicks, token, key, boot, hardware):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'button-submit-snapshot.n_clicks':
+        is_valid, error = verify_token(token, key, product='snapshot')
+        if is_valid:
+            autoboot = '--restart unless-stopped' if boot else '--rm'
+            if not get_image(get_image_name(hardware)):
+                pull_docker(get_image_name(hardware))
+            docker_version = 'nvidia-docker' if 'jetson' in get_image_name(
+                hardware) else 'docker'
+            extra_args = '--runtime nvidia' if any(h in get_image_name(hardware)
+                                                   for h in ('gpu',
+                                                             'jetson')) else ''
+            command = f'{docker_version} run {autoboot} ' \
+                      f'-t {extra_args} ' \
+                      f'-p 8080:8080 ' \
+                      f'-v license:/license ' \
+                      f'-e LICENSE_KEY={key} ' \
+                      f'-e TOKEN={token} ' \
+                      f'{get_image_name(hardware)}'
+            return '', DISPLAY_CARD, command, None
+        else:
+            return error, NONE, '', None
+    else:
+        return '', NONE, '', None
+
+
+@app.callback(Output('copy-status-stream', 'children'), [
+    Input('copy-stream', 'n_clicks'),
+    Input('button-submit-stream', 'n_clicks'),
+])
+def copy_to_clipboard_stream(n_clicks, n_clicks_submit):
+    if dash.callback_context.triggered[0]['prop_id'] == 'copy-stream.n_clicks':
+        return 'Item copied to clipboard.'
+    else:
+        return ''
+
+
+@app.callback(Output('copy-status-snapshot', 'children'), [
+    Input('copy-snapshot', 'n_clicks'),
+    Input('button-submit-snapshot', 'n_clicks'),
+])
+def copy_to_clipboard_snapshot(n_clicks, n_clicks_submit):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'copy-snapshot.n_clicks':
         return 'Item copied to clipboard.'
     else:
         return ''
