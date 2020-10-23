@@ -375,30 +375,30 @@ def get_hardware_dropdown(product):
             dcc.Dropdown(options=[
                 {
                     'label': 'Intel CPU',
-                    'value': 'sdk'
+                    'value': 'platerecognizer/alpr'
                 },
                 {
                     'label': 'Raspberry',
-                    'value': 'raspberry-pi'
+                    'value': 'platerecognizer/alpr-raspberry-pi'
                 },
                 {
                     'label': 'GPU (Nvidia Only)',
-                    'value': 'gpu'
+                    'value': 'platerecognizer/alpr-gpu'
                 },
                 {
                     'label': 'Jetson Nano',
-                    'value': 'jetson'
+                    'value': 'platerecognizer/alpr-jetson'
                 },
                 {
                     'label': 'ZCU104',
-                    'value': 'zcu104'
+                    'value': 'platerecognizer/alpr-zcu104'
                 },
                 {
                     'label': 'Thailand',
-                    'value': 'thailand'
+                    'value': 'platerecognizer/alpr:thailand'
                 },
             ],
-                         value='sdk',
+                         value='platerecognizer/alpr',
                          clearable=False,
                          id=f'dropdown-hardware-{product}',
                          style={'borderRadius': '0'},
@@ -435,23 +435,37 @@ def get_status(product):
 
 
 def get_success_card(product):
-    result = f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.'
+    result = [
+        f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.'
+    ]
+    sdk_endpoint = ''
     if product == SNAPSHOT:
-        result += ' To use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/v1/plate-reader/'
+        sdk_endpoint = [
+            html.P(' To use the SDK endpoint call: ',
+                   className='card-title mt-3 mb-0',
+                   style={'display': 'inline-block'}),
+            html.Code(
+                ' curl -F "upload=@my_file.jpg" http://localhost:8080/v1/plate-reader/'
+            )
+        ]
     return dbc.CardBody([
-        html.H5(result, className='card-title'),
-        html.P(className='card-text', id=f'command-{product}'),
-        html.Button('copy to clipboard',
-                    id=f'copy-{product}',
-                    **{'data-clipboard-target': f'#command-{product}'},
-                    className='btn btn-sm btn-warning',
-                    style={'borderRadius': '15px'}),
-        html.Span(id=f'copy-status-{product}',
-                  className='align-middle ml-2',
-                  style={
-                      'fontSize': '13px',
-                      'color': 'green'
-                  })
+        html.P(result, className='card-title'),
+        html.Code(className='card-text d-block', id=f'command-{product}'),
+        html.Div([
+            html.Button('copy to clipboard',
+                        id=f'copy-{product}',
+                        **{'data-clipboard-target': f'#command-{product}'},
+                        className='btn btn-sm btn-warning',
+                        style={'borderRadius': '15px'}),
+            html.Span(id=f'copy-status-{product}',
+                      className='ml-2',
+                      style={
+                          'fontSize': '13px',
+                          'color': 'green'
+                      }),
+        ],
+                 className='mt-3'),
+        html.P(sdk_endpoint, className='my-0')
     ])
 
 
@@ -465,21 +479,6 @@ def get_continue(product):
 def get_loading_submit(product):
     return dcc.Loading(type='circle',
                        children=html.Div(id=f'loading-submit-{product}'))
-
-
-def get_image_name(hardware):
-    if hardware == 'raspberry-pi':
-        return SDK_IMAGE + '-raspberry-pi'
-    elif hardware == 'gpu':
-        return SDK_IMAGE + '-gpu'
-    elif hardware == 'jetson':
-        return SDK_IMAGE + '-jetson'
-    elif hardware == 'zcu104':
-        return SDK_IMAGE + '-zcu104'
-    elif hardware == 'thailand':
-        return SDK_IMAGE + ':thailand'
-    else:
-        return SDK_IMAGE
 
 
 def get_confirm(product):
@@ -604,7 +603,7 @@ def refresh_docker_stream(n_clicks):
 ])
 def refresh_docker_snapshot(n_clicks, hardware):
     if verify_docker_install():
-        if get_image(get_image_name(hardware)):
+        if get_image(hardware):
             return NONE, FLEX, BLOCK, BLOCK, None
         else:
             return NONE, NONE, BLOCK, BLOCK, None
@@ -638,7 +637,7 @@ def update_image_stream(n_clicks, tab):
 def update_image_snapshot(n_clicks, tab, hardware):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'update-image-snapshot.n_clicks':
-        pull_docker(get_image_name(hardware))
+        pull_docker(hardware)
         return False, {'display': 'inline', 'color': 'green'}, None
     return False, NONE, None
 
@@ -721,18 +720,18 @@ def uninstall_snapshot(n_clicks, update, switch, token, key, hardware):
         return [None, '']
     if dash.callback_context.triggered[0][
             'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
-        if not get_image(get_image_name(hardware)):
+        if not get_image(hardware):
             return [None, 'Image already uninstalled.']
         verification = verify_token(token, key, product=SNAPSHOT)
         if verification[0]:
-            stop_container(get_image_name(hardware))
-            cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {get_image_name(hardware)}'
+            stop_container(hardware)
+            cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {hardware}'
             os.system(cmd)
-            container_id = get_container_id(get_image_name(hardware))
+            container_id = get_container_id(hardware)
             if container_id:
                 cmd = f'docker container rm {container_id}'
                 os.system(cmd)
-            cmd = f'docker rmi "{get_image_name(hardware)}" -f'
+            cmd = f'docker rmi "{hardware}" -f'
             os.system(cmd)
             cmd = 'docker image prune -f'
             os.system(cmd)
@@ -816,17 +815,16 @@ def submit_snapshot(n_clicks, token, key, boot, port, hardware):
             autoboot = '--restart unless-stopped' if boot else '--rm'
             if not is_valid_port(port):
                 return 'Wrong port', NONE, '', None
-            if not get_image(get_image_name(hardware)):
-                pull_docker(get_image_name(hardware))
-            gpus = '--gpus all' if 'gpu' in get_image_name(hardware) else ''
-            nvidia = '--runtime nvidia' if 'jetson' in get_image_name(
-                hardware) else ''
+            if not get_image(hardware):
+                pull_docker(hardware)
+            gpus = '--gpus all' if 'gpu' in hardware else ''
+            nvidia = '--runtime nvidia' if 'jetson' in hardware else ''
             command = f'docker run {gpus} {nvidia} {autoboot} ' \
                       f'-t -p {port}:8080 ' \
                       f'-v license:/license ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
-                      f'{get_image_name(hardware)}'
+                      f'{hardware}'
             return '', DISPLAY_CARD, command, None
         else:
             return error, NONE, '', None
