@@ -1,0 +1,7 @@
+a.nav-link, a.nav-link:focus {
+    color: #495057;
+    width: 150px;
+    text-align: center;
+    border-bottom: none !important;
+    cursor: pointer;
+}
