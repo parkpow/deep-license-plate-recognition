@@ -159,6 +159,13 @@ def verify_token(token, license_key, get_license=True, product='stream'):
             return True, None
 
 
+def is_valid_port(port):
+    try:
+        return 8000 <= int(port) <= 8999
+    except ValueError:
+        return False
+
+
 def resource_path(relative_path):
     # get absolute path to resource
     try:
@@ -342,6 +349,23 @@ def get_boot(product):
                          row=True)
 
 
+def get_port(product):
+    return dbc.FormGroup([
+        dbc.Label(['Set the container port (default is 8080):'],
+                  html_for=f'input-port-{product}',
+                  width=7),
+        dbc.Col(
+            dbc.Input(type='text',
+                      id=f'input-port-{product}',
+                      value='8080',
+                      placeholder='Port',
+                      persistence=True),
+            width=4,
+        ),
+    ],
+                         row=True)
+
+
 def get_hardware_dropdown(product):
     return dbc.FormGroup([
         dbc.Label('What is the hardware of this machine?',
@@ -402,31 +426,25 @@ def get_status(product):
                   id=f'p-status-{product}')
 
 
-def get_info(product):
-    return html.H5(
-        f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.',
-        className='card-title')
-
-
-def get_card_text(product):
-    return html.P(className='card-text', id=f'command-{product}')
-
-
-def get_clipboard(product):
-    return html.Button('copy to clipboard',
-                       id=f'copy-{product}',
-                       **{'data-clipboard-target': f'#command-{product}'},
-                       className='btn btn-sm btn-warning',
-                       style={'borderRadius': '15px'})
-
-
-def get_copy_status(product):
-    return html.Span(id=f'copy-status-{product}',
-                     className='align-middle ml-2',
-                     style={
-                         'fontSize': '13px',
-                         'color': 'green'
-                     })
+def get_success_card(product):
+    result = f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.'
+    if product == SNAPSHOT:
+        result += ' To use the SDK endpoint call: curl -F "upload=@my_file.jpg" http://localhost:8080/v1/plate-reader/'
+    return dbc.CardBody([
+        html.H5(result, className='card-title'),
+        html.P(className='card-text', id=f'command-{product}'),
+        html.Button('copy to clipboard',
+                    id=f'copy-{product}',
+                    **{'data-clipboard-target': f'#command-{product}'},
+                    className='btn btn-sm btn-warning',
+                    style={'borderRadius': '15px'}),
+        html.Span(id=f'copy-status-{product}',
+                  className='align-middle ml-2',
+                  style={
+                      'fontSize': '13px',
+                      'color': 'green'
+                  })
+    ])
 
 
 def get_continue(product):
@@ -491,14 +509,7 @@ app.layout = dbc.Container([
                 get_config_label(STREAM),
                 get_config_body(STREAM),
                 get_status(STREAM),
-                dbc.Card([
-                    dbc.CardBody([
-                        get_info(STREAM),
-                        get_card_text(STREAM),
-                        get_clipboard(STREAM),
-                        get_copy_status(STREAM)
-                    ]),
-                ],
+                dbc.Card([get_success_card(STREAM)],
                          id=f'card-{STREAM}',
                          className='mt-3',
                          style=NONE),
@@ -522,20 +533,14 @@ app.layout = dbc.Container([
                 get_token(SNAPSHOT),
                 get_license_key(SNAPSHOT),
                 get_boot(SNAPSHOT),
+                get_port(SNAPSHOT),
                 get_hardware_dropdown(SNAPSHOT)
             ],
                      style=NONE,
                      id=f'form-{SNAPSHOT}'),
             html.Div([
                 get_status(SNAPSHOT),
-                dbc.Card([
-                    dbc.CardBody([
-                        get_info(SNAPSHOT),
-                        get_card_text(SNAPSHOT),
-                        get_clipboard(SNAPSHOT),
-                        get_copy_status(SNAPSHOT)
-                    ]),
-                ],
+                dbc.Card([get_success_card(SNAPSHOT)],
                          id=f'card-{SNAPSHOT}',
                          className='mt-3',
                          style=NONE),
@@ -673,22 +678,16 @@ def uninstall_stream(n_clicks, update, token, key):
             'prop_id'] == 'ok-uninstall-stream.n_clicks':
         if not get_image(STREAM_IMAGE):
             return [None, 'Image already uninstalled.']
-        verification = verify_token(token, key, product=STREAM)
-        if verification[0]:
-            stop_container(STREAM_IMAGE)
-            cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {STREAM_IMAGE}'
+        stop_container(STREAM_IMAGE)
+        container_id = get_container_id(STREAM_IMAGE)
+        if container_id:
+            cmd = f'docker container rm {container_id}'
             os.system(cmd)
-            container_id = get_container_id(STREAM_IMAGE)
-            if container_id:
-                cmd = f'docker container rm {container_id}'
-                os.system(cmd)
-            cmd = f'docker rmi "{STREAM_IMAGE}" -f'
-            os.system(cmd)
-            cmd = 'docker image prune -f'
-            os.system(cmd)
-            return [None, 'Image successfully uninstalled.']
-        else:
-            return [None, verification[1]]
+        cmd = f'docker rmi "{STREAM_IMAGE}" -f'
+        os.system(cmd)
+        cmd = 'docker image prune -f'
+        os.system(cmd)
+        return [None, 'Image successfully uninstalled.']
     raise PreventUpdate
 
 
@@ -794,14 +793,17 @@ def submit_stream(config, n_clicks, token, key, home, boot):
     Input('input-token-snapshot', 'value'),
     Input('input-key-snapshot', 'value'),
     Input('check-boot-snapshot', 'checked'),
+    Input('input-port-snapshot', 'value'),
     Input('dropdown-hardware-snapshot', 'value'),
 ])
-def submit_snapshot(n_clicks, token, key, boot, hardware):
+def submit_snapshot(n_clicks, token, key, boot, port, hardware):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'button-submit-snapshot.n_clicks':
         is_valid, error = verify_token(token, key, product='snapshot')
         if is_valid:
             autoboot = '--restart unless-stopped' if boot else '--rm'
+            if not is_valid_port(port):
+                return 'Wrong port', NONE, '', None
             if not get_image(get_image_name(hardware)):
                 pull_docker(get_image_name(hardware))
             docker_version = 'nvidia-docker' if 'jetson' in get_image_name(
@@ -811,7 +813,7 @@ def submit_snapshot(n_clicks, token, key, boot, hardware):
                                                              'jetson')) else ''
             command = f'{docker_version} run {autoboot} ' \
                       f'-t {extra_args} ' \
-                      f'-p 8080:8080 ' \
+                      f'-p {port}:8080 ' \
                       f'-v license:/license ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
