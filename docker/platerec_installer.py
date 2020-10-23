@@ -368,7 +368,7 @@ def get_port(product):
 
 def get_hardware_dropdown(product):
     return dbc.FormGroup([
-        dbc.Label('What is the hardware of this machine?',
+        dbc.Label('Docker image to use:',
                   html_for=f'dropdown-hardware-{product}',
                   width=7),
         dbc.Col(
