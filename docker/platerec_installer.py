@@ -207,7 +207,7 @@ if get_os() == 'Windows':
 
 def get_os_label(product):
     return dbc.FormGroup([
-        dbc.Label('Host OS', html_for=f'input-os-{product}', width=7),
+        dbc.Label('Host OS:', html_for=f'input-os-{product}', width=7),
         dbc.Label(get_os(), id=f'input-os-{product}', width=4),
     ],
                          row=True)
@@ -389,6 +389,14 @@ def get_hardware_dropdown(product):
                     'label': 'Jetson Nano',
                     'value': 'jetson'
                 },
+                {
+                    'label': 'ZCU104',
+                    'value': 'zcu104'
+                },
+                {
+                    'label': 'Thailand',
+                    'value': 'thailand'
+                },
             ],
                          value='sdk',
                          clearable=False,
@@ -466,6 +474,10 @@ def get_image_name(hardware):
         return SDK_IMAGE + '-gpu'
     elif hardware == 'jetson':
         return SDK_IMAGE + '-jetson'
+    elif hardware == 'zcu104':
+        return SDK_IMAGE + '-zcu104'
+    elif hardware == 'thailand':
+        return SDK_IMAGE + ':thailand'
     else:
         return SDK_IMAGE
 
@@ -806,14 +818,11 @@ def submit_snapshot(n_clicks, token, key, boot, port, hardware):
                 return 'Wrong port', NONE, '', None
             if not get_image(get_image_name(hardware)):
                 pull_docker(get_image_name(hardware))
-            docker_version = 'nvidia-docker' if 'jetson' in get_image_name(
-                hardware) else 'docker'
-            extra_args = '--runtime nvidia' if any(h in get_image_name(hardware)
-                                                   for h in ('gpu',
-                                                             'jetson')) else ''
-            command = f'{docker_version} run {autoboot} ' \
-                      f'-t {extra_args} ' \
-                      f'-p {port}:8080 ' \
+            gpus = '--gpus all' if 'gpu' in get_image_name(hardware) else ''
+            nvidia = '--runtime nvidia' if 'jetson' in get_image_name(
+                hardware) else ''
+            command = f'docker run {gpus} {nvidia} {autoboot} ' \
+                      f'-t -p {port}:8080 ' \
                       f'-v license:/license ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
