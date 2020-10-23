@@ -161,7 +161,7 @@ def verify_token(token, license_key, get_license=True, product='stream'):
 
 def is_valid_port(port):
     try:
-        return 8000 <= int(port) <= 8999
+        return 0 <= int(port) <= 65535
     except ValueError:
         return False
 
