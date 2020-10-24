@@ -104,7 +104,7 @@ def process_files(ftp_client, ftp_files, args):
 
 
 def ftp_process(args):
-    ftp = FTP()
+    ftp = FTP(timeout=120)
     ftp.connect(args.ftp_host)
     ftp.login(args.ftp_user, args.ftp_password)
     logging.info(f'Connected to FTP server at {args.ftp_host}')
