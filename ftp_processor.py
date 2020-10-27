@@ -4,6 +4,7 @@ import logging
 import tempfile
 from ftplib import FTP
 import time
+from collections import OrderedDict
 
 from plate_recognition import recognition_api, save_results
 
@@ -11,6 +12,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 # Keep track of processed file names
 processed = None
+delete_queue = None
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -55,6 +57,11 @@ def custom_args(parser):
         '--delete',
         help='Remove images from the FTP server after processing.',
         action='store_true')
+    parser.add_argument(
+        '-dt',
+        '--delete-timeout',
+        help='Perfom --delete after specified timeout in seconds.',
+        type=int)
     parser.add_argument('-f',
                         '--folder',
                         help='Specify folder with images on the FTP server.',
@@ -72,13 +79,19 @@ def custom_args(parser):
         'Periodically fetch new images from the server every interval seconds.')
 
 
-def process_files(ftp_client, ftp_files, args):
-
+def process_files(ftp_client, ftp_files, args, files_path):
+    global delete_queue
     results = []
 
     for ftp_file in ftp_files:
         if not args.delete and processed is not None and ftp_file in processed:
             continue
+
+        # Skip files scheduled for delete
+        full_file_path = f'{files_path}/{ftp_file}'
+        if args.delete and args.delete_timeout and full_file_path in delete_queue:
+            continue
+
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
                                          mode='rb+') as image:
@@ -93,9 +106,25 @@ def process_files(ftp_client, ftp_files, args):
             results.append(api_res)
 
         if args.delete:
-            ftp_client.delete(ftp_file)
+            if args.delete_timeout:
+                delete_queue[full_file_path] = time.time() + args.delete_timeout
+            else:
+                ftp_client.delete(ftp_file)
+
         elif processed is not None:
             processed.append(ftp_file)
+
+    # Delete all files older than timeout
+    now = time.time()
+    print('delete timeout check')
+    if args.delete and args.delete_timeout:
+        for queued_file_path, expiry in delete_queue.copy().items():
+            if expiry > now:
+                # delete timeout not reached
+                break
+            else:
+                ftp_client.delete(queued_file_path)
+                del delete_queue[queued_file_path]
 
     if args.output_file:
         save_results(results, args)
@@ -125,7 +154,7 @@ def ftp_process(args):
     logging.info('Found %s file(s) in %s.', len(file_list), args.folder)
 
     # Process files
-    process_files(ftp, nondirs, args)
+    process_files(ftp, nondirs, args, args.folder)
 
     # Process day folders
     for folder in dirs:
@@ -135,8 +164,7 @@ def ftp_process(args):
         # so we don't have to check for folder
         ftp_files = ftp.nlst()
         logging.info('Found %s file(s) in %s.', len(ftp_files), folder_path)
-
-        process_files(ftp, ftp_files, args)
+        process_files(ftp, ftp_files, args, folder_path)
 
 
 def main():
@@ -144,6 +172,11 @@ def main():
     if args.interval and args.interval > 0:
         global processed
         processed = []
+
+        if args.delete_timeout:
+            global delete_queue
+            delete_queue = OrderedDict()
+
         while True:
             try:
                 ftp_process(args)
