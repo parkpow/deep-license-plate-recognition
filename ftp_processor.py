@@ -4,6 +4,7 @@ import logging
 import tempfile
 from ftplib import FTP
 import time
+from datetime import datetime, timedelta
 
 from plate_recognition import recognition_api, save_results
 
@@ -53,8 +54,10 @@ def custom_args(parser):
     parser.add_argument(
         '-d',
         '--delete',
-        help='Remove images from the FTP server after processing.',
-        action='store_true')
+        type=int,
+        help=
+        'Remove images from the FTP server after processing. Optionally specify a timeout in seconds.',
+        default=0)
     parser.add_argument('-f',
                         '--folder',
                         help='Specify folder with images on the FTP server.',
@@ -75,10 +78,20 @@ def custom_args(parser):
 def process_files(ftp_client, ftp_files, args):
 
     results = []
+    rm_older_than_date = datetime.now() - timedelta(seconds=args.delete)
 
-    for ftp_file in ftp_files:
-        if not args.delete and processed is not None and ftp_file in processed:
+    for file_last_modified in ftp_files:
+        ftp_file = file_last_modified[0]
+        last_modified = file_last_modified[1]
+
+        if ftp_file in processed:
+            if args.delete:
+                if rm_older_than_date > last_modified:
+                    ftp_client.delete(ftp_file)
+                    processed.remove(ftp_file)
+
             continue
+
         logging.info(ftp_file)
         with tempfile.NamedTemporaryFile(suffix='_' + ftp_file,
                                          mode='rb+') as image:
@@ -92,15 +105,36 @@ def process_files(ftp_client, ftp_files, args):
                                       exit_on_error=False)
             results.append(api_res)
 
-        if args.delete:
-            ftp_client.delete(ftp_file)
-        elif processed is not None:
-            processed.append(ftp_file)
+        processed.append(ftp_file)
 
     if args.output_file:
         save_results(results, args)
     else:
         print(json.dumps(results, indent=2))
+
+
+def parse_date(x, y, z):
+    """
+    M D T|Y
+    Jan 3   1994
+    Jan 17  1993
+    Sep 13  19:07
+    """
+    date_string = f'{x} {int(y):02} {z}'
+    if ':' in z:
+        modify_year = True
+        parse_string = '%b %d %H:%M'
+    else:
+        modify_year = False
+        parse_string = '%b %d %Y'
+
+    logging.debug(f'Input Date String: {date_string}')
+    date_time_obj = datetime.strptime(date_string, parse_string)
+    if modify_year:
+        date_time_obj = date_time_obj.replace(year=datetime.now().year)
+
+    logging.debug(f'Parsed date: {date_time_obj}')
+    return date_time_obj
 
 
 def ftp_process(args):
@@ -115,12 +149,13 @@ def ftp_process(args):
 
     # Process all files in root. Separate folders and files
     ftp.retrlines('LIST', lambda x: file_list.append(x.split()))
+
     for info in file_list:
         ls_type, name = info[0], info[-1]
         if ls_type.startswith('d'):
             dirs.append(name)
         else:
-            nondirs.append(name)
+            nondirs.append([name, parse_date(info[-4], info[-3], info[-2])])
 
     logging.info('Found %s file(s) in %s.', len(file_list), args.folder)
 
@@ -133,10 +168,21 @@ def ftp_process(args):
         ftp.cwd(folder_path)
         # This time we asume all are images,
         # so we don't have to check for folder
-        ftp_files = ftp.nlst()
-        logging.info('Found %s file(s) in %s.', len(ftp_files), folder_path)
+        file_list = []
+        ftp.retrlines('LIST', lambda x: file_list.append(x.split()))
 
-        process_files(ftp, ftp_files, args)
+        nondirs = []
+        for info in file_list:
+            print(info)
+            ls_type, name = info[0], info[-1]
+            if ls_type.startswith('d'):
+                # Don't process files any deeper
+                pass
+            else:
+                nondirs.append([name, parse_date(info[-4], info[-3], info[-2])])
+
+        logging.info('Found %s file(s) in %s.', len(nondirs), folder_path)
+        process_files(ftp, nondirs, args)
 
 
 def main():
@@ -149,6 +195,7 @@ def main():
                 ftp_process(args)
             except Exception as e:
                 print(f'ERROR: {e}')
+                raise
             time.sleep(args.interval)
     else:
         ftp_process(args)
