@@ -1,7 +1,7 @@
 # Plate Recognizer Installer
 
 <p align="center">
-  <img src="assets/installer-screenshot.jpg">
+  <img src="../assets/installer-screenshot.jpg">
 </p>
 
 This program helps you get started with Stream or SDK.
