@@ -194,9 +194,9 @@ def verify_token(token, license_key, get_license=True, product='stream'):
         return True, None
     except URLError as e:
         if '404' in str(e) and get_license:
-            return False, 'The License Key cannot be found. Please try again.'
+            return False, 'The License Key cannot be found. Please use the correct License Key.'
         elif str(403) in str(e):
-            return False, 'The API Token cannot be found. Please try again.'
+            return False, 'The API Token cannot be found. Please use the correct Token.'
         else:
             return True, None
 
@@ -278,19 +278,19 @@ def get_refresh(product):
 
 def get_update(product):
     return dbc.FormGroup([
-        dbc.Label('Update Docker image:',
-                  html_for=f'update-image-{product}',
-                  width=7),
-        dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-update-{product}')),
         dbc.Col([
             dbc.Button(
                 'Update', color='secondary', id=f'update-image-{product}'),
-            html.Span(' Updated',
+            html.Span('Updated',
                       id=f'span-update-{product}',
                       className='align-middle'),
         ],
-                width=4),
+                width=1),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-update-{product}')),
+        dbc.Label('Update the Docker image.',
+                  html_for=f'update-image-{product}',
+                  width=11),
     ],
                          row=True,
                          style=NONE,
@@ -299,11 +299,6 @@ def get_update(product):
 
 def get_uninstall(product):
     return dbc.FormGroup([
-        dbc.Label('Uninstall Docker image:',
-                  html_for=f'uninstall-image-{product}',
-                  width=7),
-        dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-uninstall-{product}')),
         dbc.Col([
             dbc.Button(
                 'Uninstall', color='danger', id=f'uninstall-image-{product}'),
@@ -326,7 +321,13 @@ def get_uninstall(product):
                 centered=True,
             ),
         ],
-                width=4),
+                width=1),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-uninstall-{product}')),
+        dbc.Label(
+            'Remove the Docker image and mark the product as uninstalled.',
+            html_for=f'uninstall-image-{product}',
+            width=11),
     ],
                          row=True,
                          style=NONE,
@@ -482,10 +483,12 @@ def get_video_checkbox(product):
 def get_video_picker(product):
     return dbc.FormGroup([
         dbc.Label([
-            f'Select a video file. If it is not inside your {product} folder, we will copy it there.'
+            f'Select a video file. If it is not inside your {product.capitalize()} folder, we will copy it there. Big files (~400Mb) may slow down your system.'
         ],
                   html_for=f'pickup-video-{product}',
                   width=7),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-upload-{product}')),
         dbc.Col(
             [
                 dcc.Upload([
@@ -562,10 +565,18 @@ def get_success_card(product):
 
 
 def get_continue(product):
-    return dbc.Button('Continue',
-                      color='primary',
-                      id=f'button-submit-{product}',
-                      className='my-3')
+    return dbc.FormGroup([
+        dbc.Col([
+            dbc.Button(
+                'Continue', color='primary', id=f'button-submit-{product}'),
+        ],
+                width=1),
+        dbc.Label('Confirm settings and continue.',
+                  html_for=f'button-submit-{product}',
+                  width=11),
+    ],
+                         row=True,
+                         className='mt-3')
 
 
 def get_loading_submit(product):
@@ -605,8 +616,6 @@ app.layout = dbc.Container([
                 get_boot(STREAM),
                 get_video_checkbox(STREAM),
                 get_video_picker(STREAM),
-                get_update(STREAM),
-                get_uninstall(STREAM)
             ],
                      style=NONE,
                      className='mt-3',
@@ -620,11 +629,17 @@ app.layout = dbc.Container([
                          className='mt-3',
                          style=NONE),
                 get_loading_submit(STREAM),
-                get_continue(STREAM),
             ],
                      id=f'footer-{STREAM}',
                      className='mt-3',
                      style=NONE),
+            dbc.Form([
+                get_continue(STREAM),
+                get_update(STREAM),
+                get_uninstall(STREAM)
+            ],
+                     style=NONE,
+                     id=f'form-update-{STREAM}'),
         ],
                 label=STREAM.capitalize(),
                 tab_id=STREAM,
@@ -639,8 +654,6 @@ app.layout = dbc.Container([
                 get_boot(SNAPSHOT),
                 get_port(SNAPSHOT),
                 get_hardware_dropdown(SNAPSHOT),
-                get_update(SNAPSHOT),
-                get_uninstall(SNAPSHOT)
             ],
                      style=NONE,
                      className='mt-3',
@@ -652,11 +665,17 @@ app.layout = dbc.Container([
                          className='mt-3',
                          style=NONE),
                 get_loading_submit(SNAPSHOT),
-                get_continue(SNAPSHOT),
             ],
                      id=f'footer-{SNAPSHOT}',
                      className='mt-3',
                      style=NONE),
+            dbc.Form([
+                get_continue(SNAPSHOT),
+                get_update(SNAPSHOT),
+                get_uninstall(SNAPSHOT)
+            ],
+                     style=NONE,
+                     id=f'form-update-{SNAPSHOT}'),
         ],
                 label=SNAPSHOT.capitalize(),
                 tab_id=SNAPSHOT,
@@ -673,6 +692,7 @@ app.layout = dbc.Container([
     Output('refresh-stream', 'style'),
     Output('update-stream', 'style'),
     Output('form-stream', 'style'),
+    Output('form-update-stream', 'style'),
     Output('footer-stream', 'style'),
     Output('loading-refresh-stream', 'children')
 ], [
@@ -684,19 +704,20 @@ def refresh_docker_stream(n_clicks, uninstall):
         if dash.callback_context.triggered[0][
                 'prop_id'] == 'ok-uninstall-stream.n_clicks':
             time.sleep(2)
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
         if get_image(STREAM_IMAGE):
-            return NONE, FLEX, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
     else:
-        return FLEX, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None
 
 
 @app.callback([
     Output('refresh-snapshot', 'style'),
     Output('update-snapshot', 'style'),
     Output('form-snapshot', 'style'),
+    Output('form-update-snapshot', 'style'),
     Output('footer-snapshot', 'style'),
     Output('loading-refresh-snapshot', 'children')
 ], [
@@ -709,13 +730,13 @@ def refresh_docker_snapshot(n_clicks, hardware, uninstall):
         if dash.callback_context.triggered[0][
                 'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
             time.sleep(2)
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
         if get_image(hardware):
-            return NONE, FLEX, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
     else:
-        return FLEX, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None
 
 
 @app.callback([
@@ -730,14 +751,19 @@ def select_video(checked):
         return [NONE]
 
 
-@app.callback(Output('span-videopath-stream', 'children'),
-              [Input('pickup-video-stream', 'contents')], [
-                  State('pickup-video-stream', 'filename'),
-                  State('input-home-stream', 'value')
-              ])
+@app.callback([
+    Output('span-videopath-stream', 'children'),
+    Output('loading-upload-stream', 'children')
+], [
+    Input('pickup-video-stream', 'contents'),
+    State('pickup-video-stream', 'filename'),
+    State('input-home-stream', 'value')
+])
 def set_videopath(content, name, path):
-    if name and path:
-        return name
+    if content and name and path:
+        return [name, None]
+    elif name and path:
+        return ['File error', None]
     else:
         raise PreventUpdate
 

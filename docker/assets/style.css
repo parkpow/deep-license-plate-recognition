@@ -43,3 +43,9 @@ a.nav-link.active {
 #p-status-stream {
     white-space: pre-wrap;
 }
+
+#button-submit-stream, #update-image-stream, #uninstall-image-stream,
+#button-submit-snapshot, #update-image-snapshot, #uninstall-image-snapshot {
+    width: 80px;
+    margin-right: 8px;
+}
