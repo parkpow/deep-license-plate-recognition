@@ -1,21 +1,26 @@
 import argparse
+import base64
 import os
 import platform
+import re
 import subprocess
 import sys
+import time
 import webbrowser
 from pathlib import Path
+from validate import Validator
 
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
+from configobj import ConfigObj, flatten_errors
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 try:
-    from urllib.request import Request, urlopen
     from urllib.error import URLError
+    from urllib.request import Request, urlopen
 except ImportError:
     from urllib2 import Request, urlopen  # type: ignore
     from urllib2 import URLError  # type: ignore
@@ -105,7 +110,7 @@ def get_home(product='stream'):
 
 def get_image(image):
     images = subprocess.check_output(
-        ['docker', 'images', '--format', '"{{.Repository}}"',
+        ['docker', 'images', '--format', '"{{.Repository}}:{{.Tag}}"',
          image]).decode().split('\n')
     return images[0].replace('"', '')
 
@@ -117,9 +122,43 @@ def pull_docker(image):
     os.system(pull_cmd)
 
 
+def check_config(config):
+    cameras = dict(
+        regions='force_list(default=list())',
+        sample='integer(default=2)',
+        max_prediction_delay='float(default=6)',
+        memory_decay='float(default=300)',
+        mmc='boolean(default=no)',
+        image_format=
+        'string(default="$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg")')
+    camera = dict(active='boolean(default=yes)',
+                  url='string',
+                  name='string',
+                  csv_file='string(default=None)',
+                  webhook_target='string(default=None)',
+                  webhook_image='boolean(default=None)')
+    spec = ConfigObj()
+    spec['timezone'] = 'string(default="UTC")'
+    spec['cameras'] = dict(__many__=camera, **cameras)
+    config = ConfigObj(config.split('\n'), configspec=spec, raise_errors=True)
+    config.newlines = '\r\n'  # For Windows
+    result = config.validate(Validator(), preserve_errors=True)
+    errors = flatten_errors(config, result)
+    if errors:
+        error_message = 'Config errors:'
+        for section_list, param, message in errors:
+            section_string = '/'.join(section_list)
+            if message is False:
+                message = f'param {param} is missing.'
+            error = f'{section_string}, param: {param}, message: {message}'
+            error_message += f'\n{error}'
+        return False, error_message
+    return True, None
+
+
 def read_config(home):
     try:
-        config = Path.joinpath(Path(home), 'config.ini')
+        config = Path(home) / 'config.ini'
         conf = ''
         f = open(config, 'r')
         for line in f:
@@ -132,29 +171,32 @@ def read_config(home):
 
 def write_config(home, config):
     try:
-        path = Path.joinpath(Path(home), 'config.ini')
+        path = Path(home) / 'config.ini'
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        check_result, errors = check_config(config)
+        if not check_result:
+            return False, errors
         with open(path, 'w+') as conf:
             for line in config:
                 conf.write(line)
-        return True
+        return True, ''
     except Exception:
-        return False
+        return False, f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}'
 
 
 def verify_token(token, license_key, get_license=True, product='stream'):
     path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
     try:
         req = Request('https://app.platerecognizer.com/v1/{}/{}/'.format(
-            path, license_key))
-        req.add_header('Authorization', 'Token {}'.format(token))
+            path, license_key.strip()))
+        req.add_header('Authorization', 'Token {}'.format(token.strip()))
         urlopen(req).read()
         return True, None
     except URLError as e:
         if '404' in str(e) and get_license:
-            return False, 'The License Key cannot be found. Please try again.'
+            return False, 'The License Key cannot be found. Please use the correct License Key.'
         elif str(403) in str(e):
-            return False, 'The API Token cannot be found. Please try again.'
+            return False, 'The API Token cannot be found. Please use the correct Token.'
         else:
             return True, None
 
@@ -205,12 +247,19 @@ if get_os() == 'Windows':
     ]
 
 
-def get_os_label(product):
-    return dbc.FormGroup([
-        dbc.Label('Host OS:', html_for=f'input-os-{product}', width=7),
-        dbc.Label(get_os(), id=f'input-os-{product}', width=4),
+def get_splash_screen():
+    return html.Div([
+        html.Div([
+            html.H2('Please choose a product:', className='splash-header'),
+            dbc.Button('Stream', size='lg', id='button-choose-stream'),
+            dbc.Button('Snapshot',
+                       size='lg',
+                       id='button-choose-snapshot',
+                       className='ml-3'),
+        ],
+                 className='splash')
     ],
-                         row=True)
+                    className='background')
 
 
 def get_refresh(product):
@@ -229,31 +278,34 @@ def get_refresh(product):
 
 def get_update(product):
     return dbc.FormGroup([
-        dbc.Label(
-            'Docker image found on your system, you may update or uninstall it:',
-            html_for=f'update-image-{product}',
-            width=7),
-        dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-update-{product}')),
-        dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-uninstall-{product}')),
         dbc.Col([
             dbc.Button(
                 'Update', color='secondary', id=f'update-image-{product}'),
-            html.Span(' Updated',
+            html.Span('Updated',
                       id=f'span-update-{product}',
                       className='align-middle'),
-            dbc.Button('Uninstall',
-                       color='danger',
-                       id=f'uninstall-image-{product}',
-                       style={'float': 'right'}),
+        ],
+                width=1),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-update-{product}')),
+        dbc.Label('Update the Docker image.',
+                  html_for=f'update-image-{product}',
+                  width=11),
+    ],
+                         row=True,
+                         style=NONE,
+                         id=f'update-{product}')
+
+
+def get_uninstall(product):
+    return dbc.FormGroup([
+        dbc.Col([
+            dbc.Button(
+                'Uninstall', color='danger', id=f'uninstall-image-{product}'),
             html.Span('',
                       id=f'span-uninstall-{product}',
                       className='align-middle',
-                      style={
-                          'float': 'right',
-                          'color': 'red'
-                      }),
+                      style={'color': 'red'}),
             dbc.Modal(
                 [
                     dbc.ModalHeader('Uninstall'),
@@ -269,11 +321,17 @@ def get_update(product):
                 centered=True,
             ),
         ],
-                width=4),
+                width=1),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-uninstall-{product}')),
+        dbc.Label(
+            'Remove the Docker image and mark the product as uninstalled.',
+            html_for=f'uninstall-image-{product}',
+            width=11),
     ],
                          row=True,
                          style=NONE,
-                         id=f'update-{product}')
+                         id=f'uninstall-{product}')
 
 
 def get_token(product):
@@ -331,7 +389,6 @@ def get_directory(product):
                           persistence=True),
                 width=4),
     ],
-                         className='mb-2',
                          row=True)
 
 
@@ -375,30 +432,30 @@ def get_hardware_dropdown(product):
             dcc.Dropdown(options=[
                 {
                     'label': 'Intel CPU',
-                    'value': 'platerecognizer/alpr'
+                    'value': 'platerecognizer/alpr:latest'
                 },
                 {
                     'label': 'Raspberry',
-                    'value': 'platerecognizer/alpr-raspberry-pi'
+                    'value': 'platerecognizer/alpr-raspberry-pi:latest'
                 },
                 {
                     'label': 'GPU (Nvidia Only)',
-                    'value': 'platerecognizer/alpr-gpu'
+                    'value': 'platerecognizer/alpr-gpu:latest'
                 },
                 {
                     'label': 'Jetson Nano',
-                    'value': 'platerecognizer/alpr-jetson'
+                    'value': 'platerecognizer/alpr-jetson:latest'
                 },
                 {
                     'label': 'ZCU104',
-                    'value': 'platerecognizer/alpr-zcu104'
+                    'value': 'platerecognizer/alpr-zcu104:latest'
                 },
                 {
                     'label': 'Thailand',
                     'value': 'platerecognizer/alpr:thailand'
                 },
             ],
-                         value='platerecognizer/alpr',
+                         value='platerecognizer/alpr:latest',
                          clearable=False,
                          id=f'dropdown-hardware-{product}',
                          style={'borderRadius': '0'},
@@ -406,7 +463,46 @@ def get_hardware_dropdown(product):
             width=4,
         ),
     ],
-                         className='mb-2',
+                         className='mb-3',
+                         row=True)
+
+
+def get_video_checkbox(product):
+    return dbc.FormGroup([
+        dbc.Label([f'Use {product.capitalize()} on a local video file.'],
+                  html_for=f'check-video-{product}',
+                  width=7),
+        dbc.Col(dbc.Checkbox(id=f'check-video-{product}',
+                             className='align-bottom',
+                             persistence=True),
+                width=4)
+    ],
+                         row=True)
+
+
+def get_video_picker(product):
+    return dbc.FormGroup([
+        dbc.Label([
+            f'Select a video file. If it is not inside your {product.capitalize()} folder, we will copy it there. Big files (~400Mb) may slow down your system.'
+        ],
+                  html_for=f'pickup-video-{product}',
+                  width=7),
+        dcc.Loading(type='circle',
+                    children=html.Div(id=f'loading-upload-{product}')),
+        dbc.Col(
+            [
+                dcc.Upload([
+                    dbc.Button('Upload File'),
+                    html.Span(
+                        '', id=f'span-videopath-{product}', className='ml-2')
+                ],
+                           id=f'pickup-video-{product}',
+                           accept='video/*'),
+            ],
+            width=4,
+        ),
+    ],
+                         id=f'pickup-{product}',
                          row=True)
 
 
@@ -435,9 +531,6 @@ def get_status(product):
 
 
 def get_success_card(product):
-    result = [
-        f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.'
-    ]
     sdk_endpoint = ''
     if product == SNAPSHOT:
         sdk_endpoint = [
@@ -449,7 +542,9 @@ def get_success_card(product):
             )
         ]
     return dbc.CardBody([
-        html.P(result, className='card-title'),
+        html.
+        P(f'You can now start {product.capitalize()}. Open a terminal and type the command below. You can save this command for future use.',
+          className='card-title'),
         html.Code(className='card-text d-block', id=f'command-{product}'),
         html.Div([
             html.Button('copy to clipboard',
@@ -470,10 +565,18 @@ def get_success_card(product):
 
 
 def get_continue(product):
-    return dbc.Button('Continue',
-                      color='primary',
-                      id=f'button-submit-{product}',
-                      className='my-3')
+    return dbc.FormGroup([
+        dbc.Col([
+            dbc.Button(
+                'Continue', color='primary', id=f'button-submit-{product}'),
+        ],
+                width=1),
+        dbc.Label('Confirm settings and continue.',
+                  html_for=f'button-submit-{product}',
+                  width=11),
+    ],
+                         row=True,
+                         className='mt-3')
 
 
 def get_loading_submit(product):
@@ -498,23 +601,24 @@ app = dash.Dash(
     ])
 
 app.layout = dbc.Container([
+    get_splash_screen(),
     html.H2(children='Plate Recognizer Installer',
             className='text-center my-3'),
     dbc.Tabs([
         dbc.Tab([
             dbc.Form([
-                get_os_label(STREAM),
                 get_refresh(STREAM),
-                get_update(STREAM),
-            ],
-                     className='mt-2'),
+            ], className='mt-3'),
             dbc.Form([
                 get_token(STREAM),
                 get_license_key(STREAM),
                 get_directory(STREAM),
                 get_boot(STREAM),
+                get_video_checkbox(STREAM),
+                get_video_picker(STREAM),
             ],
                      style=NONE,
+                     className='mt-3',
                      id=f'form-{STREAM}'),
             html.Div([
                 get_config_label(STREAM),
@@ -525,29 +629,34 @@ app.layout = dbc.Container([
                          className='mt-3',
                          style=NONE),
                 get_loading_submit(STREAM),
-                get_continue(STREAM),
             ],
                      id=f'footer-{STREAM}',
+                     className='mt-3',
                      style=NONE),
+            dbc.Form([
+                get_continue(STREAM),
+                get_update(STREAM),
+                get_uninstall(STREAM)
+            ],
+                     style=NONE,
+                     id=f'form-update-{STREAM}'),
         ],
                 label=STREAM.capitalize(),
                 tab_id=STREAM,
-                className='offset-md-1'),
+                className='offset-md-1 stream-tab'),
         dbc.Tab([
             dbc.Form([
-                get_os_label(SNAPSHOT),
                 get_refresh(SNAPSHOT),
-                get_update(SNAPSHOT),
-            ],
-                     className='mt-2'),
+            ], className='mt-3'),
             dbc.Form([
                 get_token(SNAPSHOT),
                 get_license_key(SNAPSHOT),
                 get_boot(SNAPSHOT),
                 get_port(SNAPSHOT),
-                get_hardware_dropdown(SNAPSHOT)
+                get_hardware_dropdown(SNAPSHOT),
             ],
                      style=NONE,
+                     className='mt-3',
                      id=f'form-{SNAPSHOT}'),
             html.Div([
                 get_status(SNAPSHOT),
@@ -556,14 +665,21 @@ app.layout = dbc.Container([
                          className='mt-3',
                          style=NONE),
                 get_loading_submit(SNAPSHOT),
-                get_continue(SNAPSHOT),
             ],
                      id=f'footer-{SNAPSHOT}',
+                     className='mt-3',
                      style=NONE),
+            dbc.Form([
+                get_continue(SNAPSHOT),
+                get_update(SNAPSHOT),
+                get_uninstall(SNAPSHOT)
+            ],
+                     style=NONE,
+                     id=f'form-update-{SNAPSHOT}'),
         ],
                 label=SNAPSHOT.capitalize(),
                 tab_id=SNAPSHOT,
-                className='offset-md-1')
+                className='offset-md-1 snapshot-tab')
     ],
              id='tabs',
              active_tab=STREAM,
@@ -576,39 +692,80 @@ app.layout = dbc.Container([
     Output('refresh-stream', 'style'),
     Output('update-stream', 'style'),
     Output('form-stream', 'style'),
+    Output('form-update-stream', 'style'),
     Output('footer-stream', 'style'),
     Output('loading-refresh-stream', 'children')
 ], [
     Input('refresh-docker-stream', 'n_clicks'),
+    Input('ok-uninstall-stream', 'n_clicks')
 ])
-def refresh_docker_stream(n_clicks):
+def refresh_docker_stream(n_clicks, uninstall):
     if verify_docker_install():
+        if dash.callback_context.triggered[0][
+                'prop_id'] == 'ok-uninstall-stream.n_clicks':
+            time.sleep(2)
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
         if get_image(STREAM_IMAGE):
-            return NONE, FLEX, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
     else:
-        return FLEX, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None
 
 
 @app.callback([
     Output('refresh-snapshot', 'style'),
     Output('update-snapshot', 'style'),
     Output('form-snapshot', 'style'),
+    Output('form-update-snapshot', 'style'),
     Output('footer-snapshot', 'style'),
     Output('loading-refresh-snapshot', 'children')
 ], [
     Input('refresh-docker-snapshot', 'n_clicks'),
-    Input('dropdown-hardware-snapshot', 'value')
+    Input('dropdown-hardware-snapshot', 'value'),
+    Input('ok-uninstall-snapshot', 'n_clicks')
 ])
-def refresh_docker_snapshot(n_clicks, hardware):
+def refresh_docker_snapshot(n_clicks, hardware, uninstall):
     if verify_docker_install():
+        if dash.callback_context.triggered[0][
+                'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
+            time.sleep(2)
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
         if get_image(hardware):
-            return NONE, FLEX, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
         else:
-            return NONE, NONE, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
     else:
-        return FLEX, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None
+
+
+@app.callback([
+    Output('pickup-stream', 'style'),
+], [
+    Input('check-video-stream', 'checked'),
+])
+def select_video(checked):
+    if checked:
+        return [FLEX]
+    else:
+        return [NONE]
+
+
+@app.callback([
+    Output('span-videopath-stream', 'children'),
+    Output('loading-upload-stream', 'children')
+], [
+    Input('pickup-video-stream', 'contents'),
+    State('pickup-video-stream', 'filename'),
+    State('input-home-stream', 'value')
+])
+def set_videopath(content, name, path):
+    if content and name and path:
+        return [name, None]
+    elif name and path:
+        return ['File error', None]
+    else:
+        raise PreventUpdate
 
 
 @app.callback([
@@ -673,18 +830,49 @@ def toggle_modal_snapshot(n1, n2, n3, is_open):
 
 
 @app.callback([
+    Output('uninstall-stream', 'style'),
+], [Input('ok-uninstall-stream', 'n_clicks')])
+def uninstall_button_stream(n_clicks):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'ok-uninstall-stream.n_clicks':
+        time.sleep(2)
+        return [NONE]
+    if not verify_docker_install():
+        return [NONE]
+    if get_image(STREAM_IMAGE):
+        return [FLEX]
+    else:
+        return [NONE]
+
+
+@app.callback([
+    Output('uninstall-snapshot', 'style'),
+], [
+    Input('ok-uninstall-snapshot', 'n_clicks'),
+    Input('dropdown-hardware-snapshot', 'value'),
+])
+def uninstall_button_snapshot(n_clicks, hardware):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
+        time.sleep(2)
+        return [NONE]
+    if not verify_docker_install():
+        return [NONE]
+    if get_image(hardware):
+        return [FLEX]
+    else:
+        return [NONE]
+
+
+@app.callback([
     Output('loading-uninstall-stream', 'children'),
     Output('span-uninstall-stream', 'children'),
 ], [
     Input('ok-uninstall-stream', 'n_clicks'),
-    Input('update-image-stream', 'n_clicks'),
     State('input-token-stream', 'value'),
     State('input-key-stream', 'value'),
 ])
-def uninstall_stream(n_clicks, update, token, key):
-    if dash.callback_context.triggered[0][
-            'prop_id'] == 'update-image-stream.n_clicks':
-        return [None, '']
+def uninstall_stream(n_clicks, token, key):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'ok-uninstall-stream.n_clicks':
         if not get_image(STREAM_IMAGE):
@@ -707,16 +895,13 @@ def uninstall_stream(n_clicks, update, token, key):
     Output('span-uninstall-snapshot', 'children'),
 ], [
     Input('ok-uninstall-snapshot', 'n_clicks'),
-    Input('update-image-snapshot', 'n_clicks'),
     Input('dropdown-hardware-snapshot', 'value'),
     State('input-token-snapshot', 'value'),
-    State('input-key-snapshot', 'value'),
-    State('dropdown-hardware-snapshot', 'value')
+    State('input-key-snapshot', 'value')
 ])
-def uninstall_snapshot(n_clicks, update, switch, token, key, hardware):
-    if dash.callback_context.triggered[0]['prop_id'] in [
-            'update-image-snapshot.n_clicks', 'dropdown-hardware-snapshot.value'
-    ]:
+def uninstall_snapshot(n_clicks, hardware, token, key):
+    if dash.callback_context.triggered[0][
+            'prop_id'] == 'dropdown-hardware-snapshot.value':
         return [None, '']
     if dash.callback_context.triggered[0][
             'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
@@ -741,10 +926,17 @@ def uninstall_snapshot(n_clicks, update, switch, token, key, hardware):
     raise PreventUpdate
 
 
-@app.callback(Output('area-config-stream', 'value'),
-              [Input('input-home-stream', 'value')])
-def change_path(home):
-    return read_config(home)
+@app.callback(Output('area-config-stream', 'value'), [
+    Input('input-home-stream', 'value'),
+    Input('pickup-video-stream', 'filename'),
+    State('check-video-stream', 'checked'),
+])
+def change_path(home, videofile, videocheck):
+    config = read_config(home)
+    if videofile and videocheck:  # replace url with a path to video
+        url = re.search('url = (.*)\n', config).group(1)
+        config = re.sub(url, videofile, config)
+    return config
 
 
 @app.callback([
@@ -759,14 +951,24 @@ def change_path(home):
     Input('input-key-stream', 'value'),
     Input('input-home-stream', 'value'),
     Input('check-boot-stream', 'checked'),
+    State('pickup-video-stream', 'contents'),
+    State('pickup-video-stream', 'filename'),
+    State('check-video-stream', 'checked'),
 ])
-def submit_stream(config, n_clicks, token, key, home, boot):
+def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
+                  videofile, videocheck):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'button-submit-stream.n_clicks':
         is_valid, error = verify_token(token, key, product='stream')
         if is_valid:
-            if not write_config(home, config):
-                return f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}', NONE, '', None
+            write_result, error = write_config(home, config)
+            if not write_result:
+                return error, NONE, '', None
+            if videocontent and videofile and videocheck:
+                content_type, content_string = videocontent.split(',')
+                decoded = base64.b64decode(content_string)
+                with open(os.path.join(home, videofile), 'wb') as video:
+                    video.write(decoded)
             user_info = ''
             nvidia = ''
             image_tag = ''
