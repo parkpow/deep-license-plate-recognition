@@ -158,7 +158,7 @@ def check_config(config):
 
 def read_config(home):
     try:
-        config = Path.joinpath(Path(home), 'config.ini')
+        config = Path(home) / 'config.ini'
         conf = ''
         f = open(config, 'r')
         for line in f:
@@ -171,7 +171,7 @@ def read_config(home):
 
 def write_config(home, config):
     try:
-        path = Path.joinpath(Path(home), 'config.ini')
+        path = Path(home) / 'config.ini'
         os.makedirs(os.path.dirname(path), exist_ok=True)
         check_result, errors = check_config(config)
         if not check_result:
@@ -188,8 +188,8 @@ def verify_token(token, license_key, get_license=True, product='stream'):
     path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
     try:
         req = Request('https://app.platerecognizer.com/v1/{}/{}/'.format(
-            path, license_key))
-        req.add_header('Authorization', 'Token {}'.format(token))
+            path, license_key.strip()))
+        req.add_header('Authorization', 'Token {}'.format(token.strip()))
         urlopen(req).read()
         return True, None
     except URLError as e:
@@ -934,9 +934,8 @@ def uninstall_snapshot(n_clicks, hardware, token, key):
 def change_path(home, videofile, videocheck):
     config = read_config(home)
     if videofile and videocheck:  # replace url with a path to video
-        path = os.path.join(home, videofile)
         url = re.search('url = (.*)\n', config).group(1)
-        config = re.sub(url, path, config)
+        config = re.sub(url, videofile, config)
     return config
 
 
