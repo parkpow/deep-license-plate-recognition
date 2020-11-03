@@ -14,11 +14,7 @@ Accurate, fast and easy to use API for license plate recognition. Trained on dat
 
 ### Installation
 
-* Guided SDK installation
-  * On **Windows**, [download](https://github.com/marcbelmont/deep-license-plate-recognition/releases) the executable.
-  * On **Linux** or **Mac**, call the script from the terminal: 
-  
-`wget https://raw.githubusercontent.com/marcbelmont/deep-license-plate-recognition/master/docker/PlateRec_SDK_Manager.py && python PlateRec_SDK_Manager.py`
+* [Guided SDK installation](https://github.com/marcbelmont/deep-license-plate-recognition/blob/master/docker/installer.md)
 * Manual instructions to [install the SDK](https://platerecognizer.com/sdk/) are also available.
 
 ### Interfacing with the SDK
