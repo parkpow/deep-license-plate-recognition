@@ -51,10 +51,7 @@ python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle1.j
 
 Highly-accurate ALPR software that processes live camera or video feeds quickly & efficiently. Stream runs On-Premise on a variety of machines.
 
-- Guided installation.
-  - Download [Linux Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer)
-  - Download [Windows Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer.exe)
-  - Download [Mac Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer-MacOS)
+- [Guided installation](https://github.com/marcbelmont/deep-license-plate-recognition/blob/master/docker/installer.md)
 - [Step by step installation](https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit)
 
 ---
