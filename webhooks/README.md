@@ -1,6 +1,8 @@
 # Webhooks
 
-## Instructions:
+Plate Recognizer lets you forward the inference results to a third party. Here are examples for how to use our [webhook API](http://docs.platerecognizer.com/#webhooks).
+
+## Instructions
 
 1. Start the server with: `python3 webhook_reader.py`
    - Try the command below to check if the server is running correctly. Change car.jpg to a local file:
