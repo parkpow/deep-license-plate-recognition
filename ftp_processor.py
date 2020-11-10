@@ -195,7 +195,6 @@ def main():
                 ftp_process(args)
             except Exception as e:
                 print(f'ERROR: {e}')
-                raise
             time.sleep(args.interval)
     else:
         ftp_process(args)
