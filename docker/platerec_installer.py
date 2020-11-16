@@ -58,6 +58,7 @@ timezone = UTC
     # multipart/form-data and sent to webhook_target.
     csv_file = camera-1.csv
     # webhook_target = http://webhook.site/
+    # webhook_header = Authorization: Token 6ad07400e****************26ad9cadfd82eb5
     # webhook_image = yes"""
 
 
@@ -136,6 +137,7 @@ def check_config(config):
                   name='string',
                   csv_file='string(default=None)',
                   webhook_target='string(default=None)',
+                  webhook_header='string(default=None)',
                   webhook_image='boolean(default=None)')
     spec = ConfigObj()
     spec['timezone'] = 'string(default="UTC")'
@@ -228,6 +230,7 @@ STREAM_IMAGE = 'platerecognizer/alpr-stream'
 SDK_IMAGE = 'platerecognizer/alpr'
 STREAM = 'stream'
 SNAPSHOT = 'snapshot'
+USER_DATA = '/user-data/'
 NONE = {'display': 'none'}
 BLOCK = {'display': 'block'}
 FLEX = {'display': 'flex'}
@@ -935,7 +938,7 @@ def change_path(home, videofile, videocheck):
     config = read_config(home)
     if videofile and videocheck:  # replace url with a path to video
         url = re.search('url = (.*)\n', config).group(1)
-        config = re.sub(url, videofile, config)
+        config = re.sub(url, f'{USER_DATA}{videofile}', config)
     return config
 
 
@@ -984,7 +987,7 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
                 pull_docker(STREAM_IMAGE)
             command = f'docker run {autoboot} -t ' \
                       f'{nvidia} --name stream ' \
-                      f'-v {home}:/user-data ' \
+                      f'-v {home}:{USER_DATA} ' \
                       f'{user_info} ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
