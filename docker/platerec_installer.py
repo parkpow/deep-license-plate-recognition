@@ -1073,7 +1073,7 @@ if __name__ == '__main__':
 # Thank you for choosing Plate Recognizer! #
 ############################################
 
-- To continue open http://127.0.0.1:8050/ in your web browser.
+- To continue open http://0.0.0.0:8050/ in your web browser.
 
 - When you are done with the installation, you can close this window.
 
@@ -1082,5 +1082,5 @@ if __name__ == '__main__':
     if args.debug:
         app.run_server(debug=True)
     else:
-        webbrowser.open('http://127.0.0.1:8050/')
+        webbrowser.open('http://0.0.0.0:8050/')
         app.run_server(debug=False, dev_tools_silence_routes_logging=True)
