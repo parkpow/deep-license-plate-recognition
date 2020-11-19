@@ -3,3 +3,5 @@ __pycache__
 bin/
 obj/
 .idea/
+build/
+dist/

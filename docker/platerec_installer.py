@@ -1073,7 +1073,8 @@ if __name__ == '__main__':
 # Thank you for choosing Plate Recognizer! #
 ############################################
 
-- To continue open http://0.0.0.0:8050/ in your web browser.
+- To continue open http://localhost:8050/ in your web browser. If your browser is
+on a separate device, replace "localhost" by the host's IP.
 
 - When you are done with the installation, you can close this window.
 
