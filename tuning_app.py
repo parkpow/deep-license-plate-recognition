@@ -86,6 +86,17 @@ def main():
             None, lambda result: '%s [%s] (%s, %s)' % (result['plate'].upper(
             ), result['region']['code'], result['score'], result['dscore']))
     st.image(image, width=image.width)
+    for result in res['results']:
+        if 'vehicle' in result:
+            color = ', '.join(
+                [f"{x['color']}={x['score']}" for x in result.get('color', [])])
+            orientation = ', '.join([
+                f"{x['orientation']}={x['score']}"
+                for x in result.get('orientation', [])
+            ])
+            st.write(color)
+            st.write(orientation)
+            st.write(result['vehicle'])
     res
 
 
