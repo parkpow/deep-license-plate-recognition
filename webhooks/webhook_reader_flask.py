@@ -12,8 +12,12 @@ python3 -m flask run -h 0.0.0.0 -p 8001
 from flask import Flask
 from flask import request
 import json
+import os
+import errno
 
 app = Flask(__name__)
+
+upload_to = 'uploads'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -26,11 +30,17 @@ def process_request():
         app.logger.debug(f'files: {files}')
         if files:
             app.logger.debug('Request contains image')
+            if not os.path.exists(upload_to):
+                try:
+                    os.makedirs(upload_to)
+                except OSError as exc:  # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
 
             for key in files.keys():  # The file doesn't exist under upload
                 app.logger.debug(f'key: {key}')
                 f = files[key]
-                f.save(f'uploads/{f.filename}')
+                f.save(f'{upload_to}/{f.filename}')
                 break
 
             form = request.form
