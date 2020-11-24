@@ -68,6 +68,10 @@ def custom_args(parser):
                         default='json',
                         choices='json csv'.split())
     parser.add_argument(
+        '--mmc',
+        action='store_true',
+        help='Predict vehicle make and model (SDK only). It has to be enabled.')
+    parser.add_argument(
         '-i',
         '--interval',
         type=int,
@@ -102,6 +106,7 @@ def process_files(ftp_client, ftp_files, args):
                                       args.sdk_url,
                                       camera_id=args.camera_id,
                                       timestamp=args.timestamp,
+                                      mmc=args.mmc,
                                       exit_on_error=False)
             results.append(api_res)
 
