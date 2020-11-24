@@ -1,15 +1,7 @@
 /**
  * # Install dependecies
- * # package.json
- * {
- *  "dependencies": {
- *    "body-parser": "^1.19.0",
- *    "multer": "^1.4.2"
- *  }
- * }
  *
  * npm install
- *
  *
  * # Run
  * node server.js
@@ -44,7 +36,7 @@ const server = http.createServer((req, res) => {
 });
 
 
-server.listen(3000, function(){
+server.listen(8001, function(){
  console.log("Server listening on port 3000");
 });
 

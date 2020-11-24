@@ -5,7 +5,7 @@ pip install Flask==1.1.2
 # Run app
 export FLASK_APP=app.py
 export FLASK_DEBUG=1
-python3 -m flask run -h 0.0.0.0 -p 5001
+python3 -m flask run -h 0.0.0.0 -p 8001
 
 """
 
