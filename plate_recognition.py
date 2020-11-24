@@ -200,7 +200,7 @@ def custom_args(parser):
     parser.add_argument(
         '--mmc',
         action='store_true',
-        help='Predict vehicle make and model (SDK only). It has to be enabled.')
+        help='Predict vehicle make and model. Only available to paying users.')
     parser.add_argument(
         '--blur-amount',
         help=
