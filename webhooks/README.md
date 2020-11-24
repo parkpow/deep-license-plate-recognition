@@ -6,30 +6,33 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
 
 First start your desired webhook server:
 
-## 1. webhook_reader.py
-### Start the server
+__1. webhook_reader.py__
+
+Start the server
 ```bash
 python3 webhook_reader.py
 ```
 
-## 2. webhook_reader_flask.py
-### Install flask
+__2. webhook_reader_flask.py__
+
+Install flask
 ```bash
 pip install Flask==1.1.2
 ```
-### Start Server
+Start Server
 ```bash
 export FLASK_APP=app.py
 export FLASK_DEBUG=1
 python3 -m flask run -h 0.0.0.0 -p 8001
 ```
 
-## 3. webhook_reader.js
-### Install dependecies
+__3. webhook_reader.js__
+
+Install dependecies
 ```bash
 npm install
 ```
-### Start Server
+Start Server
 ```bash
 node server.js
 ```
