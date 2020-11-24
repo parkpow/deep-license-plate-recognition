@@ -28,7 +28,7 @@ python3 -m flask run -h 0.0.0.0 -p 8001
 
 __Server in Javascript / Node:__
 
-Install dependecies
+Install dependencies
 ```bash
 npm install
 ```
@@ -37,7 +37,7 @@ Start the server
 node server.js
 ```
 
-## Sending Data to the Webhook Servr
+## Sending Data to the Webhook Server
 
 1. Try the command below to check if the server is running correctly. Change car.jpg to a local file:
    - `curl -F 'json={"field": "value"}' -F 'upload=@car.jpg' http://localhost:8001/`
