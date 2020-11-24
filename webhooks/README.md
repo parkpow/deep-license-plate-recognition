@@ -2,42 +2,42 @@
 
 Plate Recognizer lets you forward the inference results to a third party. Here are examples for how to use our [webhook API](http://docs.platerecognizer.com/#webhooks).
 
-## Instructions
+## Starting the Webhook Server
 
-First start your desired webhook server:
+First start your desired webhook server. **Pick one** of the options below.
 
-__1. webhook_reader.py__
+__Server in Python using the standard library:__
 
 Start the server
 ```bash
 python3 webhook_reader.py
 ```
 
-__2. webhook_reader_flask.py__
+__Server in Python using Flask:__
 
 Install flask
 ```bash
 pip install Flask==1.1.2
 ```
-Start Server
+Start the server
 ```bash
 export FLASK_APP=app.py
 export FLASK_DEBUG=1
 python3 -m flask run -h 0.0.0.0 -p 8001
 ```
 
-__3. webhook_reader.js__
+__Server in Javascript / Node:__
 
 Install dependecies
 ```bash
 npm install
 ```
-Start Server
+Start the server
 ```bash
 node server.js
 ```
 
-## Testing
+## Sending Data to the Webhook Servr
 
 1. Try the command below to check if the server is running correctly. Change car.jpg to a local file:
    - `curl -F 'json={"field": "value"}' -F 'upload=@car.jpg' http://localhost:8001/`
