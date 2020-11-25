@@ -4,6 +4,7 @@ import logging
 import tempfile
 from ftplib import FTP
 import time
+import os
 from datetime import datetime, timedelta
 
 from plate_recognition import recognition_api, save_results
@@ -62,6 +63,9 @@ def custom_args(parser):
                         '--folder',
                         help='Specify folder with images on the FTP server.',
                         default='/')
+    parser.add_argument('--cameras-root',
+                        help='Root folder containing dynamic cameras',
+                        required=False)
     parser.add_argument('-o', '--output-file', help='Save result to file.')
     parser.add_argument('--format',
                         help='Format of the result.',
@@ -79,7 +83,28 @@ def custom_args(parser):
         'Periodically fetch new images from the server every interval seconds.')
 
 
+def track_processed(args):
+    """
+    Track processed if there might be a delete timeout or interval specified
+
+    :param args:
+    :return:
+    """
+    return args.delete or (args.interval and args.interval > 0)
+
+
 def process_files(ftp_client, ftp_files, args):
+    """
+    Process a list of file paths by:
+    1. Deletes old files in ftp_files from  ftp_client
+    1. For new files, retrieving the full file from ftp_client
+    2. Calling PlaterecognizerAPI and Tracking Successfully Processed file paths
+
+    :param ftp_client:
+    :param ftp_files: List of files in the format [path, modified datetime], usually from a single folder.
+    :param args:
+    :return:
+    """
 
     results = []
     rm_older_than_date = datetime.now() - timedelta(seconds=args.delete)
@@ -88,7 +113,7 @@ def process_files(ftp_client, ftp_files, args):
         ftp_file = file_last_modified[0]
         last_modified = file_last_modified[1]
 
-        if ftp_file in processed:
+        if track_processed(args) and ftp_file in processed:
             if args.delete:
                 if rm_older_than_date > last_modified:
                     ftp_client.delete(ftp_file)
@@ -110,7 +135,8 @@ def process_files(ftp_client, ftp_files, args):
                                       exit_on_error=False)
             results.append(api_res)
 
-        processed.append(ftp_file)
+        if track_processed(args):
+            processed.append(ftp_file)
 
     if args.output_file:
         save_results(results, args)
@@ -142,18 +168,12 @@ def parse_date(x, y, z):
     return date_time_obj
 
 
-def ftp_process(args):
-    ftp = FTP(timeout=120)
-    ftp.connect(args.ftp_host)
-    ftp.login(args.ftp_user, args.ftp_password)
-    logging.info(f'Connected to FTP server at {args.ftp_host}')
-    ftp.cwd(args.folder)
+def retrieve_files(ftp):
     file_list = []
     dirs = []
     nondirs = []
 
-    # Process all files in root. Separate folders and files
-    ftp.retrlines('LIST', lambda x: file_list.append(x.split()))
+    ftp.retrlines('LIST', lambda x: file_list.append(x.split(maxsplit=8)))
 
     for info in file_list:
         ls_type, name = info[0], info[-1]
@@ -162,6 +182,19 @@ def ftp_process(args):
         else:
             nondirs.append([name, parse_date(info[-4], info[-3], info[-2])])
 
+    return file_list, dirs, nondirs
+
+
+def single_camera_processing(ftp, args):
+    # Switch to the camera's root dir
+    ftp.cwd(args.folder)
+
+    file_list = []
+    dirs = []
+    nondirs = []
+
+    # Process all files in root. Separate folders and files
+    file_list, dirs, nondirs = retrieve_files(ftp)
     logging.info('Found %s file(s) in %s.', len(file_list), args.folder)
 
     # Process files
@@ -174,11 +207,10 @@ def ftp_process(args):
         # This time we asume all are images,
         # so we don't have to check for folder
         file_list = []
-        ftp.retrlines('LIST', lambda x: file_list.append(x.split()))
+        ftp.retrlines('LIST', lambda x: file_list.append(x.split(maxsplit=8)))
 
         nondirs = []
         for info in file_list:
-            print(info)
             ls_type, name = info[0], info[-1]
             if ls_type.startswith('d'):
                 # Don't process files any deeper
@@ -188,6 +220,30 @@ def ftp_process(args):
 
         logging.info('Found %s file(s) in %s.', len(nondirs), folder_path)
         process_files(ftp, nondirs, args)
+
+
+
+def ftp_process(args):
+    ftp = FTP(timeout=120)
+    ftp.connect(args.ftp_host)
+    ftp.login(args.ftp_user, args.ftp_password)
+    logging.info(f'Connected to FTP server at {args.ftp_host}')
+
+    # generate camera IDs from the names of all the folders in root
+    if args.cameras_root:
+        ftp.cwd(args.cameras_root)
+
+        files, dirs, nondirs = retrieve_files(ftp)
+        logging.info(f'Found {len(dirs)} Cameras in : {args.cameras_root}')
+        for folder in dirs:
+            logging.info(f'Processing Dynamic Camera : {folder}')
+            args.folder = os.path.join(args.cameras_root, folder)
+            # The camera id is the folder name
+            args.camera_id = folder
+
+            single_camera_processing(ftp, args)
+    else:
+        single_camera_processing(ftp, args)
 
 
 def main():
