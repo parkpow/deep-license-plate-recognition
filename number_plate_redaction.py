@@ -121,7 +121,19 @@ def process_image(path, args, i):
         b['ymax'] = b['ymax'] + padding_y
 
     if args.show_boxes or args.save_blurred:
-        im = blur(source_im, 5, results)
+        ignore_list = None
+        if args.ignore_list:
+            with open(args.ignore_list, "r") as fp:
+                ignore_list = fp.read().splitlines()
+                # Ignore Empty Lines
+                ignore_list = [x for x in ignore_list if x]
+
+        im = blur(source_im,
+                  5,
+                  results,
+                  ignore_no_bb=args.ignore_no_bb,
+                  ignore_list=ignore_list)
+
         if args.show_boxes:
             im.show()
         if args.save_blurred:
@@ -148,6 +160,15 @@ def custom_args(parser):
         '--save-blurred',
         action='store_true',
         help='Blur license plates and save image in filename_blurred.jpg.')
+    parser.add_argument(
+        '--ignore-list',
+        help=
+        'List of plate regex to ignore during blur. Usually invalid plate numbers.'
+    )
+    parser.add_argument(
+        '--ignore-no-bb',
+        action='store_true',
+        help='Ignore detections without a vehicle bounding box during blur.')
     parser.add_argument(
         '--detection-threshold',
         type=float,
