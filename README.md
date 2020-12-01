@@ -86,10 +86,17 @@ In addition, it can **split the image** in smaller images to better deal with hi
 
 The option `--save-blurred` lets you save blurred images. They are saved to a new file with `_blurred` suffix.
 
+The option `--ignore-regexp` lets you specify a regex of plates to ignore from blur. This option can be specified multiple times.
+
+The option `--ignore-no-bb` lets you ignore recognitions without a vehicle bounding box from blur.
+
 ```
 python number_plate_redaction.py --help
 python number_plate_redaction.py --api-key API_KEY vehicels.jpg
 python number_plate_redaction.py --sdk-url http://localhost:8080 --split-image vehicels.jpg
+
+python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-blurred --ignore-regexp ^58c5a57$ --ignore-regexp ^[0-9][0-9]c5a57$
+
 ```
 
 <br><br><br>
