@@ -121,7 +121,6 @@ def process_image(path, args, i):
         b['ymax'] = b['ymax'] + padding_y
 
     if args.show_boxes or args.save_blurred:
-        print(args.ignore_regexp)
         im = blur(source_im,
                   5,
                   results,
@@ -136,7 +135,7 @@ def process_image(path, args, i):
                                        (filename.stem, filename.suffix)))
     if 0:
         draw_bb(source_im, results['results']).show()
-    return None
+    return results
 
 
 def custom_args(parser):
