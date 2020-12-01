@@ -92,12 +92,16 @@ def recognition_api(fp,
 def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
     for res in api_res.get('results', []):
         if ignore_no_bb and 'vehicle' not in res:
-            return im
+            continue
 
         if ignore_list:
+            skip_blur = False
             for ignore_regex in ignore_list:
                 if re.search(ignore_regex, res['plate']):
-                    return im
+                    skip_blur = True
+                    break
+            if skip_blur:
+                continue
 
         b = res['box']
         width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
