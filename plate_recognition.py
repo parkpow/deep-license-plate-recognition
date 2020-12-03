@@ -7,6 +7,7 @@ import csv
 import json
 import math
 import time
+import re
 from collections import OrderedDict
 from pathlib import Path
 
@@ -88,8 +89,20 @@ def recognition_api(fp,
     return response.json(object_pairs_hook=OrderedDict)
 
 
-def blur(im, blur_amount, api_res):
+def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
     for res in api_res.get('results', []):
+        if ignore_no_bb and res['vehicle']['score'] == 0.0:
+            continue
+
+        if ignore_list:
+            skip_blur = False
+            for ignore_regex in ignore_list:
+                if re.search(ignore_regex, res['plate']):
+                    skip_blur = True
+                    break
+            if skip_blur:
+                continue
+
         b = res['box']
         width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
         crop_box = (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
