@@ -91,7 +91,7 @@ def recognition_api(fp,
 
 def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
     for res in api_res.get('results', []):
-        if ignore_no_bb and 'vehicle' not in res:
+        if ignore_no_bb and res['vehicle']['score'] == 0.0:
             continue
 
         if ignore_list:
