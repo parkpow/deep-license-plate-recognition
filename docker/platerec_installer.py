@@ -103,6 +103,7 @@ def read_config(home):
 def write_config(home, config):
     try:
         path = Path(home) / 'config.ini'
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         result, error = base_config(path, config)
         if error:
             return False, error
