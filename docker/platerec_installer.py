@@ -8,15 +8,15 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
-from validate import Validator
 
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-from configobj import ConfigObj, flatten_errors
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+
+from stream_config import DEFAULT_CONFIG, base_config
 
 try:
     from urllib.error import URLError
@@ -24,42 +24,6 @@ try:
 except ImportError:
     from urllib2 import Request, urlopen  # type: ignore
     from urllib2 import URLError  # type: ignore
-
-BASE_CONFIG = """#List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-timezone = UTC
-
-[cameras]
-  # Full list of regions: http://docs.platerecognizer.com/#countries
-  # regions = fr, gb
-
-  # Sample 1 out of X frames. A high number will result in less compute.
-  # A low number is preferred for a stream with fast moving vehicles
-  # sample = 2
-
-  # Maximum delay in seconds before a prediction is returned
-  # max_prediction_delay = 6
-
-  # Maximum time in seconds that a result stays in memory
-  # memory_decay = 300
-
-  # Enable make, model and color prediction. Your account must have that option.
-  # mmc = true
-
-  image_format = $(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg
-
-  [[camera-1]]
-    active = yes
-    url = rtsp://192.168.0.108:8080/video/h264
-    name = Camera One
-
-    # Output methods. Uncomment line to enable.
-    # - Save to CSV. The corresponding frame is stored as an image in the same directory.
-    # - Send to Webhook. The recognition data and vehicle image are encoded in
-    # multipart/form-data and sent to webhook_target.
-    csv_file = camera-1.csv
-    # webhook_target = http://webhook.site/
-    # webhook_header = Authorization: Token 6ad07400e****************26ad9cadfd82eb5
-    # webhook_image = yes"""
 
 
 def get_os():
@@ -123,41 +87,6 @@ def pull_docker(image):
     os.system(pull_cmd)
 
 
-def check_config(config):
-    cameras = dict(
-        regions='force_list(default=list())',
-        sample='integer(default=2)',
-        max_prediction_delay='float(default=6)',
-        memory_decay='float(default=300)',
-        mmc='boolean(default=no)',
-        image_format=
-        'string(default="$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg")')
-    camera = dict(active='boolean(default=yes)',
-                  url='string',
-                  name='string',
-                  csv_file='string(default=None)',
-                  webhook_target='string(default=None)',
-                  webhook_header='string(default=None)',
-                  webhook_image='boolean(default=None)')
-    spec = ConfigObj()
-    spec['timezone'] = 'string(default="UTC")'
-    spec['cameras'] = dict(__many__=camera, **cameras)
-    config = ConfigObj(config.split('\n'), configspec=spec, raise_errors=True)
-    config.newlines = '\r\n'  # For Windows
-    result = config.validate(Validator(), preserve_errors=True)
-    errors = flatten_errors(config, result)
-    if errors:
-        error_message = 'Config errors:'
-        for section_list, param, message in errors:
-            section_string = '/'.join(section_list)
-            if message is False:
-                message = f'param {param} is missing.'
-            error = f'{section_string}, param: {param}, message: {message}'
-            error_message += f'\n{error}'
-        return False, error_message
-    return True, None
-
-
 def read_config(home):
     try:
         config = Path(home) / 'config.ini'
@@ -168,16 +97,16 @@ def read_config(home):
         f.close()
         return conf
     except IOError:  # file not found
-        return BASE_CONFIG
+        return DEFAULT_CONFIG
 
 
 def write_config(home, config):
     try:
         path = Path(home) / 'config.ini'
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        check_result, errors = check_config(config)
-        if not check_result:
-            return False, errors
+        result, error = base_config(path, config)
+        if error:
+            return False, error
         with open(path, 'w+') as conf:
             for line in config:
                 conf.write(line)
