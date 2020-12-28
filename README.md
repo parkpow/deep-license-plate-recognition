@@ -1,11 +1,11 @@
-# Automatic License Plate Recognition API
+# Automatic License Plate Recognition Software (ALPR, ANPR)
 
 Accurate, fast and easy to use API for license plate recognition. Trained on data from over 100 countries and regions around the world. The core of our license plate detection system is based on state of the art deep neural networks architectures.
 
 Integrate with our ALPR API in a few lines of code. Get an easy to use JSON response with the number plate value of vehicles and the bounding boxes.
 
 <p align="center">
-  <img src="assets/demo.jpg">
+  <img src="assets/plate-grid.jpeg">
 </p>
 
   - [Reading License Plates from **Images**](#reading-license-plates-from-images)
