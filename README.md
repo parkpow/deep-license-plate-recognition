@@ -1,9 +1,28 @@
 # Automatic License Plate Recognition Software (ALPR, ANPR)
 
-Accurate, fast and easy to use API for license plate recognition. Trained on data from over 100 countries and regions around the world. The core of our license plate detection system is based on state of the art deep neural networks architectures.
-
-Integrate with our ALPR API in a few lines of code. Get an easy to use JSON response with the number plate value of vehicles and the bounding boxes.
-
+<p>Get high-accuracy, developer-friendly <strong>automatic license plate recognition</strong> (<a href="https://platerecognizer.com/?utm_source=github&amp;utm_medium=website">ALPR</a>) or automatic number plate recognition (<a href="https://platerecognizer.com/?utm_source=github&amp;utm_medium=website">ANPR</a>) software!&nbsp; The core of our ALPR, ANPR system is based on state of the art deep neural networks architectures.</p>
+<p>Our machine-learning software:</p>
+<ul>
+<li>Works on <strong>dark, low-res, blurry images</strong> and tough angles, all vehicle types, etc.&nbsp; See our full <a href="https://platerecognizer.com/alpr-results/?utm_source=github&amp;utm_medium=website">ALPR results</a>.</li>
+<li>Decodes <strong>license plate</strong>, vehicle type (e.g. SUV, van, pickup truck), <a href="https://platerecognizer.com/vehicle-make-model-recognition-with-color/?utm_source=github&amp;utm_medium=website"><strong>vehicle make model</strong></a> (e.g. Honda Accord), color, and orientation.&nbsp; Ignores bumper stickers, car signs, etc.</li>
+<li>Is optimized for all <a href="https://platerecognizer.com/alpr-for-usa/?utm_source=github&amp;utm_medium=website">50 USA States</a>, <a href="https://platerecognizer.com/anpr-for-india?utm_source=github&amp;utm_medium=website">India</a>, <a href="https://platerecognizer.com/anpr-for-brazil/?utm_source=github&amp;utm_medium=website">Brazil</a> and <a href="https://platerecognizer.com/countries/?utm_source=github&amp;utm_medium=website"><strong>90+ countries worldwide</strong></a>.</li>
+</ul>
+<p><strong>Snapshot</strong>: Get license plate reader from images in under 60 minutes:</p>
+<ul>
+<li>Access a <strong>simple REST API</strong> for easy integration in <a href="http://docs.platerecognizer.com/?utm_source=github&amp;utm_medium=website">8 programming languages</a>.</li>
+<li>Returns results via <strong>JSON Response</strong> or Webhooks.</li>
+<li>Has <a href="https://platerecognizer.com/snapshot/#speeds">fast inference speed</a> up to 21 ms.</li>
+<li>Runs on-premise on <strong>Linux, Windows</strong>, Mac, Jetson<strong>, </strong><a href="https://platerecognizer.com/anpr-on-kubernetes/?utm_source=github&amp;utm_medium=website"><strong>Kubernetes</strong></a>, <a href="https://platerecognizer.com/anpr-on-raspberry-pi/?utm_source=github&amp;utm_medium=website">Raspberry Pi</a>, <a href="https://platerecognizer.com/alpr-for-xilinx-zynq/?utm_source=github&amp;utm_medium=website">Zynq</a>, <a href="https://platerecognizer.com/alpr-for-96boards/?utm_source=github&amp;utm_medium=website">96Boards</a>, <a href="https://platerecognizer.com/anpr-on-lattepanda/?utm_source=github&amp;utm_medium=website">LattePanda</a> and more.</li>
+</ul>
+<p><strong>Stream</strong>: Get number plate recognition from camera or video feed:</p>
+<ul>
+<li>Returns license plate results via <strong>CSV file</strong> or <a href="https://platerecognizer.com/alpr-webhooks/?utm_source=github&amp;utm_medium=website"><strong>Webhooks</strong></a>.</li>
+<li>Handles 4 cameras simultaneously on mid-range PC.</li>
+<li>Runs on-premise on <strong>Linux, Windows</strong>, Mac and <a href="https://platerecognizer.com/alpr-on-nvidia-jetson-devices/?utm_source=github&amp;utm_medium=website"><strong>Jetson</strong></a>.</li>
+</ul>
+<p>ALPR, ANPR software is ideal for parking, highway monitoring, toll, police surveillance, community security, and other use cases.</p>
+<p>Our <a href="https://platerecognizer.com/snapshot/?utm_source=github&amp;utm_medium=website">license plate recognition (LPR)</a> software can also forward results to our full <strong>ALPR Dashboard</strong> and <a href="https://parkpow.com/?utm_source=github&amp;utm_medium=website"><strong>Parking Management software</strong></a> solution, ParkPow.</p>
+<p>Sign up for a <a href="https://app.platerecognizer.com/accounts/signup/?utm_source=github&amp;utm_medium=website"><strong>Free Trial</strong></a> now (no credit card required) or <strong>learn more</strong> at <a href="https://platerecognizer.com/?utm_source=github&amp;utm_medium=website">https://platerecognizer.com</a>. &nbsp; &nbsp;</p>
 <p align="center">
   <img src="assets/plate-grid.jpeg">
 </p>
