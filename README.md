@@ -1,11 +1,25 @@
-# Automatic License Plate Recognition API
+# Automatic License Plate Recognition Software (ALPR, ANPR)
 
-Accurate, fast and easy to use API for license plate recognition. Trained on data from over 100 countries and regions around the world. The core of our license plate detection system is based on state of the art deep neural networks architectures.
+Get high-accuracy, developer-friendly **automatic license plate recognition** ([ALPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) or automatic number plate recognition ([ANPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) software! The core of our ALPR, ANPR system is based on state of the art deep neural networks architectures. Our machine-learning software:
+- Works on **dark, low-res, blurry images** and tough angles, all vehicle types, etc.  See our full [ALPR results](https://platerecognizer.com/alpr-results/?utm_source=github&amp;utm_medium=website).
+- Decodes **license plate** , vehicle type (e.g. SUV, van, pickup truck), [**vehicle make model**](https://platerecognizer.com/vehicle-make-model-recognition-with-color/?utm_source=github&amp;utm_medium=website) (e.g. Honda Accord), color, and orientation. Ignores bumper stickers, car signs, etc.
+- Is optimized for all [50 USA States](https://platerecognizer.com/alpr-for-usa/?utm_source=github&amp;utm_medium=website), [India](https://platerecognizer.com/anpr-for-india?utm_source=github&amp;utm_medium=website), [Brazil](https://platerecognizer.com/anpr-for-brazil/?utm_source=github&amp;utm_medium=website) and [**90+ countries worldwide**](https://platerecognizer.com/countries/?utm_source=github&amp;utm_medium=website).
 
-Integrate with our ALPR API in a few lines of code. Get an easy to use JSON response with the number plate value of vehicles and the bounding boxes.
+**Snapshot** : Get license plate reader from images in under 60 minutes:
+- Access a **simple REST API** for easy integration in [8 programming languages](http://docs.platerecognizer.com/?utm_source=github&amp;utm_medium=website).
+- Returns results via **JSON Response** or Webhooks.
+- Has [fast inference speed](https://platerecognizer.com/snapshot/#speeds) up to 21 ms.
+- Runs on-premise on **Linux, Windows** , Mac, Jetson **,** [**Kubernetes**](https://platerecognizer.com/anpr-on-kubernetes/?utm_source=github&amp;utm_medium=website), [Raspberry Pi](https://platerecognizer.com/anpr-on-raspberry-pi/?utm_source=github&amp;utm_medium=website), [Zynq](https://platerecognizer.com/alpr-for-xilinx-zynq/?utm_source=github&amp;utm_medium=website), [96Boards](https://platerecognizer.com/alpr-for-96boards/?utm_source=github&amp;utm_medium=website), [LattePanda](https://platerecognizer.com/anpr-on-lattepanda/?utm_source=github&amp;utm_medium=website) and more.
+
+**Stream** : Get number plate recognition from camera or video feed:
+- Returns license plate results via **CSV file** or [**Webhooks**](https://platerecognizer.com/alpr-webhooks/?utm_source=github&amp;utm_medium=website).
+- Handles 4 cameras simultaneously on mid-range PC.
+- Runs on-premise on **Linux, Windows** , Mac and [**Jetson**](https://platerecognizer.com/alpr-on-nvidia-jetson-devices/?utm_source=github&amp;utm_medium=website).
+
+ALPR, ANPR software is ideal for parking, highway monitoring, toll, police surveillance, community security, and other use cases. Our [license plate recognition (LPR)](https://platerecognizer.com/snapshot/?utm_source=github&amp;utm_medium=website) software can also forward results to our full **ALPR Dashboard** and [**Parking Management software**](https://parkpow.com/?utm_source=github&amp;utm_medium=website) solution, ParkPow. Sign up for a [**Free Trial**](https://app.platerecognizer.com/accounts/signup/?utm_source=github&amp;utm_medium=website) now (no credit card required) or **learn more** at [https://platerecognizer.com](https://platerecognizer.com/).
 
 <p align="center">
-  <img src="assets/demo.jpg">
+  <img src="assets/plate-grid.jpeg">
 </p>
 
   - [Reading License Plates from **Images**](#reading-license-plates-from-images)
