@@ -55,11 +55,35 @@ timezone = UTC
 '''
 
 
+def send_request(section):
+    if not section.get('webhook_target') or not section.get('webhook_header'):
+        return None
+    if '/api/v1/webhook-receiver' not in section['webhook_target']:
+        return None
+    headers = {
+        'Authorization':
+        'Token %s' % section['webhook_header'].split('Token ')[-1]
+    }
+    url = section['webhook_target'].replace('webhook-receiver', 'parking-list')
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+    except (requests.Timeout, requests.ConnectionError):
+        raise ValidateError('Please check your internet connection.')
+    if response.status_code != 200:
+        raise ValidateError('Wrong token.')
+
+
+def check_token(config):
+    send_request(config)
+    for camera in config.sections:
+        send_request(config[camera])
+
+
 def base_config(config_path: Path, config=None):
     global_params = dict(
         regions='force_list(default=list())',
         webhook_target='string(default="")',
-        webhook_header='header(default="")',
+        webhook_header='string(default="")',
         webhook_image='boolean(default=yes)',
         webhook_image_type='option("vehicle", "original", default="vehicle")',
         max_prediction_delay='float(default=6)',
@@ -80,7 +104,7 @@ def base_config(config_path: Path, config=None):
         # Overridable
         regions='force_list(default=None)',
         webhook_target='string(default=None)',
-        webhook_header='header(default=None)',
+        webhook_header='string(default=None)',
         webhook_image='boolean(default=None)',
         webhook_image_type='option("vehicle", "original", default=None)',
         max_prediction_delay='float(default=None)',
@@ -92,20 +116,6 @@ def base_config(config_path: Path, config=None):
         csv_file='string(default=None)',
         jsonlines_file='string(default=None)',
     )
-
-    def webhook_header_check(value):
-        token = value.split('Token ')[-1]
-        if not token:
-            return None
-        url = 'https://app.parkpow.com/api/v1/parking-list'
-        headers = {'Authorization': 'Token %s' % token}
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-        except (requests.Timeout, requests.ConnectionError):
-            raise ValidateError('Please check your internet connection.')
-        if response.status_code != 200:
-            raise ValidateError('Wrong token.')
-        return value
 
     spec = ConfigObj()
     spec['timezone'] = 'string(default="UTC")'
@@ -123,8 +133,7 @@ def base_config(config_path: Path, config=None):
     except Exception as e:
         logging.error(e)
         return None, str(e)
-    validator = Validator({'header': webhook_header_check})
-    result = config.validate(validator, preserve_errors=True)
+    result = config.validate(Validator(), preserve_errors=True)
     errors = flatten_errors(config, result)
     if errors:
         error_message = 'Config errors:'
@@ -138,4 +147,8 @@ def base_config(config_path: Path, config=None):
             error = '%s, param: %s, message: %s' % (section_string, key, error)
             error_message += '\n%s' % error
         return None, error_message
+    try:
+        check_token(config['cameras'])
+    except Exception as e:
+        return None, str(e)
     return config, None
