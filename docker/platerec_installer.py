@@ -39,7 +39,7 @@ def get_os():
 
 def get_docker_link():
     docker_links = {
-        'Windows': 'https://platerecognizer.com/help/docker/#install-SDK',
+        'Windows': 'https://platerecognizer.com/docker/#install-SDK',
         'Linux': 'https://docs.docker.com/install/',
         'Mac OS':
         'https://hub.docker.com/editions/community/docker-ce-desktop-mac/'
