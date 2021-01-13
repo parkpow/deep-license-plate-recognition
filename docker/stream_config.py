@@ -57,9 +57,9 @@ timezone = UTC
 
 def send_request(section):
     if not section.get('webhook_target') or not section.get('webhook_header'):
-        return None
+        return
     if '/api/v1/webhook-receiver' not in section['webhook_target']:
-        return None
+        return
     headers = {
         'Authorization':
         'Token %s' % section['webhook_header'].split('Token ')[-1]
@@ -68,15 +68,16 @@ def send_request(section):
     try:
         response = requests.get(url, headers=headers, timeout=10)
     except (requests.Timeout, requests.ConnectionError):
-        raise ValidateError('Please check your internet connection.')
+        raise ValidateError('Connection to webhook_target %s failed.' % url)
     if response.status_code != 200:
-        raise ValidateError('Wrong token.')
+        raise ValidateError('The token in webhook_header is invalid.')
 
 
 def check_token(config):
     send_request(config)
     for camera in config.sections:
-        send_request(config[camera])
+        if config[camera]['active']:
+            send_request(config[camera])
 
 
 def base_config(config_path: Path, config=None):
@@ -131,7 +132,6 @@ def base_config(config_path: Path, config=None):
                            indent_type='  ')
         config.newlines = '\r\n'  # For Windows
     except Exception as e:
-        logging.error(e)
         return None, str(e)
     result = config.validate(Validator(), preserve_errors=True)
     errors = flatten_errors(config, result)
