@@ -8,6 +8,7 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
+from ssl import SSLError
 
 import dash
 import dash_bootstrap_components as dbc
@@ -119,6 +120,12 @@ def verify_token(token, license_key, get_license=True, product='stream'):
     path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
     try:
         req = Request('https://app.platerecognizer.com/v1/{}/{}/'.format(
+            path, license_key.strip()))
+        req.add_header('Authorization', 'Token {}'.format(token.strip()))
+        urlopen(req).read()
+        return True, None
+    except SSLError:
+        req = Request('http://app.platerecognizer.com/v1/{}/{}/'.format(
             path, license_key.strip()))
         req.add_header('Authorization', 'Token {}'.format(token.strip()))
         urlopen(req).read()
