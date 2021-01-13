@@ -98,7 +98,7 @@ def get_image():
 def verify_token(token, license_key, get_license=True):
     try:
         req = Request(
-            'https://app.platerecognizer.com/v1/sdk-webhooks/{}/'.format(
+            'https://api.platerecognizer.com/v1/sdk-webhooks/{}/'.format(
                 license_key))
         req.add_header('Authorization', 'Token {}'.format(token))
         urlopen(req).read()
