@@ -58,7 +58,8 @@ def custom_args(parser):
         type=int,
         help=
         'Remove images from the FTP server after processing. Optionally specify a timeout in seconds.',
-        default=0)
+        nargs='?',
+        const=0)
     parser.add_argument('-f',
                         '--folder',
                         help='Specify folder with images on the FTP server.',
@@ -114,7 +115,7 @@ def process_files(ftp_client, ftp_files, args):
         last_modified = file_last_modified[1]
 
         if track_processed(args) and ftp_file in processed:
-            if args.delete:
+            if args.delete is not None:
                 if rm_older_than_date > last_modified:
                     ftp_client.delete(ftp_file)
                     processed.remove(ftp_file)
@@ -220,7 +221,6 @@ def single_camera_processing(ftp, args):
 
         logging.info('Found %s file(s) in %s.', len(nondirs), folder_path)
         process_files(ftp, nondirs, args)
-
 
 
 def ftp_process(args):
