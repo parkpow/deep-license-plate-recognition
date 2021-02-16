@@ -4,16 +4,16 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
 
 ## Starting the Webhook Server
 
-First start your desired webhook server. **Pick one** of the options below.
+Here are some webhook server examples. **Pick one** of the options below.
 
-__Server in Python using the standard library:__
+- __Python and the standard library:__
 
 Start the server
 ```bash
 python3 webhook_reader.py
 ```
 
-__Server in Python using Flask:__
+- __Python and Flask:__
 
 Install flask
 ```bash
@@ -26,7 +26,7 @@ export FLASK_DEBUG=1
 python3 -m flask run -h 0.0.0.0 -p 8001
 ```
 
-__Server in Javascript / Node:__
+- __Javascript / Node:__
 
 Install dependencies
 ```bash
@@ -46,3 +46,7 @@ node server.js
 3. Configure the webhook on Platerecognizer.
    - In Stream, edit your `config.ini`, add the following to a camera: `webhook_target = http://MY_IP_ADDRESS:8001/`
    - For Snapshot, open [Webhooks Configuration](https://app.platerecognizer.com/accounts/webhooks/).
+   
+## Integrations
+
+- [Connect Stream to Home Assistant](https://github.com/adamjernst/plate-handler). This project uses Stream webhooks to send license plate data to a home automation server. Form there, it will send a notification.
