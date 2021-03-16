@@ -5,6 +5,18 @@ Get high-accuracy, developer-friendly **automatic license plate recognition** ([
 - Decodes **license plate** , vehicle type (e.g. SUV, van, pickup truck), [**vehicle make model**](https://platerecognizer.com/vehicle-make-model-recognition-with-color/?utm_source=github&amp;utm_medium=website) (e.g. Honda Accord), color, and orientation. Ignores bumper stickers, car signs, etc.
 - Is optimized for all [50 USA States](https://platerecognizer.com/alpr-for-usa/?utm_source=github&amp;utm_medium=website), [India](https://platerecognizer.com/anpr-for-india?utm_source=github&amp;utm_medium=website), [Brazil](https://platerecognizer.com/anpr-for-brazil/?utm_source=github&amp;utm_medium=website) and [**90+ countries worldwide**](https://platerecognizer.com/countries/?utm_source=github&amp;utm_medium=website).
 
+  - [Reading License Plates from **Images**](#reading-license-plates-from-images)
+    - [Process images from an FTP server](#process-images-from-an-ftp-server)
+    - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
+    - [Benchmark](benchmark.md)
+  - [Number Plate Recognition on a **Video** or Camera Stream](https://platerecognizer.com/stream/?utm_source=github&utm_medium=website)
+  - [Automatic Image Transfer](#automatic-image-transfer)
+  - [**Code Samples**](#code-samples)
+
+<p align="center">
+  <img src="assets/plate-grid.jpeg">
+</p>
+
 **Snapshot** : Get license plate reader from images in under 60 minutes:
 - Access a **simple REST API** for easy integration in [8 programming languages](http://docs.platerecognizer.com/?utm_source=github&amp;utm_medium=website).
 - Returns results via **JSON Response** or Webhooks.
@@ -17,18 +29,6 @@ Get high-accuracy, developer-friendly **automatic license plate recognition** ([
 - Runs on-premise on **Linux, Windows** , Mac and [**Jetson**](https://platerecognizer.com/alpr-on-nvidia-jetson-devices/?utm_source=github&amp;utm_medium=website).
 
 ALPR, ANPR software is ideal for parking, highway monitoring, toll, police surveillance, community security, and other use cases. Our [license plate recognition (LPR)](https://platerecognizer.com/snapshot/?utm_source=github&amp;utm_medium=website) software can also forward results to our full **ALPR Dashboard** and [**Parking Management software**](https://parkpow.com/?utm_source=github&amp;utm_medium=website) solution, ParkPow. Sign up for a [**Free Trial**](https://app.platerecognizer.com/accounts/signup/?utm_source=github&amp;utm_medium=website) now (no credit card required) or **learn more** at [https://platerecognizer.com](https://platerecognizer.com/).
-
-<p align="center">
-  <img src="assets/plate-grid.jpeg">
-</p>
-
-  - [Reading License Plates from **Images**](#reading-license-plates-from-images)
-    - [Process images from an FTP server](#process-images-from-an-ftp-server)
-    - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
-    - [Benchmark](benchmark.md)
-  - [Number Plate Recognition on a **Video** or Camera Stream](https://platerecognizer.com/stream/?utm_source=github&utm_medium=website)
-  - [Automatic Image Transfer](#automatic-image-transfer)
-  - [**Code Samples**](#code-samples)
 
 
 ## Reading License Plates from Images
