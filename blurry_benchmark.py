@@ -94,8 +94,6 @@ def main():
                             break
                         initial_plates = new_plates.copy()
 
-            break
-
 
 if __name__ == '__main__':
     main()
