@@ -1,5 +1,6 @@
 import argparse
 import base64
+import logging
 import os
 import platform
 import re
@@ -16,15 +17,45 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
 from stream_config import DEFAULT_CONFIG, base_config
 
 try:
     from urllib.error import URLError
     from urllib.request import Request, urlopen
 except ImportError:
-    from urllib2 import Request, urlopen  # type: ignore
+    from urllib2 import Request  # type: ignore
     from urllib2 import URLError  # type: ignore
+    from urllib2 import urlopen  # type: ignore
+
+SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
+STREAM_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
+SDK_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=installer&utm_medium=app'
+STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
+STREAM_IMAGE = 'platerecognizer/alpr-stream'
+SDK_IMAGE = 'platerecognizer/alpr'
+STREAM = 'stream'
+SNAPSHOT = 'snapshot'
+USER_DATA = '/user-data/'
+NONE = {'display': 'none'}
+BLOCK = {'display': 'block'}
+FLEX = {'display': 'flex'}
+WIDTH = '91.5%'
+DISPLAY_CARD = {'display': 'block', 'width': WIDTH}
+CONSOLE_WELCOME = '''
+############################################
+# Thank you for choosing Plate Recognizer! #
+############################################
+
+- To continue open http://localhost:8050/ in your web browser. If your browser is
+on a separate device, replace "localhost" by the host's IP.
+
+- When you are done with the installation, you can close this window.
+
+############################################'''
+
+####################
+# Helper Functions #
+####################
 
 
 def get_os():
@@ -36,16 +67,6 @@ def get_os():
     elif os_system == 'Darwin':
         return 'Mac OS'
     return os_system
-
-
-def get_docker_link():
-    docker_links = {
-        'Windows': 'https://platerecognizer.com/docker/#install-SDK',
-        'Linux': 'https://docs.docker.com/install/',
-        'Mac OS':
-        'https://hub.docker.com/editions/community/docker-ce-desktop-mac/'
-    }
-    return docker_links.get(get_os())
 
 
 def verify_docker_install():
@@ -157,35 +178,6 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-DOCKER_LINK = get_docker_link()
-SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
-STREAM_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
-SDK_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=installer&utm_medium=app'
-STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
-STREAM_IMAGE = 'platerecognizer/alpr-stream'
-SDK_IMAGE = 'platerecognizer/alpr'
-STREAM = 'stream'
-SNAPSHOT = 'snapshot'
-USER_DATA = '/user-data/'
-NONE = {'display': 'none'}
-BLOCK = {'display': 'block'}
-FLEX = {'display': 'flex'}
-WIDTH = '91.5%'
-DISPLAY_CARD = {'display': 'block', 'width': WIDTH}
-
-DOCKER_INFO = [
-    "Do you have Docker? If so, please run it now. "
-    "If not, then please go here to install Docker on your machine: ",
-    html.A(DOCKER_LINK, href=DOCKER_LINK, target='_blank')
-]
-if get_os() == 'Windows':
-    DOCKER_INFO += [
-        ". Make sure to check the box (next to C) for ",
-        html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
-        " and the click “Apply & Restart”."
-    ]
-
-
 def get_splash_screen():
     return html.Div([
         html.Div([
@@ -202,8 +194,26 @@ def get_splash_screen():
 
 
 def get_refresh(product):
+    docker_links = {
+        'Windows': 'https://platerecognizer.com/docker/#install-SDK',
+        'Linux': 'https://docs.docker.com/install/',
+        'Mac OS':
+        'https://hub.docker.com/editions/community/docker-ce-desktop-mac/'
+    }
+    docker_link = docker_links.get(get_os())
+    docker_info = [
+        "Do you have Docker? If so, please run it now. "
+        "If not, then please go here to install Docker on your machine: ",
+        html.A(docker_link, href=docker_link, target='_blank')
+    ]
+    if get_os() == 'Windows':
+        docker_info += [
+            ". Make sure to check the box (next to C) for ",
+            html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
+            " and the click “Apply & Restart”."
+        ]
     return dbc.FormGroup([
-        dbc.Label(DOCKER_INFO, html_for=f'refresh-docker-{product}', width=7),
+        dbc.Label(docker_info, html_for=f'refresh-docker-{product}', width=7),
         dcc.Loading(type='circle',
                     children=html.Div(id=f'loading-refresh-{product}')),
         dbc.Col(dbc.Button(
@@ -529,6 +539,10 @@ def get_confirm(product):
         id='danger-danger-provider',
         message='Danger danger! Are you sure you want to continue?'),
 
+
+############
+# Dash App #
+############
 
 app = dash.Dash(
     __name__,
@@ -1004,20 +1018,18 @@ def parse_arguments():
 
 if __name__ == '__main__':
     args = parse_arguments()
-    print('''
-############################################
-# Thank you for choosing Plate Recognizer! #
-############################################
-
-- To continue open http://localhost:8050/ in your web browser. If your browser is
-on a separate device, replace "localhost" by the host's IP.
-
-- When you are done with the installation, you can close this window.
-
-############################################
-''')
+    print(CONSOLE_WELCOME)
     if args.debug:
         app.run_server(debug=True)
     else:
         webbrowser.open('http://127.0.0.1:8050/')
+
+        # Update log levels
+        app.logger.setLevel(logging.ERROR)
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+        cli = sys.modules['flask.cli']
+        cli.show_server_banner = lambda *_: None  # type: ignore
+
+        # Start server
         app.run_server(debug=False, dev_tools_silence_routes_logging=True)
