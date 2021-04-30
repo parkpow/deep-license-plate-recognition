@@ -4,7 +4,7 @@
   <img src="../assets/installer-screenshot.jpg">
 </p>
 
-This program helps you get started with Stream or SDK. The executable can be built using `docker run -v "$(pwd):/src/" cdrx/pyinstaller-windows "pyinstaller platerec_installer.spec -F"`. Or it can be downloaded using the links below.
+This program helps you get started with Stream or SDK. The executable can be built using `docker run -v "$(pwd):/src/" danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"`. Or it can be downloaded using the links below.
 
 ## Windows
 1. **Download** the **[Windows Installer](https://app.platerecognizer.com/static/installer/PlateRecognizer-Installer.exe)**
