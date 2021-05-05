@@ -18,4 +18,7 @@ PlateReader.Read("Web Api Url", "File path", "Regions", "Token");
 ```
 PlateRecognizer.exe /F:/tmp/car.jpg /T:MY_TOKEN /R:fr,it
 PlateRecognizer.exe /T:MY_TOKEN /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg"
+
+# Upload the image as Base64
+PlateRecognizer.exe /T:MY_TOKEN /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg" /B:1
 ```
