@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.Web;
 
 namespace PlateRecognizer
 {
@@ -23,14 +25,12 @@ namespace PlateRecognizer
         /// <param name="regions">Regions in CSV</param>
         /// <param name="token">Authentification Token.</param>
         /// <returns></returns>
-        public static PlateReaderResult Read(string postUrl, string fileName, byte[] fileData, string regions, string token)
+        public static PlateReaderResult Read(string postUrl, string fileName, byte[] fileData, string regions, string token, bool encodeImageAsBase64)
         {
 
             try
             {
                 PlateReaderResult result = null;
-                string formDataBoundary = String.Format("----------{0:N}", Guid.NewGuid());
-                string contentType = "multipart/form-data; boundary=" + formDataBoundary;
 
                 if (!string.IsNullOrEmpty(fileName) && File.Exists(fileName))
                 {
@@ -39,10 +39,31 @@ namespace PlateRecognizer
                 else
                     fileName = DateTime.Now.Ticks.ToString();
 
-                if (fileData != null && fileData!=null && fileData.Length > 0)
+                if (fileData != null && fileData.Length > 0)
                 {
+                    string contentType = null;
+                    byte[] formData = null;
+                    string formValues = null;
+                    int contentLength = 0;
 
-                    byte[] formData = GetMultipartFormData(fileName, fileData, regions, formDataBoundary);
+                    if (encodeImageAsBase64)
+                    {
+                        contentType = "application/x-www-form-urlencoded";
+                        formValues = GetFormDataBase64(fileData);
+                        contentLength = formValues.Length;
+                    }
+                    else
+                    {
+                        string formDataBoundary = String.Format("----------{0:N}", Guid.NewGuid());
+                        contentType = "multipart/form-data; boundary=" + formDataBoundary;
+                        formData = GetMultipartFormData(
+                            fileName,
+                            fileData,
+                            regions,
+                            formDataBoundary
+                            );
+                        contentLength = formData.Length;
+                    }
 
                     HttpWebRequest request = WebRequest.Create(postUrl) as HttpWebRequest;
 
@@ -51,14 +72,25 @@ namespace PlateRecognizer
                     request.ContentType = contentType;
                     request.UserAgent = ".NET Framework CSharp Client";
                     request.CookieContainer = new CookieContainer();
-                    request.ContentLength = formData.Length;
+                    request.ContentLength = contentLength;
                     request.Headers.Add("Authorization", "Token " + token);
 
                     // Send the form data to the request.
-                    using (Stream requestStream = request.GetRequestStream())
+                    if (encodeImageAsBase64)
                     {
-                        requestStream.Write(formData, 0, formData.Length);
-                        requestStream.Close();
+                        using (StreamWriter requestStreamWriter = new StreamWriter(request.GetRequestStream(), System.Text.Encoding.ASCII))
+                        {
+                            requestStreamWriter.Write(formValues);
+                            requestStreamWriter.Close();
+                        }
+                    }
+                    else
+                    {
+                        using (Stream requestStream = request.GetRequestStream())
+                        {
+                            requestStream.Write(formData, 0, formData.Length);
+                            requestStream.Close();
+                        }
                     }
 
                     HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -131,5 +163,18 @@ namespace PlateRecognizer
 
             return formData;
         }
+
+        /// <summary>
+        /// Build url encoded form data from base64 encoded image.
+        /// </summary>
+        /// <param name="fileData">File byte[] data of image</param>
+        /// <returns></returns>
+        private static string GetFormDataBase64(byte[] fileData)
+        {
+            string base64String = Convert.ToBase64String(fileData);
+            return "upload=" + HttpUtility.UrlEncode(base64String);
+
+        }
+
     }
 }

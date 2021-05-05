@@ -17,6 +17,7 @@ namespace PlateRecognizer
                 List<string> filePaths = new List<string>();
                 string regions = null;
                 string token = null;
+                bool encodeImageAsBase64 = false;
                 foreach (string arg in args)
                 {
                     if (arg.Length > 3 || arg.StartsWith("/?"))
@@ -27,6 +28,9 @@ namespace PlateRecognizer
                                 break;
                             case "/R":
                                 regions = arg.Substring(3);
+                                break;
+                            case "/B":
+                                encodeImageAsBase64 = true;
                                 break;
                             case "/T":
                                 token = arg.Substring(3);
@@ -50,13 +54,13 @@ namespace PlateRecognizer
                 }
                 Console.WriteLine("Uploading Plate(s)...");
                 Console.WriteLine("-------------------");
-                string postUrl = "https://api.platerecognizer.com/v1/plate-reader/";
+                string postUrl = "http://api.platerecognizer.com/v1/plate-reader/";
 
                 foreach (var file in filePaths)
                 {
                     try
                     {
-                        PlateReaderResult plateReaderResult = PlateReader.Read(postUrl, file, null, regions, token);
+                        PlateReaderResult plateReaderResult = PlateReader.Read(postUrl, file, null, regions, token, encodeImageAsBase64);
                         Console.WriteLine(string.Format("File [{0}] successfully uploaded.", file));
                         Console.WriteLine("-------------------");
                         Console.WriteLine(Utils.ObjectDumper.Dump(plateReaderResult));
