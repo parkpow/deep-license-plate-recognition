@@ -48,7 +48,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
         logging.debug('response')
         logging.debug(response)
-        self.wfile.write(json.dumps(response))
+        self.wfile.write(json.dumps(response).encode())
         self.wfile.write(b'\n')
 
 
@@ -113,7 +113,7 @@ def monitor_worker():
 
 
 def server_worker():
-    server = HTTPServer(('', 8001), GetHandler)
+    server = HTTPServer(('localhost', 8001), GetHandler)
     print('Starting server, use <Ctrl-C> to stop')
     server.serve_forever()
 
