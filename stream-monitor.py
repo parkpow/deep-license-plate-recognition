@@ -15,9 +15,10 @@ logging.basicConfig(
     level=LOG_LEVEL,
     format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
-DOCKER = 'docker'  #
+# Duration to consider a camera to be offline if not generating new logs
 OFFLINE_DIFF_DURATION = 20  # In Seconds
-CHECK_INTERVAL = 2
+# Interval between reading logs
+CHECK_INTERVAL = 2  # In Seconds
 
 STATE = {'container_active': False, 'last_log_times': {}}
 
@@ -74,11 +75,9 @@ def monitor_worker():
     previous_log_time = None
 
     while True:
-        result = subprocess.run(
-            [DOCKER, '-H', 'satellite:2376', 'logs', '--tail', '1', 'stream'],
-            # ['docker', 'logs', '--tail', '1', 'stream'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+        result = subprocess.run(['docker', 'logs', '--tail', '1', 'stream'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
 
         docker_log = result.stdout.decode('utf-8')
         logging.debug(docker_log)
@@ -101,10 +100,8 @@ def monitor_worker():
             else:
                 if 'Health Score' in log_line[3] or 'New vehicle' in log_line[
                         3] or 'Model Optimization' in log_line[3]:
-                    # health_score = log_line[3].split(' ')[1].rstrip('%')
                     camera = log_line[1]
                     STATE['last_log_times'][camera] = datetime.now()
-                    # cameras.add(camera)
 
                 captures += 1
                 previous_log_time = log_time
