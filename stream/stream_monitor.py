@@ -20,7 +20,7 @@ logging.basicConfig(
 
 _state = {'container_active': False, 'last_log_times': {}}
 
-log_line_regex = r'(\w+):([^:]*):(.*)Z:'
+log_line_regex = r'(\w+):([^:]*):(.*)00:'
 compiled = re.compile(log_line_regex)
 
 
@@ -66,7 +66,7 @@ def parse_log_line(line):
     m = compiled.match(line)
     if m:
         groups = m.groups()
-        return [groups[0], groups[1], groups[2] + 'Z']
+        return [groups[0], groups[1], groups[2] + '00']
 
 
 def monitor_worker(container_name, check_interval):
