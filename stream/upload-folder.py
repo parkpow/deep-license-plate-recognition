@@ -13,28 +13,19 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 
-def stream_api(i, args):
+def stream_api(image_path, args):
     if args.mask:
         data = dict(mask_id=args.mask)
     else:
         data = None
 
-    with open(i, 'rb') as fp:
-        while True:
-            response = requests.post(args.sdk_url,
-                                     files=dict(upload=fp),
-                                     data=data)
-
-            if response.status_code < 200 or response.status_code > 300:
-                logging.error(response.text)
-                return None
-            else:
-                res_json = response.json()
-                if 'error' in res_json:
-                    logging.error(response.text)
-                    return None
-
-                return res_json
+    with open(image_path, 'rb') as fp:
+        response = requests.post(args.sdk_url, files=dict(upload=fp), data=data)
+        if response.status_code < 200 or response.status_code > 300:
+            logging.error(response.text)
+            return None
+        else:
+            return response.json()
 
 
 if __name__ == '__main__':
