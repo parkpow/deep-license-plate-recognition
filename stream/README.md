@@ -1,6 +1,6 @@
 # Stream Monitor
-Monitor Stream HEALTH through it's logs
-This scripts exposes a single API endpoint that returns responses in this format
+Monitor Stream HEALTH through it's logs.
+This script exposes a single API endpoint that returns responses in this format:
 
 ```json
 {"active": true, "cameras": {"camera-1": {"status": "running"}}}
@@ -10,7 +10,7 @@ This scripts exposes a single API endpoint that returns responses in this format
 {"active": true, "cameras": {"camera-1": {"status": "offline"}}}
 ```
 
-`active` is true if stream container is running, so you need to check it before checking `cameras`
+`active` is true if the stream container is running, so you need to check it before checking `cameras`.
 
 
 ## Requirements
