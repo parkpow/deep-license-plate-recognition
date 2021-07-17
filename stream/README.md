@@ -20,6 +20,8 @@ This script exposes a single API endpoint that returns responses in this format:
 ## Quick Setup
 ### 1. Run Script
 ```bash
+git clone https://github.com/marcbelmont/deep-license-plate-recognition.git
+cd stream
 python stream_monitor.py
 
 ```
