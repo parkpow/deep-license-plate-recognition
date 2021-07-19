@@ -4,6 +4,7 @@ import requests
 import os
 import sys
 import logging
+import json
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
 
@@ -50,10 +51,14 @@ if __name__ == '__main__':
 
     # Process files in folder
     videos_directory = Path(args.folder)
-
-    for file in videos_directory.iterdir():
-        if file.is_dir():
-            continue
-        logging.info(f'Processing file: {file}')
-        results = stream_api(file, args)
-        logging.info(f'Results:{results}')
+    with open('output.jsonl', 'a') as outfile:
+        for file in videos_directory.iterdir():
+            if file.is_dir():
+                continue
+            logging.info(f'Processing file: {file}')
+            results = stream_api(file, args)
+            logging.info(f'Results:{results}')
+            if results:
+                json.dump(results, outfile)
+                outfile.write('\n')
+                outfile.flush()
