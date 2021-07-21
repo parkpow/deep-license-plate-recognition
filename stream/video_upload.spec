@@ -3,7 +3,7 @@
 # Building the executable:
 #
 # docker run -v "$$(pwd):/src/" cdrx/pyinstaller-linux "pyinstaller video_upload.spec -F"
-# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-windows "pyinstaller video_upload.spec -F"
+# docker run -v "$$(pwd):/src/" danleyb2/pyinstaller-windows "pyinstaller video_upload.spec -F"
 
 import sys
 import gooey
