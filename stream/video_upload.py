@@ -5,6 +5,8 @@ import os
 import sys
 import logging
 import json
+from gooey import Gooey
+from gooey import GooeyParser
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
 
@@ -29,12 +31,12 @@ def stream_api(image_path, args):
             return response.json()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-f',
-                        '--folder',
-                        required=True,
-                        help='Folder containing videos to process.')
+@Gooey(program_name='Videos Uploader')
+def main():
+    parser = GooeyParser(description="Upload Videos from a folder to Stream file-upload")
+    parser.add_argument('folder',
+                        help='Folder containing videos to process.',
+                        widget='DirChooser')
 
     parser.add_argument("-m",
                         "--mask",
@@ -45,7 +47,7 @@ if __name__ == '__main__':
         '-s',
         '--sdk-url',
         default='http://localhost:8081',
-        help="Url to Stream File Upload Server http://localhost:8081")
+        help="Url to Stream File Upload Server")
 
     args = parser.parse_args()
 
@@ -62,3 +64,6 @@ if __name__ == '__main__':
                 json.dump(results, outfile)
                 outfile.write('\n')
                 outfile.flush()
+
+if __name__ == '__main__':
+    main()

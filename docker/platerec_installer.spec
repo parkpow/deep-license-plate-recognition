@@ -3,7 +3,7 @@
 # Building the executable:
 #
 # docker run -v "$$(pwd):/src/" cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
-# docker run -v "$$(pwd):/src/" cdrx/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
+# docker run -v "$$(pwd):/src/" danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
 
 import sys
 
