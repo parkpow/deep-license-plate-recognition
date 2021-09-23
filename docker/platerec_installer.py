@@ -208,7 +208,8 @@ def get_refresh(product):
     ]
     if get_os() == 'Windows':
         docker_info += [
-            ". Make sure to check the box (next to C) for ",
+            ". If using the legacy Hyper-V backend and not WSL2, "
+            "Make sure to check the box (next to C) for ",
             html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
             " and the click “Apply & Restart”."
         ]
