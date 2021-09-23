@@ -27,10 +27,10 @@ except ImportError:
     from urllib2 import URLError  # type: ignore
     from urllib2 import urlopen  # type: ignore
 
-SHARE_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.a7ccio5yriih'
+SHARE_LINK = 'https://guides.platerecognizer.com/docs/stream/manual-install#step-2'
 STREAM_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
 SDK_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=installer&utm_medium=app'
-STREAM_DOCS_LINK = 'https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit#heading=h.u40inl8klrvj'
+STREAM_DOCS_LINK = 'https://guides.platerecognizer.com/docs/stream/configuration'
 STREAM_IMAGE = 'platerecognizer/alpr-stream'
 SDK_IMAGE = 'platerecognizer/alpr'
 STREAM = 'stream'
@@ -208,7 +208,8 @@ def get_refresh(product):
     ]
     if get_os() == 'Windows':
         docker_info += [
-            ". Make sure to check the box (next to C) for ",
+            ". If using the legacy Hyper-V backend and not WSL2, "
+            "Make sure to check the box (next to C) for ",
             html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
             " and the click “Apply & Restart”."
         ]
@@ -221,7 +222,7 @@ def get_refresh(product):
                 width=4),
     ],
                          row=True,
-                         style=NONE,
+                         style=BLOCK,
                          id=f'refresh-{product}')
 
 
