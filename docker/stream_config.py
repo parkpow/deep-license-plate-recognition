@@ -6,7 +6,7 @@ from configobj import ConfigObj, flatten_errors
 from validate import ValidateError, Validator
 
 DEFAULT_CONFIG = '''# Instructions:
-# https://docs.google.com/document/d/1vLwyx4gQvv3gF_kQUvB5sLHoY0IlxV5b3gYUqR2wN1U/edit
+# https://app.platerecognizer.com/stream-docs
 
 # List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 timezone = UTC
@@ -35,6 +35,19 @@ timezone = UTC
   # send the full-size image. This setting can be used at the camera level too.
   webhook_image_type = vehicle
 
+  # Only accept the results that exactly match the templates of the specified regions.
+  # region_config = strict
+
+  # Only accept license plates when a vehicle is also detected.
+  # detection_rule = strict
+
+  # Beta - Detect vehicles without a license plate. One of: plate, vehicle
+  # detection_mode = plate
+
+  # Advanced - Number of steps used to merge unique vehicles. A low number will increase compute.
+  # If set to -1, it is automatically picked (default).
+  # merge_buffer = -1
+
   [[camera-1]]
     active = yes
     url = rtsp://192.168.0.108:8080/video/h264
@@ -46,7 +59,7 @@ timezone = UTC
 
     # - Send to Webhook. The recognition data and vehicle image are encoded in
     # multipart/form-data and sent to webhook_target.
-    # webhook_target = http://webhook.site/
+    # webhook_targets = http://webhook.site/
     # webhook_image = yes
 
     # - Save to file in JSONLines format. https://jsonlines.org/
@@ -68,9 +81,19 @@ def send_request(section):
     try:
         response = requests.get(url, headers=headers, timeout=10)
     except (requests.Timeout, requests.ConnectionError):
-        raise ValidateError('Connection to webhook_target %s failed.' % url)
+        raise ValidateError(
+            '[STR0019] The value in webhook_target in the config.ini file is incorrect.  '
+            'Please check the webhook_target value and try again.  '
+            'Go here for additional help '
+            'https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters.'
+        )
     if response.status_code != 200:
-        raise ValidateError('The token in webhook_header is invalid.')
+        raise ValidateError(
+            '[STR0020] The Token in webhook_header in the config.ini file is incorrect.  '
+            'Please check the webhook_header value and try again.  '
+            'Go here for additional help '
+            'https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters.'
+        )
 
 
 def check_token(config):
@@ -80,10 +103,11 @@ def check_token(config):
             send_request(config[camera])
 
 
-def base_config(config_path: Path, config=None):
-    global_params = dict(
+def camera_spec():
+    camera_global = dict(
         regions='force_list(default=list())',
         webhook_target='string(default="")',
+        webhook_targets='force_list(default=list())',
         webhook_header='string(default="")',
         webhook_image='boolean(default=yes)',
         webhook_image_type='option("vehicle", "original", default="vehicle")',
@@ -96,15 +120,20 @@ def base_config(config_path: Path, config=None):
         mmc='boolean(default=no)',
         csv_file='string(default="")',
         jsonlines_file='string(default="")',
+        region_config='option("normal", "strict", default="normal")',
+        detection_rule='option("normal", "strict", default="normal")',
+        detection_mode='option("plate", "vehicle", default="plate")',
+        merge_buffer='integer(default=-1)',
     )
 
     camera = dict(
         url='string',
-        name='string',
+        name='string(default="Camera")',
         active='boolean(default=yes)',
         # Overridable
         regions='force_list(default=None)',
         webhook_target='string(default=None)',
+        webhook_targets='force_list(default=None)',
         webhook_header='string(default=None)',
         webhook_image='boolean(default=None)',
         webhook_image_type='option("vehicle", "original", default=None)',
@@ -116,12 +145,21 @@ def base_config(config_path: Path, config=None):
         mmc='boolean(default=None)',
         csv_file='string(default=None)',
         jsonlines_file='string(default=None)',
+        region_config='option("normal", "strict", default=None)',
+        detection_rule='option("normal", "strict", default=None)',
+        detection_mode='option("plate", "vehicle", default=None)',
+        merge_buffer='integer(default=None)',
     )
+    assert set(camera_global.keys()) <= set(camera.keys())
+    return dict(__many__=camera, **camera_global)
+
+
+def base_config(config_path: Path, config=None):
 
     spec = ConfigObj()
     spec['timezone'] = 'string(default="UTC")'
     spec['version'] = 'integer(default=2)'
-    spec['cameras'] = dict(__many__=camera, **global_params)
+    spec['cameras'] = camera_spec()
     if not config_path.exists():
         with open(config_path, 'w') as fp:
             fp.write(DEFAULT_CONFIG.replace('\n', '\r\n'))
@@ -136,7 +174,7 @@ def base_config(config_path: Path, config=None):
     result = config.validate(Validator(), preserve_errors=True)
     errors = flatten_errors(config, result)
     if errors:
-        error_message = 'Config errors:'
+        error_message = '[STR0021] The config.ini file does not seem to be formatted correctly.  \n [Error details] \n'
         for section_list, key, error in errors:
             if error is False:
                 error = 'key %s is missing.' % key
@@ -146,7 +184,7 @@ def base_config(config_path: Path, config=None):
             logging.error('%s: %s', section_string, error)
             error = '%s, param: %s, message: %s' % (section_string, key, error)
             error_message += '\n%s' % error
-        return None, error_message
+        return None, error_message + '\n Go here for additional help https://guides.platerecognizer.com/docs/stream/configuration'
     try:
         check_token(config['cameras'])
     except Exception as e:
