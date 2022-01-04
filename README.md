@@ -39,7 +39,7 @@ Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source
 
 ```
 # Getting started!
-git clone https://github.com/marcbelmont/deep-license-plate-recognition.git
+git clone https://github.com/parkpow/deep-license-plate-recognition.git
 cd deep-license-plate-recognition
 pip install requests pillow
 
