@@ -32,7 +32,7 @@ def read_config():
         tag_update = parser['tag-update']
         return settings, tag_update
     except Exception:
-        lgr.error('Invalid Configuration File')
+        lgr.exception('Invalid Configuration File')
 
 
 def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
@@ -58,6 +58,11 @@ def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
 
     lgr.debug(f'Response: {res}')
     lgr.debug(f'Content: {res.text}')
+
+    if res.status_code != 200:
+        lgr.error(
+            f'An error occurred updating vehicle_id: {vehicle_id} tag:{tag} check:{check}'
+        )
 
     return res
 
