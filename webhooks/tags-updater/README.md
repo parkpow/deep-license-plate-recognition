@@ -3,7 +3,7 @@
  ```ini
 [settings]
 parkpow_base_url = https://app.parkpow.com
-parkpow_api_token = 8003dfa697f08f07d108c10de6f7cf17d86707a5
+parkpow_api_token = ...
 
 [tag-update]
 OLD = NEW
