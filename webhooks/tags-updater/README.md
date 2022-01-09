@@ -1,5 +1,5 @@
 
-1. Create Config
+1. Create config.ini in /tmp/config
  ```ini
 [settings]
 parkpow_base_url = https://app.parkpow.com
@@ -22,26 +22,26 @@ docker build --tag platerecognizer/parkpow-tag-updater .
 Development
 ```bash
 
-docker run --rm -i -v ${PWD}:/app -p 3000:8001 platerecognizer/parkpow-tag-updater
+docker run --rm -i -v ${PWD}:/app -v /tmp/config:/user-data -p 3000:8001 platerecognizer/parkpow-tag-updater
 
 # Verbose logging add -e LOGGING=DEBUG
-docker run --rm -i -v ${PWD}:/app -p 3000:8001 -e LOGGING=DEBUG  platerecognizer/parkpow-tag-updater
+docker run --rm -i -v ${PWD}:/app -v /tmp/config:/user-data -p 3000:8001 -e LOGGING=DEBUG  platerecognizer/parkpow-tag-updater
 
 # Custom Config add -v /tmp/config.ini:/app/config.ini
-docker run --rm -i  -v ${PWD}:/app -p 3000:8001 -v /tmp/config.ini:/app/config.ini  platerecognizer/parkpow-tag-updater
+docker run --rm -i  -v ${PWD}:/app -p 3000:8001 -v /tmp/config:/user-data  platerecognizer/parkpow-tag-updater
 
 ```
 
 Production
 ```bash
 
-docker run --rm -i -p 3000:8001 platerecognizer/parkpow-tag-updater
+docker run --rm -i -v /tmp/config:/user-data -p 3000:8001 platerecognizer/parkpow-tag-updater
 
 # Verbose logging add -e LOGGING=DEBUG
-docker run --rm -i -p 3000:8001 -e LOGGING=DEBUG  platerecognizer/parkpow-tag-updater
+docker run --rm -i -v /tmp/config:/user-data -p 3000:8001 -e LOGGING=DEBUG  platerecognizer/parkpow-tag-updater
 
 # Custom Config add -v /tmp/config.ini:/app/config.ini
-docker run --rm -i  -p 3000:8001 -v /tmp/config.ini:/app/config.ini  platerecognizer/parkpow-tag-updater
+docker run --rm -i -p 3000:8001 -v /tmp/config:/user-data  platerecognizer/parkpow-tag-updater
 
 ```
 

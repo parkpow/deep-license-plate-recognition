@@ -7,6 +7,8 @@ import requests
 import logging
 from urllib.parse import parse_qs
 import configparser
+import csv
+import datetime
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
 
@@ -18,6 +20,8 @@ logging.basicConfig(
 
 lgr = logging.getLogger(__name__)
 
+USER_DATA_DIR = '/user-data/'
+
 
 def read_config():
     """
@@ -27,7 +31,7 @@ def read_config():
     parser = configparser.ConfigParser()
     lgr.debug('Reading Configuration File')
     try:
-        parser.read('config.ini')
+        parser.read(f'{USER_DATA_DIR}config.ini')
         settings = parser['settings']
         tag_update = parser['tag-update']
         return settings, tag_update
@@ -63,8 +67,9 @@ def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
         lgr.error(
             f'An error occurred updating vehicle_id: {vehicle_id} tag:{tag} check:{check}'
         )
+        return False
 
-    return res
+    return True
 
 
 def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url):
@@ -92,12 +97,18 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url):
             lgr.debug(f'vehicle_id: {vehicle_id}')
 
             # Removing old Tag
-            update_vehicle_tag(vehicle_id, vehicle_tag, False,
-                               parkpow_api_token, parkpow_base_url)
+            removal = update_vehicle_tag(vehicle_id, vehicle_tag, False,
+                                         parkpow_api_token, parkpow_base_url)
 
             # Adding new Tag
-            update_vehicle_tag(vehicle_id, new_vehicle_tag, True,
-                               parkpow_api_token, parkpow_base_url)
+            addition = update_vehicle_tag(vehicle_id, new_vehicle_tag, True,
+                                          parkpow_api_token, parkpow_base_url)
+
+            if addition and removal:
+                return [
+                    data['license_plate'][0],
+                    datetime.datetime.now(), vehicle_tag, new_vehicle_tag
+                ]
 
         else:
             lgr.debug('Skipped missing vehicle tag')
@@ -129,9 +140,19 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                 self.headers['content-length'])).decode('utf-8')
             lgr.debug(f'raw_data: {raw_data}')
 
-            process_alert(self.server.config, raw_data,
-                          self.server.parkpow_api_token,
-                          self.server.parkpow_base_url)
+            log_file_path = f'{USER_DATA_DIR}update-log.csv'
+            log_file_exists = os.path.exists(log_file_path)
+            with open(log_file_path, 'a', newline='') as csv_file:
+                log_writer = csv.writer(csv_file)
+                if not log_file_exists:
+                    log_writer.writerow(
+                        ['Plate', 'Timestamp', 'Old Tag', 'New Tag'])
+
+                update = process_alert(self.server.config, raw_data,
+                                       self.server.parkpow_api_token,
+                                       self.server.parkpow_base_url)
+                if update:
+                    log_writer.writerow(update)
 
         else:
             lgr.error('Invalid content type')
