@@ -13,9 +13,8 @@
     NO_TAGS = NEWCLIENT
 
     ```
-    > All later steps assume the created folder path is `/home/user1/tags-updater`
 
-2. Download and Run the image
+2. Download and Run the image. Assuming the config folder path is `/home/user1/tags-updater`, this is the run command:
     ```bash
     docker run --rm --net=host -i -v /home/user1/tags-updater:/user-data -p 3000:8001 platerecognizer/parkpow-tag-updater
     ```
