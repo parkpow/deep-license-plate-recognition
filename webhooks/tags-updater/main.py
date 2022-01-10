@@ -105,6 +105,31 @@ def update_vehicle_tag(vehicle_id, tag_id, check, api_token, base_url):
     return True
 
 
+def process_vehicle_tag(vehicle_tag, data, vehicle_tags, parkpow_api_token,
+                        parkpow_base_url):
+    new_vehicle_tag = config[vehicle_tag]
+    lgr.debug(f'new_vehicle_tag: {new_vehicle_tag}')
+
+    vehicle_id = data['vehicle_id'][0]
+    lgr.debug(f'vehicle_id: {vehicle_id}')
+
+    # Removing old Tag
+    vehicle_tag_id = vehicle_tags[vehicle_tag]
+    removal = update_vehicle_tag(vehicle_id, vehicle_tag_id, False,
+                                 parkpow_api_token, parkpow_base_url)
+
+    # Adding new Tag
+    new_vehicle_tag_id = vehicle_tags[new_vehicle_tag]
+    addition = update_vehicle_tag(vehicle_id, new_vehicle_tag_id, True,
+                                  parkpow_api_token, parkpow_base_url)
+
+    if addition and removal:
+        return [
+            data['license_plate'][0],
+            datetime.datetime.now(), vehicle_tag, new_vehicle_tag
+        ]
+
+
 def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
                   vehicle_tags):
     """
@@ -121,34 +146,13 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
     lgr.debug(json.dumps(data, indent=2))
 
     if 'vehicle_tag' in data:
-        vehicle_tag = data['vehicle_tag'][0]
-        lgr.debug(f'vehicle_tag: {vehicle_tag}')
-
-        if vehicle_tag in config:
-            new_vehicle_tag = config[vehicle_tag]
-            lgr.debug(f'new_vehicle_tag: {new_vehicle_tag}')
-
-            vehicle_id = data['vehicle_id'][0]
-            lgr.debug(f'vehicle_id: {vehicle_id}')
-
-            # Removing old Tag
-            vehicle_tag_id = vehicle_tags[vehicle_tag]
-            removal = update_vehicle_tag(vehicle_id, vehicle_tag_id, False,
-                                         parkpow_api_token, parkpow_base_url)
-
-            # Adding new Tag
-            new_vehicle_tag_id = vehicle_tags[new_vehicle_tag]
-            addition = update_vehicle_tag(vehicle_id, new_vehicle_tag_id, True,
-                                          parkpow_api_token, parkpow_base_url)
-
-            if addition and removal:
-                return [
-                    data['license_plate'][0],
-                    datetime.datetime.now(), vehicle_tag, new_vehicle_tag
-                ]
-
-        else:
-            lgr.debug('Skipped missing vehicle tag')
+        for vehicle_tag in data['vehicle_tag'][0].split(','):
+            lgr.debug(f'processing vehicle_tag: {vehicle_tag}')
+            if vehicle_tag in config:
+                return process_vehicle_tag(vehicle_tag, data, vehicle_tags,
+                                           parkpow_api_token, parkpow_base_url)
+            else:
+                lgr.debug('Skipped missing vehicle tag')
 
     else:
         lgr.debug('Skipped alert with no vehicle tag')
