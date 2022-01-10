@@ -188,6 +188,7 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                 if not log_file_exists:
                     log_writer.writerow(
                         ['Plate', 'Timestamp', 'Old Tag', 'New Tag'])
+                    csv_file.flush()
 
                 update = process_alert(self.server.config, raw_data,
                                        self.server.parkpow_api_token,
@@ -195,6 +196,7 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                                        self.server.vehicle_tags)
                 if update:
                     log_writer.writerow(update)
+                    csv_file.flush()
 
         else:
             lgr.error('Invalid content type')
