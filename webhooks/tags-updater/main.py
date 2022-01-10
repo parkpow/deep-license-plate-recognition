@@ -39,7 +39,40 @@ def read_config():
         lgr.exception('Invalid Configuration File')
 
 
-def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
+def list_vehicle_tags(api_token, base_url):
+    """
+    Download all vehicle tags into a map of name -> id
+    :param api_token:
+    :param base_url:
+    :return:
+    """
+    vehicle_tags = {}
+
+    page = 1
+    while page > 0:
+        lgr.debug(f'list_vehicle_tags page: {page}')
+        res = requests.get(f'{base_url}/api/v1/vehicle-tags/',
+                           params={'page': page},
+                           headers={'Authorization': 'Token ' + api_token})
+
+        if res.status_code == 200:
+            tags = res.json()
+            for tag in tags['results']:
+                vehicle_tags[tag['name']] = tag['id']
+
+            if tags['next']:
+                page += 1
+            else:
+                page = 0
+        else:
+            raise Exception(
+                f'An Error occurred listing vehicle tags: {res} {res.text}')
+
+    lgr.debug(f'vehicle_tags: {vehicle_tags}')
+    return vehicle_tags
+
+
+def update_vehicle_tag(vehicle_id, tag_id, check, api_token, base_url):
     """
     Update ParkPow Vehicle TAGS
 
@@ -50,12 +83,12 @@ def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
     :param base_url:
     :return:
     """
-    lgr.debug(f'update_vehicle_tag({vehicle_id},{tag},{check})')
+    lgr.debug(f'update_vehicle_tag({vehicle_id},{tag_id},{check})')
 
     res = requests.post(f'{base_url}/api/v1/edit-tags/',
                         params={
                             'checked': 'true' if check else 'false',
-                            'tag_id': tag,
+                            'tag_id': tag_id,
                             'vehicle_id': vehicle_id
                         },
                         headers={'Authorization': 'Token ' + api_token})
@@ -65,14 +98,15 @@ def update_vehicle_tag(vehicle_id, tag, check, api_token, base_url):
 
     if res.status_code != 200:
         lgr.error(
-            f'An error occurred updating vehicle_id: {vehicle_id} tag:{tag} check:{check}'
+            f'An error occurred updating vehicle_id: {vehicle_id} tag:{tag_id} check:{check}'
         )
         return False
 
     return True
 
 
-def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url):
+def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
+                  vehicle_tags):
     """
     Select vehicle_tag from Alert, Check Config and Make Updates
 
@@ -80,6 +114,7 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url):
     :param raw_data:
     :param parkpow_api_token:
     :param parkpow_base_url:
+    :param vehicle_tags:
     :return:
     """
     data = parse_qs(raw_data)
@@ -97,11 +132,13 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url):
             lgr.debug(f'vehicle_id: {vehicle_id}')
 
             # Removing old Tag
-            removal = update_vehicle_tag(vehicle_id, vehicle_tag, False,
+            vehicle_tag_id = vehicle_tags[vehicle_tag]
+            removal = update_vehicle_tag(vehicle_id, vehicle_tag_id, False,
                                          parkpow_api_token, parkpow_base_url)
 
             # Adding new Tag
-            addition = update_vehicle_tag(vehicle_id, new_vehicle_tag, True,
+            new_vehicle_tag_id = vehicle_tags[new_vehicle_tag]
+            addition = update_vehicle_tag(vehicle_id, new_vehicle_tag_id, True,
                                           parkpow_api_token, parkpow_base_url)
 
             if addition and removal:
@@ -150,7 +187,8 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
 
                 update = process_alert(self.server.config, raw_data,
                                        self.server.parkpow_api_token,
-                                       self.server.parkpow_base_url)
+                                       self.server.parkpow_base_url,
+                                       self.server.vehicle_tags)
                 if update:
                     log_writer.writerow(update)
 
@@ -172,6 +210,8 @@ class TagsUpdaterServer(HTTPServer):
         self.parkpow_api_token = settings['parkpow_api_token']
         self.parkpow_base_url = settings.get('parkpow_base_url',
                                              'https://app.parkpow.com')
+        self.vehicle_tags = list_vehicle_tags(self.parkpow_api_token,
+                                              self.parkpow_base_url)
 
 
 if __name__ == '__main__':
