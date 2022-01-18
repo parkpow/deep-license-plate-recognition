@@ -6,8 +6,8 @@ import collections
 import csv
 import json
 import math
-import time
 import re
+import time
 from collections import OrderedDict
 from pathlib import Path
 
@@ -46,6 +46,9 @@ def parse_arguments(args_hook=lambda _: _):
     return args
 
 
+_session = None
+
+
 def recognition_api(fp,
                     regions=[],
                     api_key=None,
@@ -55,6 +58,7 @@ def recognition_api(fp,
                     timestamp=None,
                     mmc=None,
                     exit_on_error=True):
+    global _session
     data = dict(regions=regions, config=json.dumps(config))
     if camera_id:
         data['camera_id'] = camera_id
@@ -69,13 +73,15 @@ def recognition_api(fp,
                                  files=dict(upload=fp),
                                  data=data)
     else:
+        if not _session:
+            _session = requests.Session()
+            _session.headers.update({'Authorization': 'Token ' + api_key})
         for _ in range(3):
             fp.seek(0)
-            response = requests.post(
+            response = _session.post(
                 'https://api.platerecognizer.com/v1/plate-reader/',
                 files=dict(upload=fp),
-                data=data,
-                headers={'Authorization': 'Token ' + api_key})
+                data=data)
             if response.status_code == 429:  # Max calls per second reached
                 time.sleep(1)
             else:
