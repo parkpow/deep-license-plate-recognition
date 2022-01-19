@@ -9,25 +9,25 @@ on:
 
 jobs:
   windows-installer:
-    name: Windows Installer
+    name: Windows
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Build Installer
-      run: docker run -v "./docker:/src/" danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
+      run: docker run -v docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
         name: WindowsInstaller
-        path: dist/PlateRecognizer-Installer.exe
+        path: docker/dist/PlateRecognizer-Installer.exe
 
   linux-installer:
-    name: Linux Installer
+    name: Linux
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Build Installer
-      run: docker run -v "./docker:/src/" cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
+      run: docker run -v docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
         name: WindowsInstaller
-        path: dist/PlateRecognizer-Installer
+        path: docker/dist/PlateRecognizer-Installer
