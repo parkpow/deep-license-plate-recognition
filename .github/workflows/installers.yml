@@ -5,6 +5,10 @@ on:
     # branches-ignore:
     #   - master
     #   - dev
+
+    # Run Action only when /docker is pushed to
+    # paths:
+    #   - 'docker/**'
   workflow_dispatch:
 
 jobs:
@@ -17,7 +21,7 @@ jobs:
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
-        name: WindowsInstaller
+        name: PlateRecognizer-Installer.exe
         path: docker/dist/PlateRecognizer-Installer.exe
 
   linux-installer:
@@ -29,5 +33,5 @@ jobs:
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
-        name: WindowsInstaller
+        name: PlateRecognizer-Installer
         path: docker/dist/PlateRecognizer-Installer
