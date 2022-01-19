@@ -938,7 +938,7 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
                 pull_docker(STREAM_IMAGE)
             command = f'docker run {autoboot} -t ' \
                       f'{nvidia} --name stream ' \
-                      f'-v {home}:{USER_DATA} ' \
+                      f'-v "{home}:{USER_DATA}" ' \
                       f'{user_info} ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
