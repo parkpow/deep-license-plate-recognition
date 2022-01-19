@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build Installer
-      run: docker run -v docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
+      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
         name: WindowsInstaller
@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build Installer
-      run: docker run -v docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
+      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
         name: WindowsInstaller
