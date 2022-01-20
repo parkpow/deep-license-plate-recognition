@@ -50,6 +50,9 @@ jobs:
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTHASH }}'
-          certificatename: '${{ secrets.CERTNAME }}'
           folder: 'installer'
+          
+      - uses: actions/upload-artifact@v2
+        with:
+          name: PlateRecognizer-Installer.exe
+          path: installer/PlateRecognizer-Installer-unsigned.exe
