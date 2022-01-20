@@ -21,7 +21,7 @@ jobs:
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
-        name: PlateRecognizer-Installer-unsigned.exe
+        name: Windows-Installer-unsigned
         path: docker/dist/PlateRecognizer-Installer.exe
 
   linux-installer:
@@ -33,7 +33,7 @@ jobs:
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
-        name: PlateRecognizer-Installer
+        name: Linux-Installer
         path: docker/dist/PlateRecognizer-Installer
 
   sign-installer:
@@ -43,16 +43,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2
         with:
-          name: PlateRecognizer-Installer-unsigned.exe
-          path: installer/PlateRecognizer-Installer-unsigned.exe
-          
+          name: Windows-Installer-unsigned
+          path: installer/PlateRecognizer-Installer.exe
+
       - uses: DanaBear/code-sign-action@v4
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
-          folder: 'installer'
-          
+          folder: installer
+
       - uses: actions/upload-artifact@v2
         with:
-          name: PlateRecognizer-Installer.exe
-          path: installer/PlateRecognizer-Installer-unsigned.exe
+          name: Windows-Installer
+          path: installer/PlateRecognizer-Installer.exe
