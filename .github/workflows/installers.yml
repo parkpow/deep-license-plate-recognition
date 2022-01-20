@@ -1,0 +1,58 @@
+name: Build Installers
+
+on:
+  push:
+    # branches-ignore:
+    #   - master
+    #   - dev
+
+    # Run Action only when /docker is pushed to
+    # paths:
+    #   - 'docker/**'
+  workflow_dispatch:
+
+jobs:
+  windows-installer:
+    name: Windows
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Installer
+      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
+    - uses: actions/upload-artifact@v2
+      with:
+        name: Windows-Installer-unsigned
+        path: docker/dist/PlateRecognizer-Installer.exe
+
+  linux-installer:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Installer
+      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
+    - uses: actions/upload-artifact@v2
+      with:
+        name: Linux-Installer
+        path: docker/dist/PlateRecognizer-Installer
+
+  sign-installer:
+    name: Sign
+    runs-on: windows-latest
+    needs: windows-installer
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: Windows-Installer-unsigned
+          path: installer/PlateRecognizer-Installer.exe
+
+      - uses: DanaBear/code-sign-action@v4
+        with:
+          certificate: '${{ secrets.CERTIFICATE }}'
+          password: '${{ secrets.PASSWORD }}'
+          folder: installer
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Windows-Installer
+          path: installer/PlateRecognizer-Installer.exe
