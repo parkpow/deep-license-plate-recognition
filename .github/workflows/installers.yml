@@ -46,6 +46,14 @@ jobs:
           name: Windows-Installer-unsigned
           path: installer/PlateRecognizer-Installer.exe
 
+      - name: LS dir
+        run: dir
+        shell: powershell
+
+      - name: LS dir installer
+        run: dir installer
+        shell: powershell
+
       - uses: DanaBear/code-sign-action@v4
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
