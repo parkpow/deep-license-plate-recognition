@@ -12,6 +12,7 @@
     NO_TAGS = NEWCLIENT
 
     ```
+    > **NO_TAGS** will be added to vehicles without any tags
 
 2. Build the server image
     ```bash

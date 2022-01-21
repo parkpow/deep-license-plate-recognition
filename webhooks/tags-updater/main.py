@@ -21,6 +21,7 @@ logging.basicConfig(
 lgr = logging.getLogger(__name__)
 
 USER_DATA_DIR = '/user-data/'
+NO_TAGS = 'NO_TAGS'
 
 
 def read_config():
@@ -114,9 +115,12 @@ def process_vehicle_tag(vehicle_tag, data, vehicle_tags, parkpow_api_token,
     lgr.debug(f'vehicle_id: {vehicle_id}')
 
     # Removing old Tag
-    vehicle_tag_id = vehicle_tags[vehicle_tag]
-    removal = update_vehicle_tag(vehicle_id, vehicle_tag_id, False,
-                                 parkpow_api_token, parkpow_base_url)
+    if vehicle_tag == NO_TAGS:
+        removal = True
+    else:
+        vehicle_tag_id = vehicle_tags[vehicle_tag]
+        removal = update_vehicle_tag(vehicle_id, vehicle_tag_id, False,
+                                     parkpow_api_token, parkpow_base_url)
 
     # Adding new Tag
     new_vehicle_tag_id = vehicle_tags[new_vehicle_tag]
@@ -130,8 +134,8 @@ def process_vehicle_tag(vehicle_tag, data, vehicle_tags, parkpow_api_token,
         ]
 
 
-def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
-                  vehicle_tags):
+def process_alert(config_tags, raw_data, parkpow_api_token, parkpow_base_url,
+                  parkpow_tags):
     """
     Select vehicle_tag from Alert, Check Config and Make Updates
 
@@ -148,14 +152,18 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
     if 'vehicle_tag' in data:
         for vehicle_tag in data['vehicle_tag'][0].split(','):
             lgr.debug(f'processing vehicle_tag: {vehicle_tag}')
-            if vehicle_tag in config:
-                return process_vehicle_tag(vehicle_tag, data, vehicle_tags,
+            if vehicle_tag in config_tags:
+                return process_vehicle_tag(vehicle_tag, data, parkpow_tags,
                                            parkpow_api_token, parkpow_base_url)
             else:
                 lgr.debug('Skipped missing vehicle tag')
 
     else:
-        lgr.debug('Skipped alert with no vehicle tag')
+        if NO_TAGS in config_tags:
+            return process_vehicle_tag(NO_TAGS, data, parkpow_tags,
+                                       parkpow_api_token, parkpow_base_url)
+        else:
+            lgr.debug('Skipped alert with no vehicle tag')
 
 
 class AlertRequestHandler(BaseHTTPRequestHandler):
