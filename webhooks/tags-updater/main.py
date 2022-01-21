@@ -134,8 +134,8 @@ def process_vehicle_tag(vehicle_tag, data, vehicle_tags, parkpow_api_token,
         ]
 
 
-def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
-                  vehicle_tags):
+def process_alert(config_tags, raw_data, parkpow_api_token, parkpow_base_url,
+                  parkpow_tags):
     """
     Select vehicle_tag from Alert, Check Config and Make Updates
 
@@ -152,15 +152,15 @@ def process_alert(config, raw_data, parkpow_api_token, parkpow_base_url,
     if 'vehicle_tag' in data:
         for vehicle_tag in data['vehicle_tag'][0].split(','):
             lgr.debug(f'processing vehicle_tag: {vehicle_tag}')
-            if vehicle_tag in config:
-                return process_vehicle_tag(vehicle_tag, data, vehicle_tags,
+            if vehicle_tag in config_tags:
+                return process_vehicle_tag(vehicle_tag, data, parkpow_tags,
                                            parkpow_api_token, parkpow_base_url)
             else:
                 lgr.debug('Skipped missing vehicle tag')
 
     else:
-        if NO_TAGS in config:
-            return process_vehicle_tag(NO_TAGS, data, vehicle_tags,
+        if NO_TAGS in config_tags:
+            return process_vehicle_tag(NO_TAGS, data, parkpow_tags,
                                        parkpow_api_token, parkpow_base_url)
         else:
             lgr.debug('Skipped alert with no vehicle tag')
