@@ -55,6 +55,7 @@ jobs:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
           certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
+          timestampUrl: '${{ secrets.TIMESTAMP_URL }}'
           folder: dist
           recursive: true
 
