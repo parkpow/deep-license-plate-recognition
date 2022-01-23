@@ -54,6 +54,7 @@ jobs:
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
+          certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
           folder: dist
           recursive: true
 
