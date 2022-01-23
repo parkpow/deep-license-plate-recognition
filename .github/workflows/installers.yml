@@ -2,13 +2,11 @@ name: Build Installers
 
 on:
   push:
-    # branches-ignore:
-    #   - master
-    #   - dev
-
+    branches:
+      - master
     # Run Action only when /docker is pushed to
-    # paths:
-    #   - 'docker/**'
+    paths:
+      - 'docker/**'
   workflow_dispatch:
 
 jobs:
