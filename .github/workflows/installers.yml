@@ -22,7 +22,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: Windows-Installer-unsigned
-        path: docker/dist/PlateRecognizer-Installer.exe
+        path: docker/dist
 
   linux-installer:
     name: Linux
@@ -44,16 +44,16 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: Windows-Installer-unsigned
-          path: installer/PlateRecognizer-Installer.exe
+          # path: installer/PlateRecognizer-Installer.exe
 
       - uses: DanaBear/code-sign-action@v4
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
-          folder: installer
+          folder: Windows-Installer-unsigned
           recursive: true
 
       - uses: actions/upload-artifact@v2
         with:
           name: Windows-Installer
-          path: installer/PlateRecognizer-Installer.exe
+          path: Windows-Installer-unsigned
