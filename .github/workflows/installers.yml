@@ -45,6 +45,10 @@ jobs:
         with:
           name: Windows-Installer-unsigned
           # path: installer/PlateRecognizer-Installer.exe
+          
+      - name: LS dir
+        run: dir
+        shell: powershell
 
       - uses: DanaBear/code-sign-action@v4
         with:
