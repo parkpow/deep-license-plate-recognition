@@ -2,13 +2,11 @@ name: Build Installers
 
 on:
   push:
-    # branches-ignore:
-    #   - master
-    #   - dev
-
+    branches:
+      - master
     # Run Action only when /docker is pushed to
-    # paths:
-    #   - 'docker/**'
+    paths:
+      - 'docker/**'
   workflow_dispatch:
 
 jobs:
@@ -22,7 +20,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: Windows-Installer-unsigned
-        path: docker/dist/PlateRecognizer-Installer.exe
+        path: docker/dist
 
   linux-installer:
     name: Linux
@@ -44,15 +42,18 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: Windows-Installer-unsigned
-          path: installer/PlateRecognizer-Installer.exe
-
-      - uses: DanaBear/code-sign-action@v4
+          path: dist
+          
+      - uses: DanaBear/code-sign-action@98c79121b376beab8d6a9484f445089db4461bca
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
-          folder: installer
+          certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
+          timestampUrl: '${{ secrets.TIMESTAMP_URL }}'
+          folder: dist
+          recursive: true
 
       - uses: actions/upload-artifact@v2
         with:
           name: Windows-Installer
-          path: installer/PlateRecognizer-Installer.exe
+          path: dist
