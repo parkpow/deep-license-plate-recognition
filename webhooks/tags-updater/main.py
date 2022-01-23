@@ -8,7 +8,6 @@ import logging
 from urllib.parse import parse_qs
 import configparser
 import csv
-import datetime
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
 
@@ -130,7 +129,7 @@ def process_vehicle_tag(vehicle_tag, data, vehicle_tags, parkpow_api_token,
     if addition and removal:
         return [
             data['license_plate'][0],
-            datetime.datetime.now(), vehicle_tag, new_vehicle_tag
+            data['time'][0], vehicle_tag, new_vehicle_tag
         ]
 
 
