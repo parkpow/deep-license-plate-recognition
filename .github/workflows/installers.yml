@@ -50,7 +50,7 @@ jobs:
         run: dir
         shell: powershell
 
-      - uses: DanaBear/code-sign-action@v4
+      - uses: DanaBear/code-sign-action@98c79121b376beab8d6a9484f445089db4461bca
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.PASSWORD }}'
