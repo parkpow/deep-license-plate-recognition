@@ -1,4 +1,12 @@
-# Stream Monitor
+## Batch Video Processing
+
+Upload Videos from a folder to Stream via [file-upload](https://guides.platerecognizer.com/docs/stream/video-files#file-upload-api). 
+
+```shell
+python video_upload.py
+```
+
+## Stream Monitor
 Monitor Stream HEALTH through it's logs.
 This script exposes a single API endpoint that returns responses in this format:
 
