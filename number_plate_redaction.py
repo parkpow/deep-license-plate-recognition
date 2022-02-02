@@ -1,12 +1,40 @@
 import io
 import json
 import math
+import re
 from itertools import combinations
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
-from plate_recognition import blur, draw_bb, parse_arguments, recognition_api
+from plate_recognition import draw_bb, parse_arguments, recognition_api
+
+
+def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
+    for res in api_res.get('results', []):
+        if ignore_no_bb and res['vehicle']['score'] == 0.0:
+            continue
+
+        if ignore_list:
+            skip_blur = False
+            for ignore_regex in ignore_list:
+                if re.search(ignore_regex, res['plate']):
+                    skip_blur = True
+                    break
+            if skip_blur:
+                continue
+
+        b = res['box']
+        width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
+        crop_box = (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
+        ic = im.crop(crop_box)
+
+        # Increase amount of blur with size of bounding box
+        blur_image = ic.filter(
+            ImageFilter.GaussianBlur(radius=math.sqrt(width * height) * .3 *
+                                     blur_amount / 10))
+        im.paste(blur_image, crop_box)
+    return im
 
 
 def bb_iou(a, b):
