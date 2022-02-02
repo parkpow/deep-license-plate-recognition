@@ -5,13 +5,11 @@ import argparse
 import collections
 import csv
 import json
-import math
 import time
 from collections import OrderedDict
 from pathlib import Path
 
 import requests
-from PIL import ImageDraw, ImageFont
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -93,42 +91,6 @@ def recognition_api(fp,
         if exit_on_error:
             exit(1)
     return response.json(object_pairs_hook=OrderedDict)
-
-
-def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
-    draw = ImageDraw.Draw(im)
-    font_path = Path('assets/DejaVuSansMono.ttf')
-    if font_path.exists():
-        font = ImageFont.truetype(str(font_path), 10)
-    else:
-        font = ImageFont.load_default()
-    rect_color = (0, 255, 0)
-    for result in data:
-        b = result['box']
-        coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
-        draw.rectangle(coord, outline=rect_color)
-        draw.rectangle(((coord[0][0] - 1, coord[0][1] - 1),
-                        (coord[1][0] - 1, coord[1][1] - 1)),
-                       outline=rect_color)
-        draw.rectangle(((coord[0][0] - 2, coord[0][1] - 2),
-                        (coord[1][0] - 2, coord[1][1] - 2)),
-                       outline=rect_color)
-        if text_func:
-            text = text_func(result)
-            text_width, text_height = font.getsize(text)
-            margin = math.ceil(0.05 * text_height)
-            draw.rectangle(
-                [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
-                 (b['xmin'] + text_width + 2 * margin, b['ymin'])],
-                fill='white')
-            draw.text((b['xmin'] + margin, b['ymin'] - text_height - margin),
-                      text,
-                      fill='black',
-                      font=font)
-
-    if new_size:
-        im = im.resize(new_size)
-    return im
 
 
 def flatten_dict(d, parent_key='', sep='_'):
