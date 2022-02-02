@@ -5,23 +5,21 @@ import argparse
 import collections
 import csv
 import json
-import math
-import re
 import time
 from collections import OrderedDict
 from pathlib import Path
 
 import requests
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
         description=
-        'Read license plates from images and output the result as JSON.',
-        epilog='Examples:\n'
-        'To send images to our cloud service: '
-        'python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle-*.jpg\n',
+        'Read license plates from images and output the result as JSON or CSV.',
+        epilog="""Examples:'
+Process images from a folder: python plate_recognition.py -a MY_API_KEY /path/to/vehicle-*.jpg
+Use the Snapshot SDK instead of the Cloud Api: python plate_recognition.py -s http://localhost:8080 /path/to/vehicle-*.jpg
+Specify Camera ID and/or two Regions: plate_recognition.py -a MY_API_KEY --camera-id Camera1 -r us-ca -r th-37 /path/to/vehicle-*.jpg""",
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--api-key', help='Your API key.', required=False)
     parser.add_argument(
@@ -95,69 +93,6 @@ def recognition_api(fp,
     return response.json(object_pairs_hook=OrderedDict)
 
 
-def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
-    for res in api_res.get('results', []):
-        if ignore_no_bb and res['vehicle']['score'] == 0.0:
-            continue
-
-        if ignore_list:
-            skip_blur = False
-            for ignore_regex in ignore_list:
-                if re.search(ignore_regex, res['plate']):
-                    skip_blur = True
-                    break
-            if skip_blur:
-                continue
-
-        b = res['box']
-        width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
-        crop_box = (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
-        ic = im.crop(crop_box)
-
-        # Increase amount of blur with size of bounding box
-        blur_image = ic.filter(
-            ImageFilter.GaussianBlur(radius=math.sqrt(width * height) * .3 *
-                                     blur_amount / 10))
-        im.paste(blur_image, crop_box)
-    return im
-
-
-def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
-    draw = ImageDraw.Draw(im)
-    font_path = Path('assets/DejaVuSansMono.ttf')
-    if font_path.exists():
-        font = ImageFont.truetype(str(font_path), 10)
-    else:
-        font = ImageFont.load_default()
-    rect_color = (0, 255, 0)
-    for result in data:
-        b = result['box']
-        coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
-        draw.rectangle(coord, outline=rect_color)
-        draw.rectangle(((coord[0][0] - 1, coord[0][1] - 1),
-                        (coord[1][0] - 1, coord[1][1] - 1)),
-                       outline=rect_color)
-        draw.rectangle(((coord[0][0] - 2, coord[0][1] - 2),
-                        (coord[1][0] - 2, coord[1][1] - 2)),
-                       outline=rect_color)
-        if text_func:
-            text = text_func(result)
-            text_width, text_height = font.getsize(text)
-            margin = math.ceil(0.05 * text_height)
-            draw.rectangle(
-                [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
-                 (b['xmin'] + text_width + 2 * margin, b['ymin'])],
-                fill='white')
-            draw.text((b['xmin'] + margin, b['ymin'] - text_height - margin),
-                      text,
-                      fill='black',
-                      font=font)
-
-    if new_size:
-        im = im.resize(new_size)
-    return im
-
-
 def flatten_dict(d, parent_key='', sep='_'):
     items = []
     for k, v in d.items():
@@ -208,8 +143,10 @@ def save_results(results, args):
 
 
 def custom_args(parser):
-    parser.epilog += 'To blur images: python plate_recognition.py --sdk-url http://localhost:8080 --blur-amount 4 --blur-plates /path/to/vehicle-*.jpg\n'
-    parser.epilog += 'To save results: python plate_recognition.py --sdk-url http://localhost:8080 -o data.csv --format csv /path/to/vehicle-*.jpg\n'
+    parser.epilog += """Specify additional engine configuration: plate_recognition.py -a MY_API_KEY --engine-config \'{"region":"strict"}\' /path/to/vehicle-*.jpg
+Specify an output file and format for the results: plate_recognition.py -a MY_API_KEY -o data.csv --format csv /path/to/vehicle-*.jpg
+Enable Make Model and Color prediction: plate_recognition.py -a MY_API_KEY --mmc /path/to/vehicle-*.jpg"""
+
     parser.add_argument('--engine-config', help='Engine configuration.')
     parser.add_argument('-o', '--output-file', help='Save result to file.')
     parser.add_argument('--format',
@@ -220,18 +157,6 @@ def custom_args(parser):
         '--mmc',
         action='store_true',
         help='Predict vehicle make and model. Only available to paying users.')
-    parser.add_argument(
-        '--blur-amount',
-        help=
-        'Amount of blurring to apply on the license plates. Goes from 0 (no blur) to 10. Defaults to 5. ',
-        default=5,
-        type=float,
-        required=False)
-    parser.add_argument(
-        '--blur-plates',
-        action='store_true',
-        help='Blur license plates and save image in filename_blurred.jpg.',
-        required=False)
 
 
 def main():
@@ -242,7 +167,7 @@ def main():
     engine_config = {}
     if args.engine_config:
         try:
-            json.loads(args.engine_config)
+            engine_config = json.loads(args.engine_config)
         except json.JSONDecodeError as e:
             print(e)
             return
@@ -256,11 +181,6 @@ def main():
                                       config=engine_config,
                                       camera_id=args.camera_id,
                                       mmc=args.mmc)
-        if args.blur_plates:
-            im = blur(Image.open(path), args.blur_amount, api_res)
-            filename = Path(path)
-            im.save(filename.parent / ('%s_blurred%s' %
-                                       (filename.stem, filename.suffix)))
 
         results.append(api_res)
     if args.output_file:

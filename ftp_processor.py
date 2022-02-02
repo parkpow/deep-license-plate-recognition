@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import json
 import logging
@@ -18,11 +19,11 @@ processed = None
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
         description=
-        'Read license plates from the images placed on FTP server and output the result as JSON.',
-        epilog='Examples:\n'
-        'To send images to our cloud service: '
-        'python ftp_processor.py --api-key MY_API_KEY --ftp-host hostname '
-        '--ftp-user username --ftp-password password\n',
+        'Read license plates from the images on an FTP server and output the result as JSON or CSV',
+        epilog="""Examples:
+Process images on an FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass
+Specify Camera ID and/or two Regions: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --camera-id Camera1 -r us-ca -r th-37
+Use the Snapshot SDK instead of the Cloud Api: ftp_processor.py --ftp-host host --ftp-user user1 --ftp-password pass -s http://localhost:8080""",
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--api-key', help='Your API key.', required=False)
     parser.add_argument(
@@ -47,11 +48,18 @@ def parse_arguments(args_hook=lambda _: _):
 
 
 def custom_args(parser):
-    parser.epilog += 'To process images and save result as json: python ftp_processor.py --sdk-url http://localhost:8080  --ftp-host hostname --ftp-user username --ftp-password password\n'
+    parser.epilog += """
+Specify a folder on the FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1
+Delete processed files from the FTP server after 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -d 10
+Specify a folder containing dynamic cameras, Sub-folder names are Camera IDs: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass --cameras-root /srv/cameras
+Periodically check for new files every 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -i 10
+Enable Make Model and Color prediction: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --mmc
+Specify an output file and format for the results: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -o data.csv --format csv
+    """
     parser.add_argument('-t', '--timestamp', help='Timestamp.', required=False)
-    parser.add_argument('--ftp-host', help='FTP host.', required=True)
-    parser.add_argument('--ftp-user', help='FTP user.', required=True)
-    parser.add_argument('--ftp-password', help='FTP password.', required=True)
+    parser.add_argument('--ftp-host', help='FTP host', required=True)
+    parser.add_argument('--ftp-user', help='FTP user', required=True)
+    parser.add_argument('--ftp-password', help='FTP password', required=True)
     parser.add_argument(
         '-d',
         '--delete',
@@ -98,8 +106,8 @@ def process_files(ftp_client, ftp_files, args):
     """
     Process a list of file paths by:
     1. Deletes old files in ftp_files from  ftp_client
-    1. For new files, retrieving the full file from ftp_client
-    2. Calling PlaterecognizerAPI and Tracking Successfully Processed file paths
+    2. For new files, retrieving the full file from ftp_client
+    3. Calling Snapshot API and Tracking Successfully Processed file paths
 
     :param ftp_client:
     :param ftp_files: List of files in the format [path, modified datetime], usually from a single folder.
@@ -108,7 +116,6 @@ def process_files(ftp_client, ftp_files, args):
     """
 
     results = []
-    rm_older_than_date = datetime.now() - timedelta(seconds=args.delete)
 
     for file_last_modified in ftp_files:
         ftp_file = file_last_modified[0]
@@ -116,6 +123,8 @@ def process_files(ftp_client, ftp_files, args):
 
         if track_processed(args) and ftp_file in processed:
             if args.delete is not None:
+                rm_older_than_date = datetime.now() - timedelta(
+                    seconds=args.delete)
                 if rm_older_than_date > last_modified:
                     ftp_client.delete(ftp_file)
                     processed.remove(ftp_file)

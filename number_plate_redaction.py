@@ -1,12 +1,76 @@
 import io
 import json
 import math
+import re
 from itertools import combinations
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
 
-from plate_recognition import blur, draw_bb, parse_arguments, recognition_api
+from plate_recognition import parse_arguments, recognition_api
+
+
+def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
+    draw = ImageDraw.Draw(im)
+    font_path = Path('assets/DejaVuSansMono.ttf')
+    if font_path.exists():
+        font = ImageFont.truetype(str(font_path), 10)
+    else:
+        font = ImageFont.load_default()
+    rect_color = (0, 255, 0)
+    for result in data:
+        b = result['box']
+        coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
+        draw.rectangle(coord, outline=rect_color)
+        draw.rectangle(((coord[0][0] - 1, coord[0][1] - 1),
+                        (coord[1][0] - 1, coord[1][1] - 1)),
+                       outline=rect_color)
+        draw.rectangle(((coord[0][0] - 2, coord[0][1] - 2),
+                        (coord[1][0] - 2, coord[1][1] - 2)),
+                       outline=rect_color)
+        if text_func:
+            text = text_func(result)
+            text_width, text_height = font.getsize(text)
+            margin = math.ceil(0.05 * text_height)
+            draw.rectangle(
+                [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
+                 (b['xmin'] + text_width + 2 * margin, b['ymin'])],
+                fill='white')
+            draw.text((b['xmin'] + margin, b['ymin'] - text_height - margin),
+                      text,
+                      fill='black',
+                      font=font)
+
+    if new_size:
+        im = im.resize(new_size)
+    return im
+
+
+def blur(im, blur_amount, api_res, ignore_no_bb=False, ignore_list=None):
+    for res in api_res.get('results', []):
+        if ignore_no_bb and res['vehicle']['score'] == 0.0:
+            continue
+
+        if ignore_list:
+            skip_blur = False
+            for ignore_regex in ignore_list:
+                if re.search(ignore_regex, res['plate']):
+                    skip_blur = True
+                    break
+            if skip_blur:
+                continue
+
+        b = res['box']
+        width, height = b['xmax'] - b['xmin'], b['ymax'] - b['ymin']
+        crop_box = (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
+        ic = im.crop(crop_box)
+
+        # Increase amount of blur with size of bounding box
+        blur_image = ic.filter(
+            ImageFilter.GaussianBlur(radius=math.sqrt(width * height) * .3 *
+                                     blur_amount / 10))
+        im.paste(blur_image, crop_box)
+    return im
 
 
 def bb_iou(a, b):
