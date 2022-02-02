@@ -20,10 +20,10 @@ def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
         description=
         'Read license plates from the images on an FTP server and output the result as JSON or CSV',
-        epilog='Examples:\n'
-        'Process images on an FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass\n'
-        'Specify Camera ID and/or two Regions: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --camera-id Camera1 -r us-ca -r th-37\n'
-        'Use the Snapshot SDK instead of the Cloud Api: ftp_processor.py --ftp-host host --ftp-user user1 --ftp-password pass -s http://localhost:8080\n',
+        epilog="""Examples:
+Process images on an FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass
+Specify Camera ID and/or two Regions: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --camera-id Camera1 -r us-ca -r th-37
+Use the Snapshot SDK instead of the Cloud Api: ftp_processor.py --ftp-host host --ftp-user user1 --ftp-password pass -s http://localhost:8080""",
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--api-key', help='Your API key.', required=False)
     parser.add_argument(
@@ -48,12 +48,14 @@ def parse_arguments(args_hook=lambda _: _):
 
 
 def custom_args(parser):
-    parser.epilog += 'Specify a folder on the FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1\n'
-    parser.epilog += 'Delete processed files from the FTP server after 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -d 10\n'
-    parser.epilog += 'Specify a folder containing dynamic cameras, Sub-folder names are Camera IDs: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass --cameras-root /srv/cameras\n'
-    parser.epilog += 'Periodically check for new files every 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -i 10\n'
-    parser.epilog += 'Enable Make Model and Color prediction: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --mmc\n'
-    parser.epilog += 'Specify an output file and format for the results: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -o data.csv --format csv\n'
+    parser.epilog += """
+Specify a folder on the FTP server: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1
+Delete processed files from the FTP server after 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -d 10
+Specify a folder containing dynamic cameras, Sub-folder names are Camera IDs: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass --cameras-root /srv/cameras
+Periodically check for new files every 10 seconds: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -i 10
+Enable Make Model and Color prediction: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 --mmc
+Specify an output file and format for the results: ftp_processor.py -a MY_API_KEY --ftp-host host --ftp-user user1 --ftp-password pass -f /home/user1 -o data.csv --format csv
+    """
     parser.add_argument('-t', '--timestamp', help='Timestamp.', required=False)
     parser.add_argument('--ftp-host', help='FTP host', required=True)
     parser.add_argument('--ftp-user', help='FTP user', required=True)
