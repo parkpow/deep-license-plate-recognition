@@ -36,7 +36,7 @@ ALPR, ANPR software is ideal for parking, highway monitoring, toll, police surve
 ## Reading License Plates from Images
 
 Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source=github&utm_medium=website). Replace **MY_API_KEY** with your API key and run the command below.
-
+> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-in-a-local-folder)
 ```
 # Getting started!
 git clone https://github.com/parkpow/deep-license-plate-recognition.git
@@ -120,6 +120,7 @@ python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-bl
 ### Process images from an FTP server
 
 To process images from the FTP server run `ftp_processor` script:
+> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-on-an-ftp-server)
 
 `python ftp_processor.py --api-key MY_API_KEY --ftp-host hostname --ftp-user user --ftp-password password --folder /path/to/server_folder`
 
