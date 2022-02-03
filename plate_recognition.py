@@ -84,7 +84,8 @@ def recognition_api(fp,
                 time.sleep(1)
             else:
                 break
-    if not response:
+
+    if response is None:
         return {}
     if response.status_code < 200 or response.status_code > 300:
         print(response.text)
