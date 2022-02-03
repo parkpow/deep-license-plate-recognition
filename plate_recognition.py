@@ -82,11 +82,10 @@ def recognition_api(fp,
                 data=data)
             if response.status_code == 429:  # Max calls per second reached
                 time.sleep(1)
-            elif response.status_code == 403:
-                raise Exception(f'Access Forbidden Error: {response.text}')
             else:
                 break
-    if not response:
+
+    if response is None:
         return {}
     if response.status_code < 200 or response.status_code > 300:
         print(response.text)
