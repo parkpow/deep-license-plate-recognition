@@ -1,5 +1,6 @@
 import sys
 from io import BytesIO
+from typing import Any, Dict
 
 import requests
 
@@ -8,14 +9,12 @@ class WebhookError(Exception):
     """Raised when a webhook response does not return 200 status."""
 
 
-def get_webhook_payload():
+def get_webhook_payload(url: str) -> Dict[str, Any]:
     """Return a sample payload to the request."""
     return {
         "json": {
             "hook": {
-                "target": (
-                    "https://webhook.site/491081ac-424b-4c4a-91b4-8cdbb5383ff0"
-                ),
+                "target": url,
                 "id": "camera-1",
                 "event": "recognition",
                 "filename": (
@@ -83,10 +82,10 @@ def get_webhook_payload():
     }
 
 
-def test_webhook():
+def test_webhook() -> None:
     """Used to test the webhook."""
     url = sys.argv[1]
-    payload = get_webhook_payload()
+    payload = get_webhook_payload(url)
     image_url = (
         "https://platerecognizer.com/wp-content/uploads/2020/07/"
         "ALPR-license-plate-reader-images-API.jpg"
