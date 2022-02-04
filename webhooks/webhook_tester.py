@@ -95,7 +95,18 @@ def test_webhook():
     image_response = requests.get(image_url)
     image = Image.open(BytesIO(image_response.content))
     files = {"upload": {"name": image}}
-    response = requests.post(url, payload, files=files, timeout=30)
+    try:
+        response = requests.post(url, payload, files=files, timeout=30)
+    except requests.exceptions.Timeout:
+        raise WebhookError("The request timed out.")
+    except requests.exceptions.TooManyRedirects:
+        raise WebhookError(
+            "The given URL might be misconfigured. "
+            "Try a different one."
+        )
+    except requests.exceptions.RequestException as request_exception:
+        raise WebhookError(str(request_exception)) from request_exception
+
     print(f"Status Code: {response.status_code}")
     print(f"Content: {response.content}")
 
