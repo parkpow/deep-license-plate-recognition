@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8001
 COPY . /app/
 
-CMD ["run_test.sh"]
+CMD ["python3", "webhook_tester.py"]
