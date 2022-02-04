@@ -2,7 +2,6 @@ import sys
 from io import BytesIO
 
 import requests
-from PIL import Image
 
 
 class WebhookError(Exception):
@@ -93,8 +92,8 @@ def test_webhook():
         "ALPR-license-plate-reader-images-API.jpg"
     )
     image_response = requests.get(image_url)
-    image = Image.open(BytesIO(image_response.content))
-    files = {"upload": {"name": image}}
+    files = {"upload": {"name": BytesIO(image_response.content)}}
+
     try:
         response = requests.post(url, payload, files=files, timeout=30)
     except requests.exceptions.Timeout:
