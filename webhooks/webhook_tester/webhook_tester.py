@@ -1,5 +1,5 @@
 import json
-import sys
+import os
 from io import BytesIO
 from typing import Any, Dict, Union
 
@@ -132,7 +132,10 @@ def send_request(url: str,
 
 def test_webhook() -> None:
     """Used to test the webhook."""
-    url = sys.argv[1]
+    url = os.environ.get("URL")
+    if not url:
+        raise ValueError("Set URL environment variable when running docker.")
+
     payload = get_webhook_payload(url)
     files = get_files_payload()
     response = send_request(url, payload, files)
