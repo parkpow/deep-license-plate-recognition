@@ -1,6 +1,6 @@
 import sys
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import requests
 
@@ -82,19 +82,36 @@ def get_webhook_payload(url: str) -> Dict[str, Any]:
     }
 
 
-def test_webhook() -> None:
-    """Used to test the webhook."""
-    url = sys.argv[1]
-    payload = get_webhook_payload(url)
-    image_url = (
+def get_files_payload() -> Dict[str, Any]:
+    """Return a request payload containing files."""
+    url = (
         "https://platerecognizer.com/wp-content/uploads/2020/07/"
         "ALPR-license-plate-reader-images-API.jpg"
     )
-    image_response = requests.get(image_url)
-    files = {"upload": {"name": BytesIO(image_response.content)}}
+    response = send_request(url)
+    return {"upload": {"name": BytesIO(response.content)}}
 
+
+def send_request(url: str,
+                 data: Union[Dict[str, Any], None] = None,
+                 files: Union[Dict[str, Any], None] = None,
+                 ) -> requests.Response:
+    """
+    Send the actual request to the given URL along with the parameters.
+
+    Args:
+        url (str): The target URL.
+        data (Union[Dict[str, Any], None]): Payload to send to the URL.
+        files (Union[Dict[str, Any], None]): Files to send to the URL.
+
+    Returns:
+        requests.Response: The Response object.
+    """
     try:
-        response = requests.post(url, payload, files=files, timeout=30)
+        response = requests.post(url,
+                                 data=data or {},
+                                 files=files or {},
+                                 timeout=30)
     except requests.exceptions.Timeout:
         raise WebhookError("The request timed out.")
     except requests.exceptions.TooManyRedirects:
@@ -105,6 +122,15 @@ def test_webhook() -> None:
     except requests.exceptions.RequestException as request_exception:
         raise WebhookError(str(request_exception)) from request_exception
 
+    return response
+
+
+def test_webhook() -> None:
+    """Used to test the webhook."""
+    url = sys.argv[1]
+    payload = get_webhook_payload(url)
+    files = get_files_payload()
+    response = send_request(url, payload, files)
     print(f"Status Code: {response.status_code}")
     print(f"Content: {response.content}")
 
