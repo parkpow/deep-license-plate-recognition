@@ -21,111 +21,89 @@ class WebhookTester:
             "json":
             json.dumps({
                 "hook": {
-                    "target":
-                    self.url,
-                    "id":
-                    "camera-1",
-                    "event":
-                    "recognition",
-                    "filename":
-                    ("camera-1_screenshots/21-10-27/06-20-55.161444.jpg"),
+                    "target": self.url,
+                    "id": "camera-1",
+                    "event": "recognition",
+                    "filename": ("camera-1_screenshots/image.jpg"),
                 },
                 "data": {
                     "camera_id":
                     "camera-1",
-                    "filename":
-                    ("camera-1_screenshots/21-10-27/06-20-55.161444.jpg"),
+                    "filename": ("camera-1_screenshots/image.jpg"),
                     "timestamp":
                     "2021-10-27T06:20:55.161444Z",
                     "timestamp_local":
                     "2021-10-27 06:20:55.161444 00:00",
                     "results": [{
                         "box": {
-                            "xmin": 153,
-                            "ymin": 91,
-                            "xmax": 302,
-                            "ymax": 125
+                            "xmax": 412,
+                            "xmin": 337,
+                            "ymax": 305,
+                            "ymin": 270
                         },
+                        "candidates": [{
+                            "plate": "pl8rec",
+                            "score": 0.902
+                        }, {
+                            "plate": "plbrec",
+                            "score": 0.758
+                        }],
+                        "color": [{
+                            "color": "red",
+                            "score": 0.699
+                        }, {
+                            "color": "black",
+                            "score": 0.134
+                        }, {
+                            "color": "blue",
+                            "score": 0.03
+                        }],
+                        "dscore":
+                        0.757,
+                        "model_make": [{
+                            "make": "Porsche",
+                            "model": "911",
+                            "score": 0.43
+                        }, {
+                            "make": "Porsche",
+                            "model": "Carrera",
+                            "score": 0.2
+                        }, {
+                            "make": "Porsche",
+                            "model": "Carrera GTS",
+                            "score": 0.07
+                        }],
+                        "orientation": [{
+                            "orientation": "Rear",
+                            "score": 0.883
+                        }, {
+                            "orientation": "Front",
+                            "score": 0.07
+                        }, {
+                            "orientation": "Unknown",
+                            "score": 0.047
+                        }],
                         "plate":
-                        "slz9043m",
+                        "pl8rec",
                         "region": {
-                            "code": "it",
-                            "score": 0.476
+                            "code": "us-ca",
+                            "score": 0.179
                         },
                         "score":
-                        0.906,
-                        "candidates": [
-                            {
-                                "plate": "slz9043m"
-                            },
-                            {
-                                "plate": "slz9043m"
-                            },
-                            {
-                                "plate": "slz9043m"
-                            },
-                        ],
-                        "dscore":
-                        0.641,
+                        0.902,
                         "vehicle": {
-                            "score": 0.254,
-                            "type": "SUV",
                             "box": {
-                                "xmin": 603,
-                                "ymin": 0,
-                                "xmax": 1099,
-                                "ymax": 174
+                                "xmax": 590,
+                                "xmin": 155,
+                                "ymax": 373,
+                                "ymin": 71
                             },
+                            "score": 0.709,
+                            "type": "Sedan"
                         },
-                        "model_make": [
-                            {
-                                "make": "Mercedes-Benz",
-                                "model": "Citan",
-                                "score": 0.075
-                            },
-                            {
-                                "make": "Mercedes-Benz",
-                                "model": "GLC",
-                                "score": 0.07
-                            },
-                            {
-                                "make": "Mercedes-Benz",
-                                "model": "GLS",
-                                "score": 0.061
-                            },
-                        ],
-                        "color": [
-                            {
-                                "color": "white",
-                                "score": 0.889
-                            },
-                            {
-                                "color": "silver",
-                                "score": 0.027
-                            },
-                            {
-                                "color": "brown",
-                                "score": 0.013
-                            },
-                        ],
-                        "orientation": [
-                            {
-                                "orientation": "Front",
-                                "score": 0.943
-                            },
-                            {
-                                "orientation": "Unknown",
-                                "score": 0.031
-                            },
-                            {
-                                "orientation": "Rear",
-                                "score": 0.026
-                            },
-                        ],
                         "direction":
                         210,
-                        "source_url":
-                        ("/user-data/Elixirtech_Slow2_Indoor.mp4"),
+                        "source_url": ("/user-data/video.mp4"),
                         "position_sec":
                         23.47,
                     }],
