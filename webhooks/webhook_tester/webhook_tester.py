@@ -129,11 +129,12 @@ def get_files_payload() -> Dict[str, Any]:
     """Return a request payload containing files."""
     url = ("https://platerecognizer.com/wp-content/uploads/2020/07/"
            "ALPR-license-plate-reader-images-API.jpg")
-    response = send_request(url)
+    response = send_request("get", url)
     return {"upload": {"name": BytesIO(response.content)}}
 
 
 def send_request(
+        method: str,
         url: str,
         data: Union[Dict[str, Any], None] = None,
         files: Union[Dict[str, Any], None] = None,
@@ -149,8 +150,14 @@ def send_request(
     Returns:
         requests.Response: The Response object.
     """
+    if method.lower() not in ["get", "post"]:
+        raise ValueError("Method not supported. Only accepts `get` or `post`.")
+
     try:
-        response = requests.post(url, data=data, files=files, timeout=30)
+        response = getattr(requests, method.lower())(url,
+                                                     data=data,
+                                                     files=files,
+                                                     timeout=30)
     except requests.exceptions.Timeout:
         raise WebhookError("The request timed out.")
     except requests.exceptions.TooManyRedirects:
@@ -170,7 +177,7 @@ def test_webhook() -> None:
 
     payload = get_webhook_payload(url)
     files = get_files_payload()
-    response = send_request(url, payload, files)
+    response = send_request("post", url, payload, files)
     content = str(response.content)
     print(f"Status Code: {response.status_code}")
     print(f"Content: {content}")
