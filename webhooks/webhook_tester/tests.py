@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import requests
 
-from .webhook_tester import get_webhook_payload, send_request, WebhookError
+from .functions import WebhookError, WebhookTester
 
 
 class TestWebhookTester:
@@ -19,7 +19,8 @@ class TestWebhookTester:
         image_url = ("https://platerecognizer.com/wp-content/uploads/2020/07/"
                      "ALPR-license-plate-reader-images-API.jpg")
         url = "https://example.com"
-        data = get_webhook_payload(url)
+        tester = WebhookTester(url)
+        data = tester.get_webhook_payload()
         files = {"upload": {"name": b"sample file content"}}
         options = [{
             "method": "get",
@@ -36,7 +37,10 @@ class TestWebhookTester:
         }]
 
         for option in options:
-            response = send_request(option["method"], **option["kwargs"])
+            response = tester.send_request(
+                option["method"],
+                **option["kwargs"],
+            )
 
             if option["method"] == "get":
                 assert response.status_code == 200
@@ -50,12 +54,13 @@ class TestWebhookTester:
             requests.exceptions.TooManyRedirects,
             requests.exceptions.RequestException,
         ]
+        tester = WebhookTester("https://example.com")
         for exception in exceptions:
             with mock.patch.object(requests, "post") as mock_post:
                 mock_post.side_effect = exception
 
                 with pytest.raises(WebhookError) as _:
-                    send_request("post", "https://example.com")
+                    tester.send_request("post", tester.url)
 
     def test_send_request_method_not_supported(self):
         """
@@ -63,5 +68,6 @@ class TestWebhookTester:
 
         Only accepts get and post methods.
         """
+        tester = WebhookTester("https://example.com")
         with pytest.raises(ValueError) as _:
-            send_request("put", "https://example.com")
+            tester.send_request("put", tester.url)
