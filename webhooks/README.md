@@ -39,14 +39,16 @@ node server.js
 
 ## Sending Data to the Webhook Server
 
-1. Try the command below to check if the server is running correctly. Change car.jpg to a local file:
-   - `curl -F 'json={"field": "value"}' -F 'upload=@car.jpg' http://localhost:8001/`
+1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.
+2. Send an example webhook to the server. If it is running correctly, it should exit without an error.
 
-2. Find your machine local IP for example 192.1.0.206. You can use `ifconfig` to get it.
-3. Configure the webhook on Platerecognizer.
+```shell
+docker run -e URL=http://MY_IP_ADDRESS:8001 platerecognizer/webhook-tester
+```
+1. Configure the webhook on Platerecognizer.
    - In Stream, edit your `config.ini`, add the following to a camera: `webhook_target = http://MY_IP_ADDRESS:8001/`
    - For Snapshot, open [Webhooks Configuration](https://app.platerecognizer.com/accounts/webhooks/).
-   
+
 ## Integrations
 
 - [Connect Stream to Home Assistant](https://github.com/adamjernst/plate-handler). This project uses Stream webhooks to send license plate data to a home automation server. Form there, it will send a notification.

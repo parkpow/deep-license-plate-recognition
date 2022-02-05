@@ -21,7 +21,7 @@ class TestWebhookTester:
         url = "https://example.com"
         tester = WebhookTester(url)
         data = tester.get_webhook_payload()
-        files = {"upload": {"name": b"sample file content"}}
+        files = {"upload": ("name", b"sample file content")}
         options = [{
             "method": "get",
             "kwargs": {
@@ -79,7 +79,7 @@ class TestWebhookTester:
         tester = WebhookTester("https://example.com")
         payload = tester.get_files_payload()
         assert payload
-        assert payload["upload"]["name"]
+        assert payload["upload"][0]
 
     @mock.patch.object(requests, "get")
     @mock.patch.object(requests, "post")
