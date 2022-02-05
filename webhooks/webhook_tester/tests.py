@@ -71,3 +71,42 @@ class TestWebhookTester:
         tester = WebhookTester("https://example.com")
         with pytest.raises(ValueError) as _:
             tester.send_request("put", tester.url)
+
+    @mock.patch.object(requests, "get")
+    def test_get_files_payload(self, mock_get):
+        """Test successful retrieval of files payload."""
+        mock_get.return_value.content = b"Sample content"
+        tester = WebhookTester("https://example.com")
+        payload = tester.get_files_payload()
+        assert payload
+        assert payload["upload"]["name"]
+
+    @mock.patch.object(requests, "get")
+    @mock.patch.object(requests, "post")
+    def test_execute_tester(self, mock_post, mock_get, capsys):
+        """Test successful execution of webhook tester."""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = b"Sample content"
+        mock_post.return_value.status_code = 201
+
+        tester = WebhookTester("https://example.com")
+        tester.execute()
+        captured = capsys.readouterr()
+        assert "Status Code: 201" in captured.out
+
+    @mock.patch.object(requests, "get")
+    @mock.patch.object(requests, "post")
+    def test_execute_tester_raise_error(self, mock_post, mock_get, capsys):
+        """Test raising of WebhookError if status code is more than 300."""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = b"Sample content"
+        mock_post.return_value.status_code = 400
+        mock_post.return_value.content = "Something went wrong"
+
+        tester = WebhookTester("https://example.com")
+        with pytest.raises(WebhookError) as _:
+            tester.execute()
+
+            captured = capsys.readouterr()
+            assert "Status 400" in captured.out
+            assert "Something went wrong" in captured.out
