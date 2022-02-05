@@ -5,3 +5,5 @@ obj/
 .idea/
 build/
 dist/
+
+.python-version
