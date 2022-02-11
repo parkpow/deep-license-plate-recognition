@@ -116,6 +116,7 @@ class WebhookTester:
         url = ("https://platerecognizer.com/wp-content/uploads/2020/07/"
                "ALPR-license-plate-reader-images-API.jpg")
         response = self.send_request("get", url)
+        print(f'This request includes a {len(response.content)/ 1024:.1f} KB image.')
         return {"upload": ("image.jpg", BytesIO(response.content))}
 
     @staticmethod
@@ -157,9 +158,9 @@ class WebhookTester:
 
     def execute(self) -> None:
         """Used to test the webhook."""
+        print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
         payload = self.get_webhook_payload()
         files = self.get_files_payload()
-        print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
         response = self.send_request("post", self.url, payload, files)
         content = response.text
         if response.status_code >= 300:
@@ -168,4 +169,4 @@ class WebhookTester:
         else:
             print(f"Status code: {response.status_code}")
             print(f"Response content: {content}")
-            print('--> Success.')
+            print('--> The server successfully received the webhook.')
