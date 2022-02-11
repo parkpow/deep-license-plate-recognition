@@ -159,10 +159,13 @@ class WebhookTester:
         """Used to test the webhook."""
         payload = self.get_webhook_payload()
         files = self.get_files_payload()
+        print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
         response = self.send_request("post", self.url, payload, files)
         content = response.text
-        print(f"Status Code: {response.status_code}")
-        print(f"Content: {content}")
-
         if response.status_code >= 300:
+            print(f'--> Invalid status code: {response.status_code}')
             raise WebhookError(content)
+        else:
+            print(f"Status code: {response.status_code}")
+            print(f"Response content: {content}")
+            print('--> Success.')

@@ -13,3 +13,4 @@ if __name__ == "__main__":
         print('Stopping...')
     except Exception as e:
         print(e)
+        print('--> The test webhook failed.')
