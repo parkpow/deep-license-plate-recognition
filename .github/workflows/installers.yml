@@ -60,19 +60,22 @@ jobs:
 
   mac-installer:
     runs-on: macos-latest
+    name: MacOS
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
         python-version: 3.7.12
-    - run: |
-        cd $GITHUB_WORKSPACE/docker
+    - name: Build Installer
+      run: |
+        cd docker
         pip install -r requirements.txt pyinstaller
         pyinstaller platerec_installer.spec -F
+        ls -alh docker/dist/
     # Optionally verify that it works (provided that it does not need user interaction)
     #- ./dist/your-code/your-code
     - uses: actions/upload-artifact@v2
       with:
         name: Mac-Installer
-        path: dist/*
+        path: docker/dist/*
 
