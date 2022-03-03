@@ -2,11 +2,11 @@ name: Build Installers
 
 on:
   push:
-    branches:
-      - master
+    #branches:
+    #  - master
     # Run Action only when /docker is pushed to
-    paths:
-      - 'docker/**'
+    #paths:
+    #  - 'docker/**'
   workflow_dispatch:
 
 jobs:
@@ -57,3 +57,21 @@ jobs:
         with:
           name: Windows-Installer
           path: dist
+
+  mac-installer:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - run: cd $GITHUB_WORKSPACE/docker
+    - run: pip install -r requirements.txt pyinstaller
+    - run: pyinstaller platerec_installer.spec -F
+    # Optionally verify that it works (provided that it does not need user interaction)
+    #- ./dist/your-code/your-code
+    - uses: actions/upload-artifact@v2
+      with:
+        name: Mac-Installer
+        path: dist/*
+
