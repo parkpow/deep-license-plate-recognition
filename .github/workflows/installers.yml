@@ -65,9 +65,10 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: 3.7
-    - run: cd $GITHUB_WORKSPACE/docker
-    - run: pip install -r requirements.txt pyinstaller
-    - run: pyinstaller platerec_installer.spec -F
+    - run: |
+        cd $GITHUB_WORKSPACE/docker
+        pip install -r requirements.txt pyinstaller
+        pyinstaller platerec_installer.spec -F
     # Optionally verify that it works (provided that it does not need user interaction)
     #- ./dist/your-code/your-code
     - uses: actions/upload-artifact@v2
