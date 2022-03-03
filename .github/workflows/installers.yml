@@ -71,7 +71,7 @@ jobs:
         cd docker
         pip install -r requirements.txt pyinstaller
         pyinstaller platerec_installer.spec -F
-        ls -alh docker/dist/
+        ls -alh dist/
     # Optionally verify that it works (provided that it does not need user interaction)
     #- ./dist/your-code/your-code
     - uses: actions/upload-artifact@v2
