@@ -12,9 +12,12 @@ block_cipher = None
 if sys.platform == 'win32':
     site_packages = 'C:/Python37/Lib/site-packages/'
     pathex = ['Z:\\src']
-else:
+elif sys.platform == 'linux':
     site_packages = '/root/.pyenv/versions/3.7.5/lib/python3.7/site-packages/'
     pathex = ['/src']
+else: # MacOs on GH Actions
+    site_packages = '/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/'
+    pathex = [os.path.abspath(SPECPATH)]
 
 a = Analysis(  # noqa
     ['platerec_installer.py'],

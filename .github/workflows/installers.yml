@@ -31,7 +31,7 @@ jobs:
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v2
       with:
-        name: Linux-Installer
+        name: PlateRecognizer-Installer-Linux
         path: docker/dist/PlateRecognizer-Installer
 
   sign-installer:
@@ -55,5 +55,25 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: Windows-Installer
+          name: PlateRecognizer-Installer-Windows
           path: dist
+
+  mac-installer:
+    runs-on: macos-latest
+    name: MacOS
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7.12
+    - name: Build Installer
+      run: |
+        cd docker
+        pip install -r requirements.txt pyinstaller
+        pyinstaller platerec_installer.spec -F
+        chmod +x dist/ -R
+    - uses: actions/upload-artifact@v2
+      with:
+        name: PlateRecognizer-Installer-MacOS
+        path: docker/dist/*
+
