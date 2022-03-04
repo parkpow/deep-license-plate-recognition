@@ -71,7 +71,7 @@ jobs:
         cd docker
         pip install -r requirements.txt pyinstaller
         pyinstaller platerec_installer.spec -F
-        chmod +x dist/ -R
+        chmod -R +x dist
     - uses: actions/upload-artifact@v2
       with:
         name: PlateRecognizer-Installer-MacOS
