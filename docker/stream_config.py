@@ -35,6 +35,9 @@ timezone = UTC
   # send the full-size image. This setting can be used at the camera level too.
   webhook_image_type = vehicle
 
+  # When a webhook is sent, the request will time out after n seconds and retry later.
+  # webhook_request_timeout = 30
+
   # Only accept the results that exactly match the templates of the specified regions.
   # region_config = strict
 
@@ -51,7 +54,6 @@ timezone = UTC
   [[camera-1]]
     active = yes
     url = rtsp://192.168.0.108:8080/video/h264
-    name = Camera One
 
     # Output methods. Uncomment/comment line to enable/disable.
     # - Save to CSV file. The corresponding frame is stored as an image in the same directory.
@@ -61,7 +63,9 @@ timezone = UTC
     # multipart/form-data and sent to webhook_target.
     # webhook_targets = http://webhook.site/
     # webhook_image = yes
+    # webhook_caching = yes
 
+    # - Send to ParkPow. See https://app.parkpow.com/accounts/token/
     # - Save to file in JSONLines format. https://jsonlines.org/
     # jsonlines_file = $(camera)_%y-%m-%d.jsonl
 
@@ -75,7 +79,7 @@ def send_request(section):
         return
     headers = {
         'Authorization':
-        'Token %s' % section['webhook_header'].split('Token ')[-1]
+            'Token %s' % section['webhook_header'].split('Token ')[-1]
     }
     url = section['webhook_target'].replace('webhook-receiver', 'parking-list')
     try:
@@ -110,7 +114,9 @@ def camera_spec():
         webhook_targets='force_list(default=list())',
         webhook_header='string(default="")',
         webhook_image='boolean(default=yes)',
+        webhook_caching='boolean(default=yes)',
         webhook_image_type='option("vehicle", "original", default="vehicle")',
+        webhook_request_timeout='float(default=30)',
         max_prediction_delay='float(default=6)',
         memory_decay='float(default=300)',
         image_format=
@@ -128,7 +134,6 @@ def camera_spec():
 
     camera = dict(
         url='string',
-        name='string(default="Camera")',
         active='boolean(default=yes)',
         # Overridable
         regions='force_list(default=None)',
@@ -136,7 +141,9 @@ def camera_spec():
         webhook_targets='force_list(default=None)',
         webhook_header='string(default=None)',
         webhook_image='boolean(default=None)',
+        webhook_caching='boolean(default=None)',
         webhook_image_type='option("vehicle", "original", default=None)',
+        webhook_request_timeout='float(default=None)',
         max_prediction_delay='float(default=None)',
         memory_decay='float(default=None)',
         image_format='string(default=None)',
@@ -182,7 +189,7 @@ def base_config(config_path: Path, config=None):
                 section_list.append(key)
             section_string = '/'.join(section_list)
             logging.error('%s: %s', section_string, error)
-            error = '%s, param: %s, message: %s' % (section_string, key, error)
+            error = f'{section_string}, param: {key}, message: {error}'
             error_message += '\n%s' % error
         return None, error_message + '\n Go here for additional help https://guides.platerecognizer.com/docs/stream/configuration'
     try:
