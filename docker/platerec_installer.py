@@ -1021,7 +1021,7 @@ if __name__ == '__main__':
     args = parse_arguments()
     print(CONSOLE_WELCOME)
     if args.debug:
-        app.run_server(debug=True)
+        app.run_server(debug=True, host='0.0.0.0')
     else:
         webbrowser.open('http://127.0.0.1:8050/')
 
@@ -1033,4 +1033,4 @@ if __name__ == '__main__':
         cli.show_server_banner = lambda *_: None  # type: ignore
 
         # Start server
-        app.run_server(debug=False, dev_tools_silence_routes_logging=True)
+        app.run_server(debug=False, host='0.0.0.0', dev_tools_silence_routes_logging=True)
