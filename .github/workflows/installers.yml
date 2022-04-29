@@ -69,7 +69,7 @@ jobs:
     - name: Build Installer
       run: |
         cd docker
-        pip install -r requirements.txt pyinstaller
+        pip install -r requirements.txt pyinstaller==4.9
         pyinstaller platerec_installer.spec -F
         chmod -R +x dist
     - uses: actions/upload-artifact@v2
