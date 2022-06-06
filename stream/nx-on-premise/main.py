@@ -32,22 +32,29 @@ def notify_nx(username, password, vms_api, camera_uid, source, description, time
         ]
     }, separators=(',', ':'))
 
-    res = requests.get(
-        vms_api + endpoint,
-        params={
-            'timestamp': timestamp,
-            'source': source,
-            'caption': 'New Plate Detection',
-            'metadata': metadata,
-            'description': description,
-            'state': 'InActive'
-        },
-        auth=HTTPDigestAuth(username, password),
-        verify=False
-    )
-    lgr.debug(f'NX Res: {res}')
-    if res.status_code != 200:
-        lgr.error(res.raise_for_status())
+    try:
+        res = requests.get(
+            vms_api + endpoint,
+            params={
+                'timestamp': timestamp,
+                'source': source,
+                'caption': 'New Plate Detection',
+                'metadata': metadata,
+                'description': description,
+                'state': 'InActive'
+            },
+            auth=HTTPDigestAuth(username, password),
+            verify=False
+        )
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        lgr.error("Http Error:", errh)
+    except requests.exceptions.ConnectionError as errc:
+        lgr.error("Error Connecting:", errc)
+    except requests.exceptions.Timeout as errt:
+        lgr.error("Timeout Error:", errt)
+    except requests.exceptions.RequestException as err:
+        lgr.error("OOps: Something Else", err)
 
 
 class RequestHandler(BaseHTTPRequestHandler):
