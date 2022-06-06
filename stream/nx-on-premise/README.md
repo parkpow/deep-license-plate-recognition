@@ -14,22 +14,22 @@ Forward Stream Webhook Events to NX VMS as Alerts
     docker run --rm -t \
        --net=host \
        -e LOGGING=DEBUG \  # Turn on debug logging
-       -e USERNAME='user' \   # VMS username
-       -e PASSWORD='pass' \  # VMS password
-       -e VMS_API='https://localhost:7001' \  # VMS API Endpoint
-       -e CAMERA_UID="########" \  # UID for camera to receive the events       
-       platerecognizer/stream-nx-notifier
+       platerecognizer/stream-nx-notifier \
+       --username=user \  # VMS username
+       --password=pass \  # VMS password
+       --vms='https://localhost:7001' \  # VMS API Endpoint
+       --camera="12345678-****-****-****-****-**********" # UID for camera to used as source of events
     
     
     # Example 
     docker run --rm -t \
        --net=host \
-       -e LOGGING=DEBUG \ 
-       -e USERNAME='admin' \ 
-       -e PASSWORD='39393jdhhdiisu2' \ 
-       -e VMS_API='https://192.168.100.6:7001' \ 
-       -e CAMERA_UID="420f37f6-8875-6885-9200-11504e61f485" \ 
-       platerecognizer/stream-nx-notifier
+       -e LOGGING=DEBUG \
+       platerecognizer/stream-nx-notifier \
+       --username=admin \
+       --password=39393jdhhdiisu2 \
+       --vms='https://192.168.100.6:7001' \
+       --camera="420f37f6-8875-6885-9200-11504e61f485"
     
     
     ```
@@ -45,4 +45,4 @@ Forward Stream Webhook Events to NX VMS as Alerts
 
 
 ## TODO
--[ ] I think user might need to direct specific events to specific Cameras in the VMS, i.e multiple `-e CAMERA_UID`
+-[ ] I think user might need to direct specific events to specific Cameras in the VMS, i.e Pass multiple `--camera`

@@ -7,6 +7,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from json.decoder import JSONDecodeError
 import requests
 from requests.auth import HTTPDigestAuth
+import argparse
+from functools import partial
+
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
 
@@ -19,26 +22,18 @@ logging.basicConfig(
 
 lgr = logging.getLogger(__name__)
 
-USERNAME = os.getenv('USERNAME', None)
-PASSWORD = os.getenv('PASSWORD', None)
-VMS_API = os.getenv('VMS_API', None)
-CAMERA_UID = os.getenv('CAMERA_UID', None)
 
-if USERNAME is None or PASSWORD is None or VMS_API is None or CAMERA_UID is None:
-    raise Exception('USERNAME, PASSWORD or VMS_API Not Set.')
-
-
-def notify_nx(source, description, timestamp):
+def notify_nx(username, password, vms_api, camera_uid, source, description, timestamp):
     lgr.debug(f'Notify NX Source: {source}, Description: {description}, timestamp: {timestamp}')
     endpoint = '/api/createEvent'
     metadata = json.dumps({
         'cameraRefs': [
-            CAMERA_UID
+            camera_uid
         ]
     }, separators=(',', ':'))
 
     res = requests.get(
-        VMS_API + endpoint,
+        vms_api + endpoint,
         params={
             'timestamp': timestamp,
             'source': source,
@@ -47,7 +42,7 @@ def notify_nx(source, description, timestamp):
             'description': description,
             'state': 'InActive'
         },
-        auth=HTTPDigestAuth(USERNAME, PASSWORD),
+        auth=HTTPDigestAuth(username, password),
         verify=False
     )
 
@@ -55,6 +50,13 @@ def notify_nx(source, description, timestamp):
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    def __init__(self, username, password, vms, camera, *args, **kwargs):
+        self.username = username
+        self.password = password
+        self.vms = vms
+        self.camera = camera
+        super().__init__(*args, **kwargs)
+
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
@@ -82,8 +84,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             except JSONDecodeError:
                 json_data = {}
 
-        lgr.info('json_data:')
-        lgr.info(json_data)
+        lgr.debug('json_data:')
+        lgr.debug(json_data)
 
         data = json_data['data']
         camera_id = data['camera_id']
@@ -96,12 +98,21 @@ class RequestHandler(BaseHTTPRequestHandler):
             break
 
         if plate is not None:
-            notify_nx(camera_id, plate, timestamp)
+            notify_nx(self.username, self.password, self.vms, self.camera, camera_id, plate, timestamp)
 
         self.wfile.write(b'OK')
 
 
 if __name__ == '__main__':
-    server = HTTPServer(('', 8001), RequestHandler)
+    parser = argparse.ArgumentParser(description='Forward Stream Webhook Events to NX VMS as Alerts.')
+    parser.add_argument('--username', help='NX VMS Username.', required=True)
+    parser.add_argument('--password', help='NX VMS Password.', required=True)
+    parser.add_argument('--vms', help='VMS API Endpoint.', required=True)
+    parser.add_argument('--camera', help='UID of Camera used as Source of Alerts.', required=True)
+
+    args = parser.parse_args()
+
+    handler = partial(RequestHandler, args.username, args.password, args.vms, args.camera)
+    server = HTTPServer(('', 8001), handler)
     lgr.info('Starting Webhook Receiver Server, use <Ctrl-C> to stop')
     server.serve_forever()
