@@ -45,8 +45,9 @@ def notify_nx(username, password, vms_api, camera_uid, source, description, time
         auth=HTTPDigestAuth(username, password),
         verify=False
     )
-
     lgr.debug(f'NX Res: {res}')
+    if res.status_code != 200:
+        lgr.error(res.raise_for_status())
 
 
 class RequestHandler(BaseHTTPRequestHandler):
