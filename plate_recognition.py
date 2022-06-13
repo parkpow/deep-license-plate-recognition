@@ -67,7 +67,12 @@ def recognition_api(fp,
     response = None
     if sdk_url:
         fp.seek(0)
-        response = requests.post(sdk_url + '/v1/plate-reader/',
+        if 'container-api' in sdk_url:
+            response = requests.post('https://container-api.parkpow.com/api/v1/predict/',
+                                 files=dict(image=fp),
+                                 headers={ 'Authorization': 'Token '+api_key, })
+        else:
+            response = requests.post(sdk_url + '/v1/plate-reader/',
                                  files=dict(upload=fp),
                                  data=data)
     else:
