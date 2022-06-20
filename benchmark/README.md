@@ -112,7 +112,19 @@ The results are obtained using [benchmark.py](benchmark.py).
 | regular | 2560x1440  | 79.6  |
 | fast    | 2560x1440  | 46.7  |
 
-### Raspberry Pi 3/4 (estimates)
+### Raspbery Pi 4 64 bits (1 worker)
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |   686.7 |
+| fast     | 800x600    |   401.7 |
+| regular  | 1280x720   |  1181.0 |
+| fast     | 1280x720   |   554.0 |
+| regular  | 1920x1080  |  1373.4 |
+| fast     | 1920x1080  |   677.8 |
+| regular  | 2560x1440  |  1587.1 |
+| fast     | 2560x1440  |   816.9 |
+
+### Raspberry Pi 3/4 (estimates) 32 bits
 | Mode    | Resolution | Speed |
 | ------- | ---------- | ----- |
 | regular | 1280x720   | 1300  |
