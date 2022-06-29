@@ -116,7 +116,8 @@ def flatten_dict(d, parent_key='', sep='_'):
 def flatten(result):
     plates = result['results']
     del result['results']
-    del result['usage']
+    if 'usage' in result:
+        del result['usage']
     if not plates:
         return result
     for plate in plates:
