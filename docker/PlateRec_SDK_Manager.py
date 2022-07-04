@@ -147,7 +147,7 @@ def stop_container(image):
 
 
 def install():
-    hardwares = ('Intel CPU', 'Raspberry', 'GPU (Nvidia Only)', 'Jetson Nano',
+    hardwares = ('x86 / Intel CPU', 'Raspberry', 'GPU (Nvidia Only)', 'Jetson Nano',
                  'Quit')
     hardware = '1'
     print('\n')
