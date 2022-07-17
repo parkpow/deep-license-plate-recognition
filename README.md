@@ -146,6 +146,7 @@ See our sample projects to easily get started with the API.
 - Example program in [C#](csharp/).
 - Example program in [Java](java/).
 - [Android App](https://github.com/parkpow/alpr-anpr-android). It lets you take a picture and send it to our API.
+- [Android App](https://github.com/kjbaker-uk/platerecognizer-android-example) in Kotlin.
 - View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
 - A Node-RED node for [license plate recognition](https://github.com/parkpow/node-red-contrib-plate-recognizer).
 - Or [convert](https://curlconverter.com/) the curl examples to other languages.
