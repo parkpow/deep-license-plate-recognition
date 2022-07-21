@@ -13,7 +13,7 @@ from plate_recognition import recognition_api, save_results
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 # Keep track of processed file names
-processed = None
+processed = []
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -258,8 +258,6 @@ def ftp_process(args):
 def main():
     args = parse_arguments(custom_args)
     if args.interval and args.interval > 0:
-        global processed
-        processed = []
         while True:
             try:
                 ftp_process(args)
