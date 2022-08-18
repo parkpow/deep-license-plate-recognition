@@ -46,7 +46,7 @@ def track_processed(args):
     :param args:
     :return:
     """
-    return args.interval and args.interval > 0
+    return args.interval and args.interval > 0 and not args.delete
 
 
 def main(args):
@@ -83,6 +83,8 @@ def main(args):
                                               exit_on_error=False)
 
                     lgr.info(api_res)
+                    if args.delete and api_res:
+                        sftp.remove(str(remote_path))
 
                 if track_processed(args):
                     processed.append(entry.filename)
@@ -146,6 +148,13 @@ if __name__ == '__main__':
         '--interval',
         type=int,
         help='Periodically fetch new images from the server every interval seconds.')
+
+    parser.add_argument(
+        '-d',
+        '--delete',
+        action='store_true',
+        help='Remove images from the FTP server after processing.')
+
     cli_args = parser.parse_args()
 
     if not cli_args.sdk_url and not cli_args.api_token:
