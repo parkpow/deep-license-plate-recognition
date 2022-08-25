@@ -73,7 +73,7 @@ namespace WebhookReader
                         Console.WriteLine("Upload File saved to: {0}", filename);
 
                     }
-                    else if (req.ContentType != null && req.ContentType.StartsWith("application/json"))
+                    else if (req.ContentType != null && req.ContentType.StartsWith("application/x-www-form-urlencoded"))
                     {
                         Console.WriteLine("Event Contains No Image");
                         ParseData(req);
