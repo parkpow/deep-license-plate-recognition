@@ -37,6 +37,14 @@ Start the server
 node server.js
 ```
 
+- __C# / .Net Framework v4.8:__
+
+Install [this NuGet package](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser) required for MultiPart Parsing
+```shell
+PM> Install-Package HttpMultipartParser
+```
+Build Solution and Run WebhookReader.exe as a Console Application
+
 ## Sending Data to the Webhook Server
 
 1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.

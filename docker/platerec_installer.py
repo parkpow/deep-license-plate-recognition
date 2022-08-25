@@ -69,11 +69,19 @@ def get_os():
     return os_system
 
 
+class DockerPermissionError(Exception):
+    pass
+
+
 def verify_docker_install():
     try:
-        subprocess.check_output("docker info".split(), stderr=-1)
+        subprocess.check_output("docker info".split(), stderr=subprocess.STDOUT).decode()
         return True
-    except (OSError, subprocess.CalledProcessError):
+    except subprocess.CalledProcessError as exc:
+        output = exc.output.decode()
+        perm_error = 'Got permission denied while trying to connect'
+        if perm_error in output:
+            raise DockerPermissionError(output)
         return False
 
 
@@ -206,6 +214,10 @@ def get_refresh(product):
         "If not, then please go here to install Docker on your machine: ",
         html.A(docker_link, href=docker_link, target='_blank')
     ]
+    permission_error_info = [
+        "Got a 'permission denied error' while trying to connect to the Docker daemon. "
+        "Does the user running the installer able to execute Docker commands?"
+    ]
     if get_os() == 'Windows':
         docker_info += [
             ". If using the legacy Hyper-V backend and not WSL2, "
@@ -214,7 +226,20 @@ def get_refresh(product):
             " and the click “Apply & Restart”."
         ]
     return dbc.FormGroup([
-        dbc.Label(docker_info, html_for=f'refresh-docker-{product}', width=7),
+        dbc.Label(
+            docker_info,
+            id=f'info-docker-{product}',
+            html_for=f'refresh-docker-{product}',
+            style=BLOCK,
+            width=7
+        ),
+        dbc.Label(
+            permission_error_info,
+            id=f'permissions-docker-{product}',
+            html_for=f'refresh-docker-{product}',
+            style=NONE,
+            width=7
+        ),
         dcc.Loading(type='circle',
                     children=html.Div(id=f'loading-refresh-{product}')),
         dbc.Col(dbc.Button(
@@ -648,23 +673,28 @@ app.layout = dbc.Container([
     Output('form-stream', 'style'),
     Output('form-update-stream', 'style'),
     Output('footer-stream', 'style'),
-    Output('loading-refresh-stream', 'children')
+    Output('loading-refresh-stream', 'children'),
+    Output('info-docker-stream', 'style'),
+    Output('permissions-docker-stream', 'style')
 ], [
     Input('refresh-docker-stream', 'n_clicks'),
     Input('ok-uninstall-stream', 'n_clicks')
 ])
 def refresh_docker_stream(n_clicks, uninstall):
-    if verify_docker_install():
-        if dash.callback_context.triggered[0][
-                'prop_id'] == 'ok-uninstall-stream.n_clicks':
+    try:
+        docker_is_ok = verify_docker_install()
+    except DockerPermissionError:
+        return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
+    if docker_is_ok:
+        if dash.callback_context.triggered[0]['prop_id'] == 'ok-uninstall-stream.n_clicks':
             time.sleep(2)
-            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         if get_image(STREAM_IMAGE):
-            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         else:
-            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
     else:
-        return FLEX, NONE, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None, BLOCK, NONE
 
 
 @app.callback([
@@ -673,24 +703,29 @@ def refresh_docker_stream(n_clicks, uninstall):
     Output('form-snapshot', 'style'),
     Output('form-update-snapshot', 'style'),
     Output('footer-snapshot', 'style'),
-    Output('loading-refresh-snapshot', 'children')
+    Output('loading-refresh-snapshot', 'children'),
+    Output('info-docker-snapshot', 'style'),
+    Output('permissions-docker-snapshot', 'style')
 ], [
     Input('refresh-docker-snapshot', 'n_clicks'),
     Input('dropdown-hardware-snapshot', 'value'),
     Input('ok-uninstall-snapshot', 'n_clicks')
 ])
 def refresh_docker_snapshot(n_clicks, hardware, uninstall):
-    if verify_docker_install():
-        if dash.callback_context.triggered[0][
-                'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
+    try:
+        docker_is_ok = verify_docker_install()
+    except DockerPermissionError:
+        return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
+    if docker_is_ok:
+        if dash.callback_context.triggered[0]['prop_id'] == 'ok-uninstall-snapshot.n_clicks':
             time.sleep(2)
-            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         if get_image(hardware):
-            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None
+            return NONE, FLEX, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         else:
-            return NONE, NONE, BLOCK, BLOCK, BLOCK, None
+            return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
     else:
-        return FLEX, NONE, NONE, NONE, NONE, None
+        return FLEX, NONE, NONE, NONE, NONE, None, BLOCK, NONE
 
 
 @app.callback([
