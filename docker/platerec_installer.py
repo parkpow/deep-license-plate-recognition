@@ -75,7 +75,8 @@ class DockerPermissionError(Exception):
 
 def verify_docker_install():
     try:
-        subprocess.check_output("docker info".split(), stderr=subprocess.STDOUT).decode()
+        subprocess.check_output("docker info".split(),
+                                stderr=subprocess.STDOUT).decode()
         return True
     except subprocess.CalledProcessError as exc:
         output = exc.output.decode()
@@ -226,20 +227,16 @@ def get_refresh(product):
             " and the click “Apply & Restart”."
         ]
     return dbc.FormGroup([
-        dbc.Label(
-            docker_info,
-            id=f'info-docker-{product}',
-            html_for=f'refresh-docker-{product}',
-            style=BLOCK,
-            width=7
-        ),
-        dbc.Label(
-            permission_error_info,
-            id=f'permissions-docker-{product}',
-            html_for=f'refresh-docker-{product}',
-            style=NONE,
-            width=7
-        ),
+        dbc.Label(docker_info,
+                  id=f'info-docker-{product}',
+                  html_for=f'refresh-docker-{product}',
+                  style=BLOCK,
+                  width=7),
+        dbc.Label(permission_error_info,
+                  id=f'permissions-docker-{product}',
+                  html_for=f'refresh-docker-{product}',
+                  style=NONE,
+                  width=7),
         dcc.Loading(type='circle',
                     children=html.Div(id=f'loading-refresh-{product}')),
         dbc.Col(dbc.Button(
@@ -542,11 +539,12 @@ def get_success_card(product):
 def get_continue(product):
     return dbc.FormGroup([
         dbc.Col([
-            dbc.Button(
-                'Continue', color='primary', id=f'button-submit-{product}'),
+            dbc.Button('Show Docker Command',
+                       color='primary',
+                       id=f'button-submit-{product}'),
         ],
                 width=1),
-        dbc.Label('Confirm settings and continue.',
+        dbc.Label('Confirm settings and show docker command.',
                   html_for=f'button-submit-{product}',
                   width=11),
     ],
@@ -686,7 +684,8 @@ def refresh_docker_stream(n_clicks, uninstall):
     except DockerPermissionError:
         return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
     if docker_is_ok:
-        if dash.callback_context.triggered[0]['prop_id'] == 'ok-uninstall-stream.n_clicks':
+        if dash.callback_context.triggered[0][
+                'prop_id'] == 'ok-uninstall-stream.n_clicks':
             time.sleep(2)
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         if get_image(STREAM_IMAGE):
@@ -717,7 +716,8 @@ def refresh_docker_snapshot(n_clicks, hardware, uninstall):
     except DockerPermissionError:
         return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
     if docker_is_ok:
-        if dash.callback_context.triggered[0]['prop_id'] == 'ok-uninstall-snapshot.n_clicks':
+        if dash.callback_context.triggered[0][
+                'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
             time.sleep(2)
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         if get_image(hardware):
@@ -973,7 +973,7 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
                 pull_docker(STREAM_IMAGE)
             command = f'docker run {autoboot} -t ' \
                       f'{nvidia} --name stream ' \
-                      f'-v "{home}":{USER_DATA} ' \
+                      f'-v "{home}:{USER_DATA}" ' \
                       f'{user_info} ' \
                       f'-e LICENSE_KEY={key} ' \
                       f'-e TOKEN={token} ' \
@@ -1068,4 +1068,6 @@ if __name__ == '__main__':
         cli.show_server_banner = lambda *_: None  # type: ignore
 
         # Start server
-        app.run_server(debug=False, host='0.0.0.0', dev_tools_silence_routes_logging=True)
+        app.run_server(debug=False,
+                       host='0.0.0.0',
+                       dev_tools_silence_routes_logging=True)
