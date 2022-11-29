@@ -2,14 +2,11 @@ import argparse
 import base64
 import logging
 import os
-import platform
 import re
-import subprocess
 import sys
 import time
 import webbrowser
-from pathlib import Path
-from ssl import SSLError
+import installer_helpers as helpers
 
 import dash
 import dash_bootstrap_components as dbc
@@ -17,15 +14,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from stream_config import DEFAULT_CONFIG, base_config
-
-try:
-    from urllib.error import URLError
-    from urllib.request import Request, urlopen
-except ImportError:
-    from urllib2 import Request  # type: ignore
-    from urllib2 import URLError  # type: ignore
-    from urllib2 import urlopen  # type: ignore
 
 SHARE_LINK = 'https://guides.platerecognizer.com/docs/stream/manual-install#step-2'
 STREAM_PLAN_LINK = 'https://app.platerecognizer.com/accounts/plan/#stream/?utm_source=installer&utm_medium=app'
@@ -53,139 +41,6 @@ on a separate device, replace "localhost" by the host's IP.
 
 ############################################'''
 
-####################
-# Helper Functions #
-####################
-
-
-def get_os():
-    os_system = platform.system()
-    if os_system == 'Windows':
-        return 'Windows'
-    elif os_system == 'Linux':
-        return 'Linux'
-    elif os_system == 'Darwin':
-        return 'Mac OS'
-    return os_system
-
-
-class DockerPermissionError(Exception):
-    pass
-
-
-def verify_docker_install():
-    try:
-        subprocess.check_output("docker info".split(),
-                                stderr=subprocess.STDOUT).decode()
-        return True
-    except subprocess.CalledProcessError as exc:
-        output = exc.output.decode()
-        perm_error = 'Got permission denied while trying to connect'
-        if perm_error in output:
-            raise DockerPermissionError(output)
-        return False
-
-
-def get_container_id(image):
-    cmd = 'docker ps -q --filter ancestor={}'.format(image)
-    output = subprocess.check_output(cmd.split())
-    return output.decode()
-
-
-def stop_container(image):
-    container_id = get_container_id(image)
-    if container_id:
-        cmd = 'docker stop {}'.format(container_id)
-        os.system(cmd)
-    return container_id
-
-
-def get_home(product='stream'):
-    return str(Path.home() / product)
-
-
-def get_image(image):
-    images = subprocess.check_output(
-        ['docker', 'images', '--format', '"{{.Repository}}:{{.Tag}}"',
-         image]).decode().split('\n')
-    return images[0].replace('"', '')
-
-
-def pull_docker(image):
-    if get_container_id(image):
-        stop_container(image)
-    pull_cmd = f'docker pull {image}'
-    os.system(pull_cmd)
-
-
-def read_config(home):
-    try:
-        config = Path(home) / 'config.ini'
-        conf = ''
-        f = open(config, 'r')
-        for line in f:
-            conf += line
-        f.close()
-        return conf
-    except IOError:  # file not found
-        return DEFAULT_CONFIG
-
-
-def write_config(home, config):
-    try:
-        path = Path(home) / 'config.ini'
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        result, error = base_config(path, config)
-        if error:
-            return False, error
-        with open(path, 'w+') as conf:
-            for line in config:
-                conf.write(line)
-        return True, ''
-    except Exception:
-        return False, f'The Installation Directory is not valid. Please enter a valid folder, such as {get_home()}'
-
-
-def verify_token(token, license_key, get_license=True, product='stream'):
-    path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
-    try:
-        req = Request('https://api.platerecognizer.com/v1/{}/{}/'.format(
-            path, license_key.strip()))
-        req.add_header('Authorization', 'Token {}'.format(token.strip()))
-        urlopen(req).read()
-        return True, None
-    except SSLError:
-        req = Request('http://api.platerecognizer.com/v1/{}/{}/'.format(
-            path, license_key.strip()))
-        req.add_header('Authorization', 'Token {}'.format(token.strip()))
-        urlopen(req).read()
-        return True, None
-    except URLError as e:
-        if '404' in str(e) and get_license:
-            return False, 'The License Key cannot be found. Please use the correct License Key.'
-        elif str(403) in str(e):
-            return False, 'The API Token cannot be found. Please use the correct Token.'
-        else:
-            return True, None
-
-
-def is_valid_port(port):
-    try:
-        return 0 <= int(port) <= 65535
-    except ValueError:
-        return False
-
-
-def resource_path(relative_path):
-    # get absolute path to resource
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
 
 def get_splash_screen():
     return html.Div([
@@ -209,7 +64,7 @@ def get_refresh(product):
         'Mac OS':
         'https://hub.docker.com/editions/community/docker-ce-desktop-mac/'
     }
-    docker_link = docker_links.get(get_os())
+    docker_link = docker_links.get(helpers.get_os())
     docker_info = [
         "Do you have Docker? If so, please run it now. "
         "If not, then please go here to install Docker on your machine: ",
@@ -219,7 +74,7 @@ def get_refresh(product):
         "Got a 'permission denied error' while trying to connect to the Docker daemon. "
         "Does the user running the installer able to execute Docker commands?"
     ]
-    if get_os() == 'Windows':
+    if helpers.get_os() == 'Windows':
         docker_info += [
             ". If using the legacy Hyper-V backend and not WSL2, "
             "Make sure to check the box (next to C) for ",
@@ -354,7 +209,7 @@ def get_directory(product):
             f'Path to your {product.capitalize()} installation directory:',
             html_for=f'input-home-{product}',
             width=7),
-        dbc.Col(dbc.Input(value=get_home(),
+        dbc.Col(dbc.Input(value=helpers.get_home(),
                           type='text',
                           id=f'input-home-{product}',
                           placeholder='Path to directory',
@@ -571,7 +426,7 @@ def get_confirm(product):
 app = dash.Dash(
     __name__,
     title='Plate Recognizer Installer',
-    assets_folder=resource_path('assets'),
+    assets_folder=helpers.resource_path('assets'),
     external_stylesheets=[dbc.themes.YETI],
     external_scripts=[
         'https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js'
@@ -680,15 +535,15 @@ app.layout = dbc.Container([
 ])
 def refresh_docker_stream(n_clicks, uninstall):
     try:
-        docker_is_ok = verify_docker_install()
-    except DockerPermissionError:
+        docker_is_ok = helpers.verify_docker_install()
+    except helpers.DockerPermissionError:
         return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
     if docker_is_ok:
         if dash.callback_context.triggered[0][
                 'prop_id'] == 'ok-uninstall-stream.n_clicks':
             time.sleep(2)
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
-        if get_image(STREAM_IMAGE):
+        if helpers.get_image(STREAM_IMAGE):
             return NONE, FLEX, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         else:
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
@@ -712,15 +567,15 @@ def refresh_docker_stream(n_clicks, uninstall):
 ])
 def refresh_docker_snapshot(n_clicks, hardware, uninstall):
     try:
-        docker_is_ok = verify_docker_install()
-    except DockerPermissionError:
+        docker_is_ok = helpers.verify_docker_install()
+    except helpers.DockerPermissionError:
         return FLEX, NONE, NONE, NONE, NONE, None, NONE, BLOCK
     if docker_is_ok:
         if dash.callback_context.triggered[0][
                 'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
             time.sleep(2)
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
-        if get_image(hardware):
+        if helpers.get_image(hardware):
             return NONE, FLEX, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
         else:
             return NONE, NONE, BLOCK, BLOCK, BLOCK, None, BLOCK, NONE
@@ -766,7 +621,7 @@ def set_videopath(content, name, path):
 def update_image_stream(n_clicks, tab):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'update-image-stream.n_clicks':
-        pull_docker(STREAM_IMAGE)
+        helpers.pull_docker(STREAM_IMAGE)
         return False, {'display': 'inline', 'color': 'green'}, None
     return False, NONE, None
 
@@ -783,7 +638,7 @@ def update_image_stream(n_clicks, tab):
 def update_image_snapshot(n_clicks, tab, hardware):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'update-image-snapshot.n_clicks':
-        pull_docker(hardware)
+        helpers.pull_docker(hardware)
         return False, {'display': 'inline', 'color': 'green'}, None
     return False, NONE, None
 
@@ -826,9 +681,9 @@ def uninstall_button_stream(n_clicks):
             'prop_id'] == 'ok-uninstall-stream.n_clicks':
         time.sleep(2)
         return [NONE]
-    if not verify_docker_install():
+    if not helpers.verify_docker_install():
         return [NONE]
-    if get_image(STREAM_IMAGE):
+    if helpers.get_image(STREAM_IMAGE):
         return [FLEX]
     else:
         return [NONE]
@@ -845,9 +700,9 @@ def uninstall_button_snapshot(n_clicks, hardware):
             'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
         time.sleep(2)
         return [NONE]
-    if not verify_docker_install():
+    if not helpers.verify_docker_install():
         return [NONE]
-    if get_image(hardware):
+    if helpers.get_image(hardware):
         return [FLEX]
     else:
         return [NONE]
@@ -864,18 +719,10 @@ def uninstall_button_snapshot(n_clicks, hardware):
 def uninstall_stream(n_clicks, token, key):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'ok-uninstall-stream.n_clicks':
-        if not get_image(STREAM_IMAGE):
+        if not helpers.get_image(STREAM_IMAGE):
             return [None, 'Image already uninstalled.']
-        stop_container(STREAM_IMAGE)
-        container_id = get_container_id(STREAM_IMAGE)
-        if container_id:
-            cmd = f'docker container rm {container_id}'
-            os.system(cmd)
-        cmd = f'docker rmi "{STREAM_IMAGE}" -f'
-        os.system(cmd)
-        cmd = 'docker image prune -f'
-        os.system(cmd)
-        return [None, 'Image successfully uninstalled.']
+        helpers.stop_container(STREAM_IMAGE)
+        return helpers.uninstall_docker_image(STREAM_IMAGE)
     raise PreventUpdate
 
 
@@ -894,22 +741,14 @@ def uninstall_snapshot(n_clicks, hardware, token, key):
         return [None, '']
     if dash.callback_context.triggered[0][
             'prop_id'] == 'ok-uninstall-snapshot.n_clicks':
-        if not get_image(hardware):
+        if not helpers.get_image(hardware):
             return [None, 'Image already uninstalled.']
-        verification = verify_token(token, key, product=SNAPSHOT)
+        verification = helpers.verify_token(token, key, product=SNAPSHOT)
         if verification[0]:
-            stop_container(hardware)
+            helpers.stop_container(hardware)
             cmd = f'docker run --rm -t -v license:/license -e TOKEN={token} -e LICENSE_KEY={key} -e UNINSTALL=1 {hardware}'
             os.system(cmd)
-            container_id = get_container_id(hardware)
-            if container_id:
-                cmd = f'docker container rm {container_id}'
-                os.system(cmd)
-            cmd = f'docker rmi "{hardware}" -f'
-            os.system(cmd)
-            cmd = 'docker image prune -f'
-            os.system(cmd)
-            return [None, 'Image successfully uninstalled.']
+            return helpers.uninstall_docker_image(hardware)
         else:
             return [None, verification[1]]
     raise PreventUpdate
@@ -921,7 +760,7 @@ def uninstall_snapshot(n_clicks, hardware, token, key):
     State('check-video-stream', 'checked'),
 ])
 def change_path(home, videofile, videocheck):
-    config = read_config(home)
+    config = helpers.read_config(home)
     if videofile and videocheck:  # replace url with a path to video
         url = re.search('url = (.*)\n', config).group(1)
         config = re.sub(url, f'{USER_DATA}{videofile}', config)
@@ -948,9 +787,9 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
                   videofile, videocheck):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'button-submit-stream.n_clicks':
-        is_valid, error = verify_token(token, key, product='stream')
+        is_valid, error = helpers.verify_token(token, key, product='stream')
         if is_valid:
-            write_result, error = write_config(home, config)
+            write_result, error = helpers.write_config(home, config)
             if not write_result:
                 return error, NONE, '', None
             if videocontent and videofile and videocheck:
@@ -962,15 +801,15 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
             nvidia = ''
             image_tag = ''
             autoboot = '--rm'
-            if get_os() != 'Windows':
+            if helpers.get_os() != 'Windows':
                 user_info = '--user `id -u`:`id -g`'
             if os.path.exists('/etc/nv_tegra_release'):
                 nvidia = '--runtime nvidia --privileged --group-add video'
                 image_tag = ':jetson'
             if boot:
                 autoboot = '--restart unless-stopped'
-            if not get_image(STREAM_IMAGE):
-                pull_docker(STREAM_IMAGE)
+            if not helpers.get_image(STREAM_IMAGE):
+                helpers.pull_docker(STREAM_IMAGE)
             command = f'docker run {autoboot} -t ' \
                       f'{nvidia} --name stream ' \
                       f'-v "{home}:{USER_DATA}" ' \
@@ -1001,13 +840,13 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
 def submit_snapshot(n_clicks, token, key, boot, port, hardware):
     if dash.callback_context.triggered[0][
             'prop_id'] == 'button-submit-snapshot.n_clicks':
-        is_valid, error = verify_token(token, key, product='snapshot')
+        is_valid, error = helpers.verify_token(token, key, product='snapshot')
         if is_valid:
             autoboot = '--restart unless-stopped' if boot else '--rm'
-            if not is_valid_port(port):
+            if not helpers.is_valid_port(port):
                 return 'Wrong port', NONE, '', None
-            if not get_image(hardware):
-                pull_docker(hardware)
+            if not helpers.get_image(hardware):
+                helpers.pull_docker(hardware)
             gpus = '--gpus all' if 'gpu' in hardware else ''
             nvidia = '--runtime nvidia' if 'jetson' in hardware else ''
             command = f'docker run {gpus} {nvidia} {autoboot} ' \
