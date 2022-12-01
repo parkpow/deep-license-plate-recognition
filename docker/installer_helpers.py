@@ -106,6 +106,8 @@ def write_config(home, config):
 
 def verify_token(token, license_key, get_license=True, product='stream'):
     path = 'stream/license' if product == 'stream' else 'sdk-webhooks'
+    if not (token and license_key):
+        return False, 'API token and license key is required.'
     try:
         req = Request('https://api.platerecognizer.com/v1/{}/{}/'.format(
             path, license_key.strip()))
