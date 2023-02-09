@@ -27,7 +27,7 @@ cd stream
 python stream_monitor.py --help
 ```
 
-Available arguments:
+Optional arguments:
 ```bash
   -c CONTAINER, --container CONTAINER
                         Stream Container Name or ID
@@ -38,6 +38,11 @@ Available arguments:
                         Interval between reading logs in seconds
   -d DURATION, --duration DURATION
                         Duration to use in considering a camera as offline in seconds
+```
+
+For example, you can start the script with:
+```bash
+python stream_monitor.py -c stream -i 30 -d 120
 ```
 
 ### 2. Calling the API endpoint
