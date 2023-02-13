@@ -31,16 +31,18 @@ import json
 app = Flask(__name__)
 
 
+def convert_to_timestamp_microseconds(time_string):
+    datetime_object = datetime.strptime(
+        time_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+    timestamp_microseconds = int(datetime_object.timestamp() * 1000000)
+    return timestamp_microseconds
+
+
 @app.route("/", methods=["GET", "POST"])
 def handle_event():
     if request.method == "GET":
         return jsonify({"error": "Method not allowed"}), 405
     else:
-        def convert_to_timestamp_microseconds(time_string):
-            datetime_object = datetime.strptime(
-                time_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-            timestamp_microseconds = int(datetime_object.timestamp() * 1000000)
-            return timestamp_microseconds
         request_data = request.form['json']
         parsed_json = json.loads(request_data)
         url = "https://ows.openeye.net/api/monitoring/integration/event"
@@ -94,7 +96,7 @@ if __name__ == "__main__":
                         help="The host IP address to bind the server to.")
     parser.add_argument("--port", type=int, default=5000,
                         help="The port number to bind the server to. (Optional - Default = 5000)")
-    parser.add_argument("--debug", type=int, default=0,
+    parser.add_argument("--debug", action="store_true",
                         help="Turn on Flask debug mode. (Optional)")
     parser.add_argument("--aki_token", type=str, required=True,
                         help="To get the AKI, in OWS you would go into Management > Integrations > Event Receiver API (Analytics) then choose API Access Keys.")
