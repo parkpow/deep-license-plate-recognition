@@ -1,24 +1,7 @@
 """
-# Install flask
-pip install Flask
-
-# Run app
-python3 file_name.py <parameter>
-
-optional parameters:
---port
---debug
-
-required parameters: 
---aki_token
---aks_token
-
-for external access
---host=0.0.0.0
-
-example:
-python3 webhook_alerts_OpenEye.py --port=8001 --debug=1 --host==0.0.0.0 --aki_token=FDCER1234 --aks_token=abcdefghijklmnopqrstuvxz
-
+# Install
+Check instructions in: 
+https://github.com/parkpow/deep-license-plate-recognition/blob/master/webhooks/README.md#integrations
 """
 
 
