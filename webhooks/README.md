@@ -77,16 +77,18 @@ docker run -e URL=http://MY_IP_ADDRESS:8001 platerecognizer/webhook-tester
 
 This project uses Stream webhooks to send license plate data to a OpenEye.
 
-To realize the integration, it is necessary that [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the stream configuration in config.ini, is equal to the parameter Camera External_ID provided by OpenEye.
-
-After modifying the config.ini, the procedures below can be executed.
+Follow the procedure below to start the webhook:
 
 **Python and Flask:**
 
-Install flask
+Install flask and requests
 
 ```bash
 pip install Flask
+```
+
+```bash
+pip install requests
 ```
 
 Start the server
@@ -111,3 +113,10 @@ Required parameters:
 For external access
 
 - --host=0.0.0.0
+
+To perform the integration realize as etapas abaixo:
+
+- Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the Camera External_ID parameter provided by OpenEye.
+- Set the parameter webhook_targets in config.ini to the host and port of your webhook.
+
+After modifying the config.ini, restarts the Stream container
