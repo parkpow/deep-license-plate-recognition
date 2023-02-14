@@ -84,4 +84,4 @@ if __name__ == "__main__":
     parser.add_argument("--aks_token", type=str, required=True,
                         help="To get the AKS, in OWS you would go into Management > I\ntegrations > Event Receiver API (Analytics) then choose API Access Keys, The AKS is normally only shown one time, when you first generate the key.")
     args = parser.parse_args()
-    app.run(host=args.host, port=args.port, debug=bool(args.debug))
+    app.run(host=args.host, port=args.port, debug=args.debug)
