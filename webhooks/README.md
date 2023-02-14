@@ -140,4 +140,4 @@ timezone = UTC
 
 The example above shows the config.ini set up with the previously running webhook and two cameras with their respective RTSP links and their External camera ID. This same configuration can be used for N_Cameras.
 
-After modifying the config.ini, restarts the Stream container
+After modifying the config.ini, restarts the Stream container.
