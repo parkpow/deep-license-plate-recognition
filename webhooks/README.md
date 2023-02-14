@@ -114,9 +114,30 @@ For external access
 
 - --host=0.0.0.0
 
-To perform the integration realize as etapas abaixo:
+To perform the integration, perform the following steps as per the config.ini example below:
 
 - Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the Camera External_ID parameter provided by OpenEye.
 - Set the parameter webhook_targets in config.ini to the host and port of your webhook.
+
+```ini
+# List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone = UTC
+
+[cameras]
+  # Full list of regions: http://docs.platerecognizer.com/#countries
+  regions = gb
+  image_format = $(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg
+
+  webhook_targets = http://192.168.5.10:5000
+
+  [[ExternalCameraId-OpenEye01]]
+    active = yes
+    url = rtsp://192.168.0.110:8080/video/h264
+  [[ExternalCameraId-OpenEye...N]]
+    active = yes
+    url = rtsp://192.168.0.120:8080/video/h264
+```
+
+The example above shows the config.ini set up with the previously running webhook and two cameras with their respective RTSP links and their External camera ID. This same configuration can be used for N_Cameras.
 
 After modifying the config.ini, restarts the Stream container
