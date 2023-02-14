@@ -114,7 +114,7 @@ For external access
 
 - --host=0.0.0.0
 
-To perform the integration realize as etapas abaixo:
+Next, configure and start Stream:
 
 - Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the Camera External_ID parameter provided by OpenEye.
 - Set the parameter webhook_targets in config.ini to the host and port of your webhook.
