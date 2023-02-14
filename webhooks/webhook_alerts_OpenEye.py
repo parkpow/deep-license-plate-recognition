@@ -61,15 +61,13 @@ def handle_event():
             'Content-Type': 'application/json',
         }
 
-        response = requests.request("POST", url, headers=headers, data=payload)
-
-        if response.status_code == 202:
-            print(response.status_code)
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
             return jsonify({"sucessus": "request sent"}), response.status_code
-        else:
-            print(response.status_code)
-            print(json.loads(response.text))
-            return jsonify(response.text), response.status_code
+        except requests.exceptions.HTTPError as err:
+            print(err)
+            raise SystemExit(err)
 
 
 if __name__ == "__main__":
