@@ -93,7 +93,7 @@ pip install requests
 
 Start the server
 ```bash
-python3 webhook_alerts_OpenEye.py --port=8001 --debug --host==0.0.0.0 --aki_token=abcdefg --aks_token=abcdefghijklmnopqrstuvxz
+python3 webhook_alerts_OpenEye.py --port=5000 --host==0.0.0.0 --aki_token=abcdefg --aks_token=abcdefghijklmnopqrstuvxz
 ```
 
 Optional parameters:
