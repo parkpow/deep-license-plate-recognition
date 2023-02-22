@@ -23,23 +23,26 @@ Use the Snapshot SDK instead of the Cloud Api:
   python plate_recognition.py -s http://localhost:8080 /path/to/vehicle-*.jpg
 Specify Camera ID and/or two Regions:
   plate_recognition.py -a MY_API_KEY --camera-id Camera1 -r us-ca -r th-37 /path/to/vehicle-*.jpg""",
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument('-a', '--api-key', help='Your API key.', required=False)
     parser.add_argument(
         '-r',
         '--regions',
         help='Match the license plate pattern of a specific region',
         required=False,
-        action="append")
+        action="append",
+    )
     parser.add_argument(
         '-s',
         '--sdk-url',
         help="Url to self hosted sdk  For example, http://localhost:8080",
-        required=False)
+        required=False,
+    )
     parser.add_argument('--camera-id',
                         help="Name of the source camera.",
                         required=False)
-    parser.add_argument('files', nargs='+', help='Path to vehicle images')
+    parser.add_argument('files', nargs='+', type=Path, help='Path to vehicle images')
     args_hook(parser)
     args = parser.parse_args()
     if not args.sdk_url and not args.api_key:
@@ -76,7 +79,8 @@ def recognition_api(fp,
                 files=dict(image=fp),
                 headers={
                     'Authorization': 'Token ' + api_key,
-                })
+                },
+            )
         else:
             response = requests.post(sdk_url + '/v1/plate-reader/',
                                      files=dict(upload=fp),
@@ -90,7 +94,8 @@ def recognition_api(fp,
             response = _session.post(
                 'https://api.platerecognizer.com/v1/plate-reader/',
                 files=dict(upload=fp),
-                data=data)
+                data=data,
+            )
             if response.status_code == 429:  # Max calls per second reached
                 time.sleep(1)
             else:
@@ -132,8 +137,37 @@ def flatten(result):
     return data
 
 
+def save_cropped(api_res, path, args):
+    from PIL import Image
+
+    dest = args.crop_lp or args.crop_vehicle
+    dest.mkdir(exist_ok=True, parents=True)
+    image = Image.open(path)
+    for result in api_res.get('results', []):
+        if args.crop_lp and result['plate']:
+            box = result['box']
+            cropped = image.crop(
+                (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
+            cropped.save(
+                dest /
+                f'{result["plate"]}_{result["region"]["code"]}_{path.name}'
+            )
+        if args.crop_vehicle and result['vehicle']['score']:
+            box = result['vehicle']['box']
+            cropped = image.crop(
+                (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
+            make_model = result.get('model_make', [None])[0]
+            filename = f'{result["vehicle"]["type"]}_{path.name}'
+            if make_model:
+                filename = f'{make_model["make"]}_{make_model["model"]}_' + filename
+            cropped.save(
+                dest /
+                filename
+            )
+
+
 def save_results(results, args):
-    path = Path(args.output_file)
+    path = args.output_file
     if not path.parent.exists():
         print('%s does not exist' % path)
         return
@@ -165,15 +199,27 @@ Enable Make Model and Color prediction:
   plate_recognition.py -a MY_API_KEY --mmc /path/to/vehicle-*.jpg"""
 
     parser.add_argument('--engine-config', help='Engine configuration.')
-    parser.add_argument('-o', '--output-file', help='Save result to file.')
-    parser.add_argument('--format',
-                        help='Format of the result.',
-                        default='json',
-                        choices='json csv'.split())
+    parser.add_argument('--crop-lp',
+                        type=Path,
+                        help='Save cropped license plates to folder.')
+    parser.add_argument('--crop-vehicle',
+                        type=Path,
+                        help='Save cropped vehicles to folder.')
+    parser.add_argument('-o',
+                        '--output-file',
+                        type=Path,
+                        help='Save result to file.')
+    parser.add_argument(
+        '--format',
+        help='Format of the result.',
+        default='json',
+        choices='json csv'.split(),
+    )
     parser.add_argument(
         '--mmc',
         action='store_true',
-        help='Predict vehicle make and model. Only available to paying users.')
+        help='Predict vehicle make and model. Only available to paying users.',
+    )
 
 
 def main():
@@ -191,15 +237,19 @@ def main():
 
     for path in paths:
         with open(path, 'rb') as fp:
-            api_res = recognition_api(fp,
-                                      args.regions,
-                                      args.api_key,
-                                      args.sdk_url,
-                                      config=engine_config,
-                                      camera_id=args.camera_id,
-                                      mmc=args.mmc)
+            api_res = recognition_api(
+                fp,
+                args.regions,
+                args.api_key,
+                args.sdk_url,
+                config=engine_config,
+                camera_id=args.camera_id,
+                mmc=args.mmc,
+            )
 
         results.append(api_res)
+        if args.crop_lp or args.crop_vehicle:
+            save_cropped(api_res, path, args)
     if args.output_file:
         save_results(results, args)
     else:
