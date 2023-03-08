@@ -9,6 +9,9 @@ import requests
 from requests.auth import HTTPDigestAuth
 import argparse
 from functools import partial
+import urllib3
+
+urllib3.disable_warnings()
 
 
 LOG_LEVEL = os.environ.get('LOGGING', 'INFO').upper()
@@ -24,24 +27,19 @@ lgr = logging.getLogger(__name__)
 
 
 def notify_nx(username, password, vms_api, camera_uid, source, description, timestamp):
-    lgr.debug(f'Notify NX Source: {source}, Description: {description}, timestamp: {timestamp}')
+    lgr.debug(
+        f'Notify NX Source: {source}, Description: {description}, timestamp: {timestamp}')
     endpoint = '/api/createEvent'
-    metadata = json.dumps({
-        'cameraRefs': [
-            camera_uid
-        ]
-    }, separators=(',', ':'))
 
     try:
         res = requests.get(
             vms_api + endpoint,
             params={
-                'timestamp': timestamp,
-                'source': source,
-                'caption': 'New Plate Detection',
-                'metadata': metadata,
-                'description': description,
-                'state': 'InActive'
+                "timestamp": timestamp,
+                "source": source,
+                "caption": "New Plate Detection",
+                "metadata": "{\"cameraRefs\":[\"" + camera_uid + "\"]}",
+                "description": description,
             },
             auth=HTTPDigestAuth(username, password),
             verify=False
@@ -106,21 +104,25 @@ class RequestHandler(BaseHTTPRequestHandler):
             break
 
         if plate is not None:
-            notify_nx(self.username, self.password, self.vms, self.camera, camera_id, plate, timestamp)
+            notify_nx(self.username, self.password, self.vms,
+                      self.camera, camera_id, plate, timestamp)
 
         self.wfile.write(b'OK')
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Forward Stream Webhook Events to NX VMS as Alerts.')
+    parser = argparse.ArgumentParser(
+        description='Forward Stream Webhook Events to NX VMS as Alerts.')
     parser.add_argument('--username', help='NX VMS Username.', required=True)
     parser.add_argument('--password', help='NX VMS Password.', required=True)
     parser.add_argument('--vms', help='VMS API Endpoint.', required=True)
-    parser.add_argument('--camera', help='UID of Camera used as Source of Alerts.', required=True)
+    parser.add_argument(
+        '--camera', help='UID of Camera used as Source of Alerts.', required=True)
 
     args = parser.parse_args()
 
-    handler = partial(RequestHandler, args.username, args.password, args.vms, args.camera)
+    handler = partial(RequestHandler, args.username,
+                      args.password, args.vms, args.camera)
     server = HTTPServer(('', 8001), handler)
     lgr.info('Starting Webhook Receiver Server, use <Ctrl-C> to stop')
     server.serve_forever()
