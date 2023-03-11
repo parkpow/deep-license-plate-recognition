@@ -10,6 +10,8 @@ import requests
 from flask import Flask, request, jsonify
 from datetime import datetime
 import json
+import os
+import sys
 
 app = Flask(__name__)
 
@@ -26,6 +28,7 @@ def handle_event():
     if request.method == "GET":
         return jsonify({"error": "Method not allowed"}), 405
     else:
+
         request_data = request.form['json']
         parsed_json = json.loads(request_data)
         url = "https://ows.openeye.net/api/monitoring/integration/event"
@@ -57,7 +60,7 @@ def handle_event():
         })
 
         headers = {
-            'Authorization': '!EXT-INTEGRATOR AKI={},AKS={}'.format(args.aki_token, args.aks_token),
+            'Authorization': '!EXT-INTEGRATOR AKI={},AKS={}'.format(aki_token, aks_token),
             'Content-Type': 'application/json',
         }
 
@@ -79,9 +82,18 @@ if __name__ == "__main__":
                         help="The port number to bind the server to. (Optional - Default = 5000)")
     parser.add_argument("--debug", action="store_true",
                         help="Turn on Flask debug mode. (Optional)")
-    parser.add_argument("--aki_token", type=str, required=True,
+    parser.add_argument("--aki_token", type=str,
                         help="To get the AKI, in OWS you would go into Management > Integrations > Event Receiver API (Analytics) then choose API Access Keys.")
-    parser.add_argument("--aks_token", type=str, required=True,
+    parser.add_argument("--aks_token", type=str,
                         help="To get the AKS, in OWS you would go into Management > I\ntegrations > Event Receiver API (Analytics) then choose API Access Keys, The AKS is normally only shown one time, when you first generate the key.")
     args = parser.parse_args()
-    app.run(host=args.host, port=args.port, debug=args.debug)
+
+    aki_token = os.getenv("AKI_TOKEN", args.aki_token)
+    aks_token = os.getenv("AKS_TOKEN", args.aks_token)
+
+    if aki_token is None or aks_token is None:
+        print(
+            'Variables AKI_TOKEN and AKS_TOKEN are required.')
+        sys.exit(1)
+    app.run(host=args.host, port=args.port,
+            debug=os.getenv("DEBUG", args.debug))

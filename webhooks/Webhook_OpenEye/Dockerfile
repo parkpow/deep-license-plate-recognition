@@ -15,5 +15,5 @@ RUN pip install -r requirements.txt
 # Copy source code
 COPY . /app/
 
-CMD [ "python3", "main.py", "--host", "0.0.0.0", "--aki_token", "${AKI_TOKEN}", "--aks_token", "${AKS_TOKEN}" ]
+CMD [ "python3", "main.py", "--host", "0.0.0.0" ]
 
