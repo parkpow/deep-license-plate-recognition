@@ -26,6 +26,7 @@ a = Analysis(  # noqa
     datas=[(site_packages + 'dash_core_components/', 'dash_core_components'),
            (site_packages + 'dash_html_components/', 'dash_html_components'),
            (site_packages + 'dash_renderer/', 'dash_renderer'),
+           (site_packages + 'dash/', 'dash'),
            (site_packages + 'dash_bootstrap_components/',
             'dash_bootstrap_components'),
             ('assets', 'assets')],
