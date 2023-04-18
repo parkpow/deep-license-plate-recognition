@@ -895,7 +895,7 @@ if __name__ == '__main__':
     if args.debug:
         app.run_server(debug=True, host='0.0.0.0')
     else:
-        webbrowser.open('http://127.0.0.1:8051/')
+        webbrowser.open('http://127.0.0.1:8050/')
 
         # Update log levels
         app.logger.setLevel(logging.ERROR)
@@ -907,5 +907,4 @@ if __name__ == '__main__':
         # Start server
         app.run_server(debug=False,
                        host='0.0.0.0',
-                       port=8051,
                        dev_tools_silence_routes_logging=True)
