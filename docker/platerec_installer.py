@@ -10,9 +10,7 @@ import installer_helpers as helpers
 
 import dash
 import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output, State
+from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 
 SHARE_LINK = 'https://guides.platerecognizer.com/docs/stream/manual-install#step-2'
@@ -50,7 +48,7 @@ def get_splash_screen():
             dbc.Button('Snapshot',
                        size='lg',
                        id='button-choose-snapshot',
-                       className='ml-3'),
+                       class_name='ms-3'),
         ],
                  className='splash')
     ],
@@ -81,7 +79,7 @@ def get_refresh(product):
             html.A('Resource File Sharing', href=SHARE_LINK, target='_blank'),
             " and the click “Apply & Restart”."
         ]
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label(docker_info,
                   id=f'info-docker-{product}',
                   html_for=f'refresh-docker-{product}',
@@ -98,13 +96,12 @@ def get_refresh(product):
             'Refresh', color='secondary', id=f'refresh-docker-{product}'),
                 width=4),
     ],
-                         row=True,
-                         style=BLOCK,
-                         id=f'refresh-{product}')
+                   style=BLOCK,
+                   id=f'refresh-{product}')
 
 
 def get_update(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Col([
             dbc.Button(
                 'Update', color='secondary', id=f'update-image-{product}'),
@@ -114,18 +111,19 @@ def get_update(product):
         ],
                 width=1),
         dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-update-{product}')),
+                    children=html.Div(id=f'loading-update-{product}'),
+                    parent_className='col-auto'),
         dbc.Label('Update the Docker image.',
                   html_for=f'update-image-{product}',
-                  width=11),
+                  className='col-auto align-self-center'),
     ],
-                         row=True,
-                         style=NONE,
-                         id=f'update-{product}')
+                   style=NONE,
+                   id=f'update-{product}',
+                   class_name='mb-3')
 
 
 def get_uninstall(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Col([
             dbc.Button(
                 'Uninstall', color='danger', id=f'uninstall-image-{product}'),
@@ -150,20 +148,21 @@ def get_uninstall(product):
         ],
                 width=1),
         dcc.Loading(type='circle',
-                    children=html.Div(id=f'loading-uninstall-{product}')),
+                    children=html.Div(id=f'loading-uninstall-{product}',),
+                    parent_className='col-auto'),
         dbc.Label(
             'Remove the Docker image and mark the product as uninstalled.',
             html_for=f'uninstall-image-{product}',
-            width=11),
+            className='col-auto align-self-center'),
     ],
-                         row=True,
-                         style=NONE,
-                         id=f'uninstall-{product}')
+                   style=NONE,
+                   id=f'uninstall-{product}',
+                   class_name='mb-3')
 
 
 def get_token(product):
     link = STREAM_PLAN_LINK if product == 'stream' else SDK_PLAN_LINK
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label([
             'Please enter your Plate Recognizer ',
             html.A('API Token', href=link, target='_blank'), ':'
@@ -178,12 +177,12 @@ def get_token(product):
             width=4,
         ),
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_license_key(product):
     link = STREAM_PLAN_LINK if product == 'stream' else SDK_PLAN_LINK
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label([
             'Please enter your ',
             html.A(f'{product.capitalize()} License Key',
@@ -200,11 +199,11 @@ def get_license_key(product):
             width=4,
         ),
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_directory(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label(
             f'Path to your {product.capitalize()} installation directory:',
             html_for=f'input-home-{product}',
@@ -216,11 +215,11 @@ def get_directory(product):
                           persistence=True),
                 width=4),
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_boot(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label([
             f'Do you want {product.capitalize()} to automatically start on system startup?'
         ],
@@ -230,11 +229,11 @@ def get_boot(product):
                              className='align-bottom'),
                 width=4)
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_port(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label(['Set the container port (default is 8080):'],
                   html_for=f'input-port-{product}',
                   width=7),
@@ -247,11 +246,11 @@ def get_port(product):
             width=4,
         ),
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_hardware_dropdown(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label('Docker image to use:',
                   html_for=f'dropdown-hardware-{product}',
                   width=7),
@@ -290,12 +289,11 @@ def get_hardware_dropdown(product):
             width=4,
         ),
     ],
-                         className='mb-3',
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_video_checkbox(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label([f'Use {product.capitalize()} on a local video file.'],
                   html_for=f'check-video-{product}',
                   width=7),
@@ -304,11 +302,11 @@ def get_video_checkbox(product):
                              persistence=True),
                 width=4)
     ],
-                         row=True)
+                   class_name='mb-3')
 
 
 def get_video_picker(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Label([
             f'Select a video file. If it is not inside your {product.capitalize()} folder, we will copy it there. Big files (~400Mb) may slow down your system.'
         ],
@@ -321,7 +319,7 @@ def get_video_picker(product):
                 dcc.Upload([
                     dbc.Button('Upload File'),
                     html.Span(
-                        '', id=f'span-videopath-{product}', className='ml-2')
+                        '', id=f'span-videopath-{product}', className='me-2')
                 ],
                            id=f'pickup-video-{product}',
                            accept='video/*'),
@@ -329,8 +327,8 @@ def get_video_picker(product):
             width=4,
         ),
     ],
-                         id=f'pickup-{product}',
-                         row=True)
+                   id=f'pickup-{product}',
+                   class_name='mb-3')
 
 
 def get_config_label(product):
@@ -342,7 +340,8 @@ def get_config_label(product):
 
 
 def get_config_body(product):
-    return dbc.Textarea(bs_size='sm',
+    return dbc.Textarea(size='sm',
+                        class_name="mb-3",
                         id=f'area-config-{product}',
                         style={
                             'width': WIDTH,
@@ -380,7 +379,7 @@ def get_success_card(product):
                         className='btn btn-sm btn-warning',
                         style={'borderRadius': '15px'}),
             html.Span(id=f'copy-status-{product}',
-                      className='ml-2',
+                      className='ms-2',
                       style={
                           'fontSize': '13px',
                           'color': 'green'
@@ -392,7 +391,7 @@ def get_success_card(product):
 
 
 def get_continue(product):
-    return dbc.FormGroup([
+    return dbc.Row([
         dbc.Col([
             dbc.Button('Show Docker Command',
                        color='primary',
@@ -401,10 +400,9 @@ def get_continue(product):
                 width=1),
         dbc.Label('Confirm settings and show docker command.',
                   html_for=f'button-submit-{product}',
-                  width=11),
+                  className='col-auto align-self-center'),
     ],
-                         row=True,
-                         className='mt-3')
+                   class_name='mt-3 mb-3')
 
 
 def get_loading_submit(product):
@@ -440,7 +438,7 @@ app.layout = dbc.Container([
         dbc.Tab([
             dbc.Form([
                 get_refresh(STREAM),
-            ], className='mt-3'),
+            ], class_name='mt-3'),
             dbc.Form([
                 get_token(STREAM),
                 get_license_key(STREAM),
@@ -450,7 +448,7 @@ app.layout = dbc.Container([
                 get_video_picker(STREAM),
             ],
                      style=NONE,
-                     className='mt-3',
+                     class_name='mt-3',
                      id=f'form-{STREAM}'),
             html.Div([
                 get_config_label(STREAM),
@@ -479,7 +477,7 @@ app.layout = dbc.Container([
         dbc.Tab([
             dbc.Form([
                 get_refresh(SNAPSHOT),
-            ], className='mt-3'),
+            ], class_name='mt-3'),
             dbc.Form([
                 get_token(SNAPSHOT),
                 get_license_key(SNAPSHOT),
@@ -488,7 +486,7 @@ app.layout = dbc.Container([
                 get_hardware_dropdown(SNAPSHOT),
             ],
                      style=NONE,
-                     className='mt-3',
+                     class_name='mt-3',
                      id=f'form-{SNAPSHOT}'),
             html.Div([
                 get_status(SNAPSHOT),
@@ -516,7 +514,7 @@ app.layout = dbc.Container([
              id='tabs',
              active_tab=STREAM,
              style={'width': '84%'},
-             className='offset-md-1 justify-content-center'),
+             class_name='offset-md-1 justify-content-center'),
 ])
 
 
