@@ -584,7 +584,7 @@ def refresh_docker_snapshot(n_clicks, hardware, uninstall):
 @app.callback([
     Output('pickup-stream', 'style'),
 ], [
-    Input('check-video-stream', 'checked'),
+    Input('check-video-stream', 'value'),
 ])
 def select_video(checked):
     if checked:
@@ -755,7 +755,7 @@ def uninstall_snapshot(n_clicks, hardware, token, key):
 @app.callback(Output('area-config-stream', 'value'), [
     Input('input-home-stream', 'value'),
     Input('pickup-video-stream', 'filename'),
-    State('check-video-stream', 'checked'),
+    State('check-video-stream', 'value'),
 ])
 def change_path(home, videofile, videocheck):
     config = helpers.read_config(home)
@@ -776,10 +776,10 @@ def change_path(home, videofile, videocheck):
     Input('input-token-stream', 'value'),
     Input('input-key-stream', 'value'),
     Input('input-home-stream', 'value'),
-    Input('check-boot-stream', 'checked'),
+    Input('check-boot-stream', 'value'),
     State('pickup-video-stream', 'contents'),
     State('pickup-video-stream', 'filename'),
-    State('check-video-stream', 'checked'),
+    State('check-video-stream', 'value'),
 ])
 def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
                   videofile, videocheck):
@@ -831,7 +831,7 @@ def submit_stream(config, n_clicks, token, key, home, boot, videocontent,
     Input('button-submit-snapshot', 'n_clicks'),
     Input('input-token-snapshot', 'value'),
     Input('input-key-snapshot', 'value'),
-    Input('check-boot-snapshot', 'checked'),
+    Input('check-boot-snapshot', 'value'),
     Input('input-port-snapshot', 'value'),
     Input('dropdown-hardware-snapshot', 'value'),
 ])
