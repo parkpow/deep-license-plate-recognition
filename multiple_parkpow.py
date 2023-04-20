@@ -69,9 +69,9 @@ def handle_event():
 
             return response.content, response.status_code
 
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred in the request: {e}")
-            return None, response.status_code
+        except requests.exceptions.HTTPError as err:
+            print(err)
+            return jsonify({"error": "An error occurred in the request"}), err.response.status_code
 
 
 if __name__ == "__main__":
