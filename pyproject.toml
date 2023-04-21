@@ -5,7 +5,6 @@ description = ""
 authors = ["Marc Belmont"]
 
 [tool.poetry.dependencies]
-flask = "2.2.2"
 python = "^3.8"
 Pillow = "^9.0"
 requests = "^2.23.0"
