@@ -143,7 +143,7 @@ def save_cropped(api_res, path, args):
     dest = args.crop_lp or args.crop_vehicle
     dest.mkdir(exist_ok=True, parents=True)
     image = Image.open(path)
-    for result in api_res.get('results', []):
+    for i, result in enumerate(api_res.get('results', []), 1):
         if args.crop_lp and result['plate']:
             box = result['box']
             cropped = image.crop(
@@ -157,7 +157,7 @@ def save_cropped(api_res, path, args):
             cropped = image.crop(
                 (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             make_model = result.get('model_make', [None])[0]
-            filename = f'{result["vehicle"]["type"]}_{path.name}'
+            filename = f'{i}_{result["vehicle"]["type"]}_{path.name}'
             if make_model:
                 filename = f'{make_model["make"]}_{make_model["model"]}_' + filename
             cropped.save(
