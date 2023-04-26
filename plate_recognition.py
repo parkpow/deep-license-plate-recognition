@@ -10,6 +10,8 @@ from collections import OrderedDict
 from pathlib import Path
 
 import requests
+from PIL import Image, ImageDraw, ImageFont
+import math
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -42,7 +44,10 @@ Specify Camera ID and/or two Regions:
     parser.add_argument('--camera-id',
                         help="Name of the source camera.",
                         required=False)
-    parser.add_argument('files', nargs='+', type=Path, help='Path to vehicle images')
+    parser.add_argument('files',
+                        nargs='+',
+                        type=Path,
+                        help='Path to vehicle images')
     args_hook(parser)
     args = parser.parse_args()
     if not args.sdk_url and not args.api_key:
@@ -54,14 +59,18 @@ _session = None
 
 
 def recognition_api(fp,
-                    regions=[],
+                    regions=None,
                     api_key=None,
                     sdk_url=None,
-                    config={},
+                    config=None,
                     camera_id=None,
                     timestamp=None,
                     mmc=None,
                     exit_on_error=True):
+    if regions is None:
+        regions = []
+    if config is None:
+        config = {}
     global _session
     data = dict(regions=regions, config=json.dumps(config))
     if camera_id:
@@ -138,8 +147,6 @@ def flatten(result):
 
 
 def save_cropped(api_res, path, args):
-    from PIL import Image
-
     dest = args.crop_lp or args.crop_vehicle
     dest.mkdir(exist_ok=True, parents=True)
     image = Image.open(path)
@@ -150,8 +157,7 @@ def save_cropped(api_res, path, args):
                 (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             cropped.save(
                 dest /
-                f'{result["plate"]}_{result["region"]["code"]}_{path.name}'
-            )
+                f'{result["plate"]}_{result["region"]["code"]}_{path.name}')
         if args.crop_vehicle and result['vehicle']['score']:
             box = result['vehicle']['box']
             cropped = image.crop(
@@ -160,10 +166,7 @@ def save_cropped(api_res, path, args):
             filename = f'{i}_{result["vehicle"]["type"]}_{path.name}'
             if make_model:
                 filename = f'{make_model["make"]}_{make_model["model"]}_' + filename
-            cropped.save(
-                dest /
-                filename
-            )
+            cropped.save(dest / filename)
 
 
 def save_results(results, args):
@@ -220,6 +223,52 @@ Enable Make Model and Color prediction:
         action='store_true',
         help='Predict vehicle make and model. Only available to paying users.',
     )
+    parser.add_argument(
+        '--show-boxes',
+        action='store_true',
+        help=
+        'Draw bounding boxes around license plates and display the resulting image.'
+    )
+
+
+def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
+    draw = ImageDraw.Draw(im)
+    font_path = Path('assets/DejaVuSansMono.ttf')
+    if font_path.exists():
+        font = ImageFont.truetype(str(font_path), 10)
+    else:
+        font = ImageFont.load_default()
+    rect_color = (0, 255, 0)
+    for result in data:
+        b = result['box']
+        coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
+        draw.rectangle(coord, outline=rect_color)
+        draw.rectangle(((coord[0][0] - 1, coord[0][1] - 1),
+                        (coord[1][0] - 1, coord[1][1] - 1)),
+                       outline=rect_color)
+        draw.rectangle(((coord[0][0] - 2, coord[0][1] - 2),
+                        (coord[1][0] - 2, coord[1][1] - 2)),
+                       outline=rect_color)
+        if text_func:
+            text = text_func(result)
+            text_width, text_height = font.getsize(text)
+            margin = math.ceil(0.05 * text_height)
+            draw.rectangle(
+                [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
+                 (b['xmin'] + text_width + 2 * margin, b['ymin'])],
+                fill='white')
+            draw.text((b['xmin'] + margin, b['ymin'] - text_height - margin),
+                      text,
+                      fill='black',
+                      font=font)
+
+    if new_size:
+        im = im.resize(new_size)
+    return im
+
+
+def text_function(result):
+    return result['plate']
 
 
 def main():
@@ -246,6 +295,10 @@ def main():
                 camera_id=args.camera_id,
                 mmc=args.mmc,
             )
+
+        if args.show_boxes and 'results' in api_res:
+            image = Image.open(path)
+            draw_bb(image, api_res['results'], None, text_function).show()
 
         results.append(api_res)
         if args.crop_lp or args.crop_vehicle:
