@@ -11,6 +11,10 @@ python3 file_name.py
 import requests
 from flask import Flask, request, jsonify
 import json
+import logging
+
+logging.basicConfig(format='%(message)s', level=logging.INFO)
+
 
 app = Flask(__name__)
 
@@ -52,6 +56,10 @@ def handle_event():
 
         if not camera_id:
             return jsonify({'error': 'Camera_id not submitted'}), 400
+        
+        if camera_id not in set_parkpow:
+            logging.error("camera_id not found in set_parkpow")
+            return jsonify({'error': 'camera_id not found in set_parkpow'}), 400
 
         headers = {
             'Authorization': f'Token {set_parkpow[camera_id]["token"]}',
@@ -70,7 +78,7 @@ def handle_event():
             return response.content, response.status_code
 
         except requests.exceptions.HTTPError as err:
-            print(err)
+            logging.error(err)
             return jsonify({"error": "An error occurred in the request"}), err.response.status_code
 
 
