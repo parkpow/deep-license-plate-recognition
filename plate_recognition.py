@@ -229,6 +229,12 @@ Enable Make Model and Color prediction:
         help=
         'Draw bounding boxes around license plates and display the resulting image.'
     )
+    parser.add_argument(
+        '--annotate-images',
+        action='store_true',
+        help=
+        'Draw bounding boxes around license plates and save the resulting image.'
+    )
 
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
@@ -296,9 +302,15 @@ def main():
                 mmc=args.mmc,
             )
 
-        if args.show_boxes and 'results' in api_res:
+        if (args.show_boxes or args.annotate_images) and 'results' in api_res:
             image = Image.open(path)
-            draw_bb(image, api_res['results'], None, text_function).show()
+            annotated_image = draw_bb(image, api_res['results'], None,
+                                      text_function)
+            if args.show_boxes:
+                annotated_image.show()
+            if args.annotate_images:
+                annotated_image.save(
+                    path.with_name(f'{path.stem}_annotated{path.suffix}'))
 
         results.append(api_res)
         if args.crop_lp or args.crop_vehicle:
