@@ -14,7 +14,7 @@ flask = "^2.3.2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.2.0"
-pytest = "^5.4"
+pytest = "^7.3.1"
 hypothesis = "*"
 flake8 = "*"
 yapf = "==0.27"
