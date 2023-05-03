@@ -12,6 +12,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print('Stopping...')
     except Exception as e:
-        print('--> An error occured:')
+        print('--> An error occurred:')
         print(e)
         print('--> The webhook failed.')

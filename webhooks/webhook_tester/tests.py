@@ -92,7 +92,7 @@ class TestWebhookTester:
         tester = WebhookTester("https://example.com")
         tester.execute()
         captured = capsys.readouterr()
-        assert "Status Code: 201" in captured.out
+        assert "Status code: 201" in captured.out
 
     @mock.patch.object(requests, "get")
     @mock.patch.object(requests, "post")
