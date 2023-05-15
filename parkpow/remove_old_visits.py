@@ -168,10 +168,11 @@ if __name__ == "__main__":
 
             estimated_count = visits["estimated_count"]
             print(f"{estimated_count} visits to be deleted...")
+            visits_list.reverse() #oldest
             for visit in visits_list:
                 id = visit["id"]
                 start_date = visit["start_date"]
-                print(f"Deleting visit {id}, date-time: {start_date}...")
+                print(f"Deleting visit {id}, date-time: {start_date}")
                 delete_visit(cli_args.api_url, cli_args.token, visit["id"])
             print('Completed!')
         else:
