@@ -5,19 +5,19 @@ import argparse
 import collections
 import csv
 import json
+import math
 import time
 from collections import OrderedDict
 from pathlib import Path
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
-import math
 
 
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
         description=
-        'Read license plates from images and output the result as JSON or CSV.',
+        "Read license plates from images and output the result as JSON or CSV.",
         epilog="""Examples:
 Process images from a folder:
   python plate_recognition.py -a MY_API_KEY /path/to/vehicle-*.jpg
@@ -27,46 +27,48 @@ Specify Camera ID and/or two Regions:
   plate_recognition.py -a MY_API_KEY --camera-id Camera1 -r us-ca -r th-37 /path/to/vehicle-*.jpg""",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument('-a', '--api-key', help='Your API key.', required=False)
+    parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
     parser.add_argument(
-        '-r',
-        '--regions',
-        help='Match the license plate pattern of a specific region',
+        "-r",
+        "--regions",
+        help="Match the license plate pattern of a specific region",
         required=False,
         action="append",
     )
     parser.add_argument(
-        '-s',
-        '--sdk-url',
+        "-s",
+        "--sdk-url",
         help="Url to self hosted sdk  For example, http://localhost:8080",
         required=False,
     )
-    parser.add_argument('--camera-id',
+    parser.add_argument("--camera-id",
                         help="Name of the source camera.",
                         required=False)
-    parser.add_argument('files',
-                        nargs='+',
+    parser.add_argument("files",
+                        nargs="+",
                         type=Path,
-                        help='Path to vehicle images')
+                        help="Path to vehicle images")
     args_hook(parser)
     args = parser.parse_args()
     if not args.sdk_url and not args.api_key:
-        raise Exception('api-key is required')
+        raise Exception("api-key is required")
     return args
 
 
 _session = None
 
 
-def recognition_api(fp,
-                    regions=None,
-                    api_key=None,
-                    sdk_url=None,
-                    config=None,
-                    camera_id=None,
-                    timestamp=None,
-                    mmc=None,
-                    exit_on_error=True):
+def recognition_api(
+        fp,
+        regions=[],
+        api_key=None,
+        sdk_url=None,
+        config={},
+        camera_id=None,
+        timestamp=None,
+        mmc=None,
+        exit_on_error=True,
+):
     if regions is None:
         regions = []
     if config is None:
@@ -74,34 +76,34 @@ def recognition_api(fp,
     global _session
     data = dict(regions=regions, config=json.dumps(config))
     if camera_id:
-        data['camera_id'] = camera_id
+        data["camera_id"] = camera_id
     if mmc:
-        data['mmc'] = mmc
+        data["mmc"] = mmc
     if timestamp:
-        data['timestamp'] = timestamp
+        data["timestamp"] = timestamp
     response = None
     if sdk_url:
         fp.seek(0)
-        if 'container-api' in sdk_url:
+        if "container-api" in sdk_url:
             response = requests.post(
-                'https://container-api.parkpow.com/api/v1/predict/',
+                "https://container-api.parkpow.com/api/v1/predict/",
                 files=dict(image=fp),
                 headers={
-                    'Authorization': 'Token ' + api_key,
+                    "Authorization": "Token " + api_key,
                 },
             )
         else:
-            response = requests.post(sdk_url + '/v1/plate-reader/',
+            response = requests.post(sdk_url + "/v1/plate-reader/",
                                      files=dict(upload=fp),
                                      data=data)
     else:
         if not _session:
             _session = requests.Session()
-            _session.headers.update({'Authorization': 'Token ' + api_key})
+            _session.headers.update({"Authorization": "Token " + api_key})
         for _ in range(3):
             fp.seek(0)
             response = _session.post(
-                'https://api.platerecognizer.com/v1/plate-reader/',
+                "https://api.platerecognizer.com/v1/plate-reader/",
                 files=dict(upload=fp),
                 data=data,
             )
@@ -119,7 +121,7 @@ def recognition_api(fp,
     return response.json(object_pairs_hook=OrderedDict)
 
 
-def flatten_dict(d, parent_key='', sep='_'):
+def flatten_dict(d, parent_key="", sep="_"):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -134,10 +136,10 @@ def flatten_dict(d, parent_key='', sep='_'):
 
 
 def flatten(result):
-    plates = result['results']
-    del result['results']
-    if 'usage' in result:
-        del result['usage']
+    plates = result["results"]
+    del result["results"]
+    if "usage" in result:
+        del result["usage"]
     if not plates:
         return result
     for plate in plates:
@@ -149,20 +151,20 @@ def flatten(result):
 def save_cropped(api_res, path, args):
     dest = args.crop_lp or args.crop_vehicle
     dest.mkdir(exist_ok=True, parents=True)
-    image = Image.open(path)
-    for i, result in enumerate(api_res.get('results', []), 1):
-        if args.crop_lp and result['plate']:
-            box = result['box']
+    image = Image.open(path).convert("RGB")
+    for i, result in enumerate(api_res.get("results", []), 1):
+        if args.crop_lp and result["plate"]:
+            box = result["box"]
             cropped = image.crop(
                 (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             cropped.save(
                 dest /
                 f'{result["plate"]}_{result["region"]["code"]}_{path.name}')
-        if args.crop_vehicle and result['vehicle']['score']:
-            box = result['vehicle']['box']
+        if args.crop_vehicle and result["vehicle"]["score"]:
+            box = result["vehicle"]["box"]
             cropped = image.crop(
                 (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
-            make_model = result.get('model_make', [None])[0]
+            make_model = result.get("model_make", [None])[0]
             filename = f'{i}_{result["vehicle"]["type"]}_{path.name}'
             if make_model:
                 filename = f'{make_model["make"]}_{make_model["model"]}_' + filename
@@ -172,20 +174,20 @@ def save_cropped(api_res, path, args):
 def save_results(results, args):
     path = args.output_file
     if not path.parent.exists():
-        print('%s does not exist' % path)
+        print("%s does not exist" % path)
         return
     if not results:
         return
-    if args.format == 'json':
-        with open(path, 'w') as fp:
+    if args.format == "json":
+        with open(path, "w") as fp:
             json.dump(results, fp)
-    elif args.format == 'csv':
+    elif args.format == "csv":
         fieldnames = []
         for result in results[:10]:
             candidate = flatten(result.copy()).keys()
             if len(fieldnames) < len(candidate):
                 fieldnames = candidate
-        with open(path, 'w') as fp:
+        with open(path, "w") as fp:
             writer = csv.DictWriter(fp, fieldnames=fieldnames)
             writer.writeheader()
             for result in results:
@@ -201,39 +203,39 @@ Specify an output file and format for the results:
 Enable Make Model and Color prediction:
   plate_recognition.py -a MY_API_KEY --mmc /path/to/vehicle-*.jpg"""
 
-    parser.add_argument('--engine-config', help='Engine configuration.')
-    parser.add_argument('--crop-lp',
+    parser.add_argument("--engine-config", help="Engine configuration.")
+    parser.add_argument("--crop-lp",
                         type=Path,
-                        help='Save cropped license plates to folder.')
-    parser.add_argument('--crop-vehicle',
+                        help="Save cropped license plates to folder.")
+    parser.add_argument("--crop-vehicle",
                         type=Path,
-                        help='Save cropped vehicles to folder.')
-    parser.add_argument('-o',
-                        '--output-file',
+                        help="Save cropped vehicles to folder.")
+    parser.add_argument("-o",
+                        "--output-file",
                         type=Path,
-                        help='Save result to file.')
+                        help="Save result to file.")
     parser.add_argument(
-        '--format',
-        help='Format of the result.',
-        default='json',
-        choices='json csv'.split(),
+        "--format",
+        help="Format of the result.",
+        default="json",
+        choices="json csv".split(),
     )
     parser.add_argument(
-        '--mmc',
-        action='store_true',
-        help='Predict vehicle make and model. Only available to paying users.',
+        "--mmc",
+        action="store_true",
+        help="Predict vehicle make and model. Only available to paying users.",
     )
     parser.add_argument(
         '--show-boxes',
         action='store_true',
         help=
-        'Draw bounding boxes around license plates and display the resulting image.'
+        'Draw bounding boxes around license plates and display the resulting image.',
     )
     parser.add_argument(
         '--annotate-images',
         action='store_true',
         help=
-        'Draw bounding boxes around license plates and save the resulting image.'
+        'Draw bounding boxes around license plates and save the resulting image.',
     )
 
 
@@ -249,24 +251,33 @@ def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
         b = result['box']
         coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
         draw.rectangle(coord, outline=rect_color)
-        draw.rectangle(((coord[0][0] - 1, coord[0][1] - 1),
-                        (coord[1][0] - 1, coord[1][1] - 1)),
-                       outline=rect_color)
-        draw.rectangle(((coord[0][0] - 2, coord[0][1] - 2),
-                        (coord[1][0] - 2, coord[1][1] - 2)),
-                       outline=rect_color)
+        draw.rectangle(
+            ((coord[0][0] - 1, coord[0][1] - 1),
+             (coord[1][0] - 1, coord[1][1] - 1)),
+            outline=rect_color,
+        )
+        draw.rectangle(
+            ((coord[0][0] - 2, coord[0][1] - 2),
+             (coord[1][0] - 2, coord[1][1] - 2)),
+            outline=rect_color,
+        )
         if text_func:
             text = text_func(result)
             text_width, text_height = font.getsize(text)
             margin = math.ceil(0.05 * text_height)
             draw.rectangle(
-                [(b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
-                 (b['xmin'] + text_width + 2 * margin, b['ymin'])],
-                fill='white')
-            draw.text((b['xmin'] + margin, b['ymin'] - text_height - margin),
-                      text,
-                      fill='black',
-                      font=font)
+                [
+                    (b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
+                    (b['xmin'] + text_width + 2 * margin, b['ymin']),
+                ],
+                fill='white',
+            )
+            draw.text(
+                (b['xmin'] + margin, b['ymin'] - text_height - margin),
+                text,
+                fill='black',
+                font=font,
+            )
 
     if new_size:
         im = im.resize(new_size)
@@ -289,9 +300,10 @@ def main():
         except json.JSONDecodeError as e:
             print(e)
             return
-
     for path in paths:
-        with open(path, 'rb') as fp:
+        if not path.exists():
+            continue
+        with open(path, "rb") as fp:
             api_res = recognition_api(
                 fp,
                 args.regions,
@@ -321,5 +333,5 @@ def main():
         print(json.dumps(results, indent=2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
