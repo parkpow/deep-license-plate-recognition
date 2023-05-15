@@ -173,5 +173,6 @@ if __name__ == "__main__":
                 start_date = visit["start_date"]
                 print(f"Deleting visit {id}, date-time: {start_date}...")
                 delete_visit(cli_args.api_url, cli_args.token, visit["id"])
+            print('Completed!')
         else:
             print("Empty list: No visits to delete")
