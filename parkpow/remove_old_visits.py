@@ -99,7 +99,7 @@ def delete_visit(hostname, api_key, visit_id):
 if __name__ == "__main__":
     # python remove_old_visits.py --token KEY --max-age 30 --api-url https://app.parkpow.com/api/v1/
     parser = argparse.ArgumentParser(
-        description="Read license plates from the images on an SFTP server and output the result as JSON or CSV.",
+        description="Remove old visits up to 30 days back in Park Pow historical register",
         epilog="",
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -114,21 +114,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--token",
-        help="Cloud API Token, refer to https://app.parkpow.com/account/token/",
+        help="ParkPow API Token, refer to https://app.parkpow.com/account/token/",
         required=False,
     )
 
     parser.add_argument(
         "-m",
         "--max-age",
-        help="number of previous days you want to delete.",
+        help="Number of previous days you want to delete.",
         required=False,
     )
 
     parser.add_argument(
         "-a",
         "--api-url",
-        help="Url where your visits are stored, For example: http://local-or-public-IP:8000/",
+        help="Url of your server API, For example: https://app.parkpow.com/api/v1/ or http://local-or-public-IP:8000/api/v1",
         required=False,
     )
 
