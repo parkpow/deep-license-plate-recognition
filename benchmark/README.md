@@ -150,6 +150,19 @@ The results are obtained using [benchmark.py](benchmark.py).
 
 ### Jetson Orin Devkit - Snapshot 1.37
 
+With 4 workers:
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |    57.8 |
+| fast     | 800x600    |    38.7 |
+| regular  | 1280x720   |    78.2 |
+| fast     | 1280x720   |    40.3 |
+| regular  | 1920x1080  |    82.9 |
+| fast     | 1920x1080  |    43.7 |
+| regular  | 2560x1440  |    87.1 |
+| fast     | 2560x1440  |    47.9 |
+
 With 2 workers:
 
 | Mode     | Resolution | Speed   |
