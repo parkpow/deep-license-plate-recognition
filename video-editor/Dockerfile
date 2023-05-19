@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN apt-get update\
-    && apt-get install --no-install-recommends -y curl libgl1\
+    && apt-get install --no-install-recommends -y curl libgl1 libglib2.0-0\
     && rm -rf /var/lib/apt/lists/*\
     && pip install --upgrade pip
 
