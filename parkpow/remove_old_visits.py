@@ -5,32 +5,24 @@ import argparse
 import requests
 import datetime
 import json
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
-def get_headers(authentication_token):
-    """headers building to include in requests functions
-
-    Args:
-        authentication_token (str): authorization token comming from termminal args
-
-    Returns:
-        dictionary: fields required as heades
-    """
-    return {"Authorization": f"Token {authentication_token}"}
-
-async def api_fetch(url, headers=None, params=None):
-    """Asynchronous API fetch function
+async def api_request(function, end_point, api_key, params=None, payload=None):
+    """_summary_
 
     Args:
-        url (str): hostname + API path
-        headers (dict, optional): Required headers as Authorization. Defaults to None.
-        params (dict, optional): Request to set url parameters. Defaults to None.
+        function (str): options "get" or "post"
+        end_point (str): composed by hostname + api_path
+        api_key (_type_): Park-Pow API key
+        params (dict, optional): key, value. End point query parameters. Defaults to None.
+        payload (dict, optional): Data to be sent if required. Defaults to None.
 
     Returns:
         dict: response <HTTPResponse class>, connection <HTTPSConnection or HTTPConnection class>
     """
-    parsed_url = urlparse(url)
-
+    
+    parsed_url = urlparse(end_point)
+    
     if parsed_url.scheme == "http":
         connection = http.client.HTTPConnection(parsed_url.hostname)    
     elif parsed_url.scheme == "https":
@@ -42,40 +34,17 @@ async def api_fetch(url, headers=None, params=None):
         api_path = f"{parsed_url.path}"
         query_string = '&'.join([f"{key}={value}" for key, value in params.items()])
         url_with_params = f"{api_path}?{query_string}"
-        
-    try: 
-        connection.request("GET", url_with_params, headers=headers)
-        response = await asyncio.get_event_loop().run_in_executor(None, connection.getresponse)
-        return {'response':response, 'connection':connection}
     
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return None
-
-async def api_post(url, data=None, headers=None):
-    """Asynchronous API post function
-       
-    Args:
-        url (str): hostname + API path
-        data (dict, optional): payload to send.
-        headers (dict, optional): Required headers as Authorization. Defaults to None.
-
-    Returns:
-        dict: response <HTTPResponse class>, connection <HTTPSConnection or HTTPConnection class>
-    """
-    parsed_url = urlparse(url)
-
-    if parsed_url.scheme == "http":
-        connection = http.client.HTTPConnection(parsed_url.hostname)
-    elif parsed_url.scheme == "https":
-        connection = http.client.HTTPSConnection(parsed_url.hostname)
-    else:
-        print("URL is not using HTTP or HTTPS")
-
     api_path = parsed_url.path
+    headers = {"Authorization": f"Token {api_key}"}
     
     try:
-        connection.request("POST", api_path, json.dumps(data), headers)
+        if function == "get":
+            connection.request("GET", url_with_params, headers=headers)
+        elif function == "post":
+            headers['Content-Type'] = "application/json"
+            connection.request("POST", api_path, json.dumps(payload), headers)
+        
         response = await asyncio.get_event_loop().run_in_executor(None, connection.getresponse)
         return {'response':response, 'connection':connection}
     
@@ -96,23 +65,24 @@ async def list_visits(api_key, max_age, hostname, page=None):
     """
     api_url = hostname
     visit_list_path = "visit-list/"
+    end_point = api_url + visit_list_path 
     api_key = api_key
     max_age = max_age
     end_period = datetime.date.today()
     start_period = end_period - \
         datetime.timedelta(days=int(max_age))  # today - max_age
-
+        
     params = {
         "start": start_period,
+        "ordering": "start_date"
     }
 
     if page:
         params["page"] = page
-
-    headers = get_headers(api_key)
-
+    
     print(f"Fetching visit, page {'1' if not page else page}:")
-    response_and_connection = await api_fetch(api_url + visit_list_path, headers, params)
+    
+    response_and_connection = await api_request(function="get", end_point=end_point, api_key=api_key, params=params)
     
     expected_status_code = 200
     if response_and_connection['response'].status == expected_status_code:
@@ -121,7 +91,7 @@ async def list_visits(api_key, max_age, hostname, page=None):
         response_and_connection['connection'].close()
         return data
     else:
-        raise Exception(f"Request failed. Expected status code: {expected_status_code}. Actual status code: {response_and_connection['response'].status}.\x0aCheck parameters and try again...")
+        raise Exception(f"Check parameters and try again.\x0aReason: {response_and_connection['response'].reason}")
 
 async def remove_visit(hostname, api_key, visit_id):
     """remove individual visits by <visit_id>
@@ -135,20 +105,21 @@ async def remove_visit(hostname, api_key, visit_id):
         JSON: response from API
     """
     api_url = hostname
-    headers = get_headers(api_key)
-    headers['Content-Type'] = "application/json"
-    
     remove_visit_path = "delete-visit/"
+    end_point = api_url + remove_visit_path 
+    
     payload = {
         "id": visit_id,
     }
-    response_and_connection = await api_post(api_url + remove_visit_path, payload, headers)
+    
+
+    response_and_connection = await api_request(function="post", end_point=end_point, api_key=api_key, payload=payload)
 
     expected_status_code = 200
     if response_and_connection['response'].status == expected_status_code:
         print(f"Visit {visit_id} successfully removed!")
     else:
-        raise Exception(f"Request failed. Expected status code: {expected_status_code}. Actual status code: {response_and_connection['response'].status}.\x0aReason: {response_and_connection['response'].reason}")
+        raise Exception(f"Error on deleting visit.\x0aReason: {response_and_connection['response'].reason}")
     
     response_data = await asyncio.get_event_loop().run_in_executor(None, response_and_connection['response'].read)
     data = json.loads(response_data.decode())
@@ -182,9 +153,7 @@ async def main():
 
         estimated_count = visits["estimated_count"]
         print(f"{estimated_count} visits to be removed...")
-        #reverse=False, oldest first | reverse=True newest first
-        sorted_visit_list = sorted(visits_list, key=lambda x: x['start_date'], reverse=False)
-        for visit in sorted_visit_list:
+        for visit in visits_list:
             id = visit["id"]
             start_date = visit["start_date"]
             print(f"Deleting visit {id}, date-time: {start_date}")
