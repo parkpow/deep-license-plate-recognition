@@ -6,4 +6,4 @@ Install [this NuGet package](https://github.com/Http-Multipart-Data-Parser/Http-
 ```shell
 PM> Install-Package HttpMultipartParser
 ```
-Build Solution and Run WebhookReader.exe as a Console Application 
+Build Solution and Run WebhookReader.exe as a Console Application

@@ -11,7 +11,7 @@ namespace WebhookReader
     {
         public static HttpListener listener;
         public static string url = "http://localhost:8000/";
-        
+
         public static void ParseData(HttpListenerRequest request)
         {
             if (!request.HasEntityBody)
@@ -58,10 +58,10 @@ namespace WebhookReader
                         // From this point the data is parsed, we can retrieve the
                         // form data using the GetParameterValue method.
                         var json = parser.GetParameterValue("json");
-                        
+
                         Console.WriteLine("json:");
                         Console.WriteLine(json);
-                        
+
                         // Files are stored in a list:
                         var upload = parser.Files[0];
                         var filename = upload.FileName;
@@ -91,7 +91,7 @@ namespace WebhookReader
                     Console.WriteLine("Invalid request method");
                     data = Encoding.UTF8.GetBytes("Send a POST request instead.");
                 }
-                
+
                 resp.ContentType = "text/html";
                 resp.ContentEncoding = Encoding.UTF8;
                 resp.ContentLength64 = data.LongLength;

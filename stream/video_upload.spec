@@ -44,7 +44,7 @@ exe = EXE(  # noqa
     a.scripts,
     a.binaries,
     a.zipfiles,
-    a.datas, 
+    a.datas,
     options,
     gooey_languages, # Add them in to collected files
     gooey_images, # Same here.

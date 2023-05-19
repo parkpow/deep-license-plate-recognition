@@ -1,6 +1,6 @@
 ## Batch Video Processing
 
-Upload Videos from a folder to Stream via [file-upload](https://guides.platerecognizer.com/docs/stream/video-files#file-upload-api). 
+Upload Videos from a folder to Stream via [file-upload](https://guides.platerecognizer.com/docs/stream/video-files#file-upload-api).
 
 ```shell
 python video_upload.py

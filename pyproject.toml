@@ -24,3 +24,19 @@ pdbpp = "*"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.ruff]
+# Enable flake8-bugbear (`B`) rules.
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "I", # isort
+    "UP", # pyupgrade
+    "DJ", # flake8-django
+    "B" # flake8-bugbear
+]
+
+ignore = [
+    "E401",
+    "E501",
+]

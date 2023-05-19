@@ -1,4 +1,4 @@
-FROM python:3.9.9
+FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 # Copy python dependecies file

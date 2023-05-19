@@ -5,7 +5,7 @@ import requests
 from configobj import ConfigObj, flatten_errors
 from validate import ValidateError, Validator
 
-DEFAULT_CONFIG = '''# Instructions:
+DEFAULT_CONFIG = """# Instructions:
 # https://app.platerecognizer.com/stream-docs
 
 # List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -69,93 +69,91 @@ timezone = UTC
     # - Save to file in JSONLines format. https://jsonlines.org/
     # jsonlines_file = $(camera)_%y-%m-%d.jsonl
 
-'''
+"""
 
 
 def send_request(section):
-    if not section.get('webhook_target') or not section.get('webhook_header'):
+    if not section.get("webhook_target") or not section.get("webhook_header"):
         return
-    if '/api/v1/webhook-receiver' not in section['webhook_target']:
+    if "/api/v1/webhook-receiver" not in section["webhook_target"]:
         return
     headers = {
-        'Authorization':
-            'Token %s' % section['webhook_header'].split('Token ')[-1]
+        "Authorization": "Token %s" % section["webhook_header"].split("Token ")[-1]
     }
-    url = section['webhook_target'].replace('webhook-receiver', 'parking-list')
+    url = section["webhook_target"].replace("webhook-receiver", "parking-list")
     try:
         response = requests.get(url, headers=headers, timeout=10)
-    except (requests.Timeout, requests.ConnectionError):
+    except (requests.Timeout, requests.ConnectionError) as exc:
         raise ValidateError(
-            '[STR0019] The value in webhook_target in the config.ini file is incorrect.  '
-            'Please check the webhook_target value and try again.  '
-            'Go here for additional help '
-            'https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters.'
-        )
+            "[STR0019] The value in webhook_target in the config.ini file is incorrect.  "
+            "Please check the webhook_target value and try again.  "
+            "Go here for additional help "
+            "https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters."
+        ) from exc
     if response.status_code != 200:
         raise ValidateError(
-            '[STR0020] The Token in webhook_header in the config.ini file is incorrect.  '
-            'Please check the webhook_header value and try again.  '
-            'Go here for additional help '
-            'https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters.'
+            "[STR0020] The Token in webhook_header in the config.ini file is incorrect.  "
+            "Please check the webhook_header value and try again.  "
+            "Go here for additional help "
+            "https://guides.platerecognizer.com/docs/stream/configuration#webhook-parameters."
         )
 
 
 def check_token(config):
     send_request(config)
     for camera in config.sections:
-        if config[camera]['active']:
+        if config[camera]["active"]:
             send_request(config[camera])
 
 
 def camera_spec():
     camera_global = dict(
-        regions='force_list(default=list())',
+        regions="force_list(default=list())",
         webhook_target='string(default="")',
-        webhook_targets='force_list(default=list())',
+        webhook_targets="force_list(default=list())",
         webhook_header='string(default="")',
-        webhook_image='boolean(default=yes)',
-        webhook_caching='boolean(default=yes)',
+        webhook_image="boolean(default=yes)",
+        webhook_caching="boolean(default=yes)",
         webhook_image_type='option("vehicle", "original", default="vehicle")',
-        webhook_request_timeout='float(default=30)',
-        max_prediction_delay='float(default=6)',
-        memory_decay='float(default=300)',
-        image_format=
-        'string(default="$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg")',
-        sample='integer(default=2)',
-        total='integer(default=-1)',
-        mmc='boolean(default=no)',
+        webhook_request_timeout="float(default=30)",
+        max_prediction_delay="float(default=6)",
+        memory_decay="float(default=300)",
+        image_format='string(default="$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg")',
+        sample="integer(default=2)",
+        total="integer(default=-1)",
+        mmc="boolean(default=no)",
         csv_file='string(default="")',
         jsonlines_file='string(default="")',
         region_config='option("normal", "strict", default="normal")',
         detection_rule='option("normal", "strict", default="normal")',
         detection_mode='option("plate", "vehicle", default="plate")',
-        merge_buffer='integer(default=-1)',
+        merge_buffer="integer(default=-1)",
     )
 
     camera = dict(
-        url='string',
-        active='boolean(default=yes)',
+        url="string",
+        active="boolean(default=yes)",
         # Overridable
-        regions='force_list(default=None)',
-        webhook_target='string(default=None)',
-        webhook_targets='force_list(default=None)',
-        webhook_header='string(default=None)',
-        webhook_image='boolean(default=None)',
-        webhook_caching='boolean(default=None)',
+        regions="force_list(default=None)",
+        webhook_target="string(default=None)",
+        webhook_targets="force_list(default=None)",
+        webhook_header="string(default=None)",
+        webhook_image="boolean(default=None)",
+        webhook_caching="boolean(default=None)",
         webhook_image_type='option("vehicle", "original", default=None)',
-        webhook_request_timeout='float(default=None)',
-        max_prediction_delay='float(default=None)',
-        memory_decay='float(default=None)',
-        image_format='string(default=None)',
-        sample='integer(default=None)',
-        total='integer(default=None)',
-        mmc='boolean(default=None)',
-        csv_file='string(default=None)',
-        jsonlines_file='string(default=None)',
+        webhook_request_timeout="float(default=None)",
+        max_prediction_delay="float(default=None)",
+        memory_decay="float(default=None)",
+        image_format="string(default=None)",
+        sample="integer(default=None)",
+        total="integer(default=None)",
+        mmc="boolean(default=None)",
+        csv_file="string(default=None)",
+        jsonlines_file="string(default=None)",
         region_config='option("normal", "strict", default=None)',
         detection_rule='option("normal", "strict", default=None)',
         detection_mode='option("plate", "vehicle", default=None)',
-        merge_buffer='integer(default=None)',
+        merge_buffer="integer(default=None)",
     )
     assert set(camera_global.keys()) <= set(camera.keys())
     return dict(__many__=camera, **camera_global)
@@ -164,36 +162,42 @@ def camera_spec():
 def base_config(config_path: Path, config=None):
 
     spec = ConfigObj()
-    spec['timezone'] = 'string(default="UTC")'
-    spec['version'] = 'integer(default=2)'
-    spec['cameras'] = camera_spec()
+    spec["timezone"] = 'string(default="UTC")'
+    spec["version"] = "integer(default=2)"
+    spec["cameras"] = camera_spec()
     if not config_path.exists():
-        with open(config_path, 'w') as fp:
-            fp.write(DEFAULT_CONFIG.replace('\n', '\r\n'))
+        with open(config_path, "w") as fp:
+            fp.write(DEFAULT_CONFIG.replace("\n", "\r\n"))
     try:
-        config = ConfigObj(config.split('\n') if config else str(config_path),
-                           configspec=spec,
-                           raise_errors=True,
-                           indent_type='  ')
-        config.newlines = '\r\n'  # For Windows
+        config = ConfigObj(
+            config.split("\n") if config else str(config_path),
+            configspec=spec,
+            raise_errors=True,
+            indent_type="  ",
+        )
+        config.newlines = "\r\n"  # For Windows
     except Exception as e:
         return None, str(e)
     result = config.validate(Validator(), preserve_errors=True)
     errors = flatten_errors(config, result)
     if errors:
-        error_message = '[STR0021] The config.ini file does not seem to be formatted correctly.  \n [Error details] \n'
+        error_message = "[STR0021] The config.ini file does not seem to be formatted correctly.  \n [Error details] \n"
         for section_list, key, error in errors:
             if error is False:
-                error = 'key %s is missing.' % key
+                error = "key %s is missing." % key
             elif key is not None:
                 section_list.append(key)
-            section_string = '/'.join(section_list)
-            logging.error('%s: %s', section_string, error)
-            error = f'{section_string}, param: {key}, message: {error}'
-            error_message += '\n%s' % error
-        return None, error_message + '\n Go here for additional help https://guides.platerecognizer.com/docs/stream/configuration'
+            section_string = "/".join(section_list)
+            logging.error("%s: %s", section_string, error)
+            error = f"{section_string}, param: {key}, message: {error}"
+            error_message += "\n%s" % error
+        return (
+            None,
+            error_message
+            + "\n Go here for additional help https://guides.platerecognizer.com/docs/stream/configuration",
+        )
     try:
-        check_token(config['cameras'])
+        check_token(config["cameras"])
     except Exception as e:
         return None, str(e)
     return config, None

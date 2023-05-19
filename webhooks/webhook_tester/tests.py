@@ -16,25 +16,24 @@ class TestWebhookTester:
         mock_get.return_value.status_code = 200
         mock_post.return_value.status_code = 201
 
-        image_url = ("https://platerecognizer.com/wp-content/uploads/2020/07/"
-                     "ALPR-license-plate-reader-images-API.jpg")
+        image_url = (
+            "https://platerecognizer.com/wp-content/uploads/2020/07/"
+            "ALPR-license-plate-reader-images-API.jpg"
+        )
         url = "https://example.com"
         tester = WebhookTester(url)
         data = tester.get_webhook_payload()
         files = {"upload": ("name", b"sample file content")}
-        options = [{
-            "method": "get",
-            "kwargs": {
-                "url": image_url
+        options = [
+            {
+                "method": "get",
+                "kwargs": {"url": image_url},
             },
-        }, {
-            "method": "post",
-            "kwargs": {
-                "url": "https://example.com",
-                "data": data,
-                "files": files
+            {
+                "method": "post",
+                "kwargs": {"url": "https://example.com", "data": data, "files": files},
             },
-        }]
+        ]
 
         for option in options:
             response = tester.send_request(

@@ -9,27 +9,27 @@ python3 -m flask run -h 0.0.0.0 -p 8001
 
 """
 
-from flask import Flask
-from flask import request
+import errno
 import json
 import os
-import errno
+
+from flask import Flask, request
 
 app = Flask(__name__)
 
-upload_to = 'uploads'
+upload_to = "uploads"
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def process_request():
-    if request.method == 'GET':
-        return 'Send a POST request instead.'
+    if request.method == "GET":
+        return "Send a POST request instead."
     else:
         # Files exist for multipart/form-data
         files = request.files
-        app.logger.debug(f'files: {files}')
+        app.logger.debug(f"files: {files}")
         if files:
-            app.logger.debug('Request contains image')
+            app.logger.debug("Request contains image")
             if not os.path.exists(upload_to):
                 try:
                     os.makedirs(upload_to)
@@ -38,16 +38,16 @@ def process_request():
                         raise
 
             for key in files.keys():  # The file doesn't exist under upload
-                app.logger.debug(f'key: {key}')
+                app.logger.debug(f"key: {key}")
                 f = files[key]
-                f.save(f'{upload_to}/{f.filename}')
+                f.save(f"{upload_to}/{f.filename}")
                 break
 
             form = request.form
-            json_data = json.loads(form['json'])
+            json_data = json.loads(form["json"])
         else:
-            app.logger.debug('Request contains json')
+            app.logger.debug("Request contains json")
             json_data = request.json
 
-        app.logger.debug(f'json_data: {json_data}')
-        return 'OK'
+        app.logger.debug(f"json_data: {json_data}")
+        return "OK"
