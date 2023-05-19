@@ -24,7 +24,7 @@ If applicable, add the image you are trying to recognize.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows]
- - Version: 
+ - Version:
  - Hardware:
 
 **Additional context**

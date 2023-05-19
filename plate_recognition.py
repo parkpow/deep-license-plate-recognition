@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import absolute_import, division, print_function
 
 import argparse
 import collections
@@ -16,8 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 def parse_arguments(args_hook=lambda _: _):
     parser = argparse.ArgumentParser(
-        description=
-        "Read license plates from images and output the result as JSON or CSV.",
+        description="Read license plates from images and output the result as JSON or CSV.",
         epilog="""Examples:
 Process images from a folder:
   python plate_recognition.py -a MY_API_KEY /path/to/vehicle-*.jpg
@@ -41,13 +39,10 @@ Specify Camera ID and/or two Regions:
         help="Url to self hosted sdk  For example, http://localhost:8080",
         required=False,
     )
-    parser.add_argument("--camera-id",
-                        help="Name of the source camera.",
-                        required=False)
-    parser.add_argument("files",
-                        nargs="+",
-                        type=Path,
-                        help="Path to vehicle images")
+    parser.add_argument(
+        "--camera-id", help="Name of the source camera.", required=False
+    )
+    parser.add_argument("files", nargs="+", type=Path, help="Path to vehicle images")
     args_hook(parser)
     args = parser.parse_args()
     if not args.sdk_url and not args.api_key:
@@ -59,15 +54,15 @@ _session = None
 
 
 def recognition_api(
-        fp,
-        regions=[],
-        api_key=None,
-        sdk_url=None,
-        config={},
-        camera_id=None,
-        timestamp=None,
-        mmc=None,
-        exit_on_error=True,
+    fp,
+    regions=None,
+    api_key=None,
+    sdk_url=None,
+    config=None,
+    camera_id=None,
+    timestamp=None,
+    mmc=None,
+    exit_on_error=True,
 ):
     if regions is None:
         regions = []
@@ -93,9 +88,9 @@ def recognition_api(
                 },
             )
         else:
-            response = requests.post(sdk_url + "/v1/plate-reader/",
-                                     files=dict(upload=fp),
-                                     data=data)
+            response = requests.post(
+                sdk_url + "/v1/plate-reader/", files=dict(upload=fp), data=data
+            )
     else:
         if not _session:
             _session = requests.Session()
@@ -155,15 +150,13 @@ def save_cropped(api_res, path, args):
     for i, result in enumerate(api_res.get("results", []), 1):
         if args.crop_lp and result["plate"]:
             box = result["box"]
-            cropped = image.crop(
-                (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
+            cropped = image.crop((box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             cropped.save(
-                dest /
-                f'{result["plate"]}_{result["region"]["code"]}_{path.name}')
+                dest / f'{result["plate"]}_{result["region"]["code"]}_{path.name}'
+            )
         if args.crop_vehicle and result["vehicle"]["score"]:
             box = result["vehicle"]["box"]
-            cropped = image.crop(
-                (box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
+            cropped = image.crop((box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             make_model = result.get("model_make", [None])[0]
             filename = f'{i}_{result["vehicle"]["type"]}_{path.name}'
             if make_model:
@@ -204,16 +197,13 @@ Enable Make Model and Color prediction:
   plate_recognition.py -a MY_API_KEY --mmc /path/to/vehicle-*.jpg"""
 
     parser.add_argument("--engine-config", help="Engine configuration.")
-    parser.add_argument("--crop-lp",
-                        type=Path,
-                        help="Save cropped license plates to folder.")
-    parser.add_argument("--crop-vehicle",
-                        type=Path,
-                        help="Save cropped vehicles to folder.")
-    parser.add_argument("-o",
-                        "--output-file",
-                        type=Path,
-                        help="Save result to file.")
+    parser.add_argument(
+        "--crop-lp", type=Path, help="Save cropped license plates to folder."
+    )
+    parser.add_argument(
+        "--crop-vehicle", type=Path, help="Save cropped vehicles to folder."
+    )
+    parser.add_argument("-o", "--output-file", type=Path, help="Save result to file.")
     parser.add_argument(
         "--format",
         help="Format of the result.",
@@ -226,39 +216,35 @@ Enable Make Model and Color prediction:
         help="Predict vehicle make and model. Only available to paying users.",
     )
     parser.add_argument(
-        '--show-boxes',
-        action='store_true',
-        help=
-        'Draw bounding boxes around license plates and display the resulting image.',
+        "--show-boxes",
+        action="store_true",
+        help="Draw bounding boxes around license plates and display the resulting image.",
     )
     parser.add_argument(
-        '--annotate-images',
-        action='store_true',
-        help=
-        'Draw bounding boxes around license plates and save the resulting image.',
+        "--annotate-images",
+        action="store_true",
+        help="Draw bounding boxes around license plates and save the resulting image.",
     )
 
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
     draw = ImageDraw.Draw(im)
-    font_path = Path('assets/DejaVuSansMono.ttf')
+    font_path = Path("assets/DejaVuSansMono.ttf")
     if font_path.exists():
         font = ImageFont.truetype(str(font_path), 10)
     else:
         font = ImageFont.load_default()
     rect_color = (0, 255, 0)
     for result in data:
-        b = result['box']
-        coord = [(b['xmin'], b['ymin']), (b['xmax'], b['ymax'])]
+        b = result["box"]
+        coord = [(b["xmin"], b["ymin"]), (b["xmax"], b["ymax"])]
         draw.rectangle(coord, outline=rect_color)
         draw.rectangle(
-            ((coord[0][0] - 1, coord[0][1] - 1),
-             (coord[1][0] - 1, coord[1][1] - 1)),
+            ((coord[0][0] - 1, coord[0][1] - 1), (coord[1][0] - 1, coord[1][1] - 1)),
             outline=rect_color,
         )
         draw.rectangle(
-            ((coord[0][0] - 2, coord[0][1] - 2),
-             (coord[1][0] - 2, coord[1][1] - 2)),
+            ((coord[0][0] - 2, coord[0][1] - 2), (coord[1][0] - 2, coord[1][1] - 2)),
             outline=rect_color,
         )
         if text_func:
@@ -267,15 +253,15 @@ def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
             margin = math.ceil(0.05 * text_height)
             draw.rectangle(
                 [
-                    (b['xmin'] - margin, b['ymin'] - text_height - 2 * margin),
-                    (b['xmin'] + text_width + 2 * margin, b['ymin']),
+                    (b["xmin"] - margin, b["ymin"] - text_height - 2 * margin),
+                    (b["xmin"] + text_width + 2 * margin, b["ymin"]),
                 ],
-                fill='white',
+                fill="white",
             )
             draw.text(
-                (b['xmin'] + margin, b['ymin'] - text_height - margin),
+                (b["xmin"] + margin, b["ymin"] - text_height - margin),
                 text,
-                fill='black',
+                fill="black",
                 font=font,
             )
 
@@ -285,7 +271,7 @@ def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
 
 
 def text_function(result):
-    return result['plate']
+    return result["plate"]
 
 
 def main():
@@ -314,15 +300,15 @@ def main():
                 mmc=args.mmc,
             )
 
-        if (args.show_boxes or args.annotate_images) and 'results' in api_res:
+        if (args.show_boxes or args.annotate_images) and "results" in api_res:
             image = Image.open(path)
-            annotated_image = draw_bb(image, api_res['results'], None,
-                                      text_function)
+            annotated_image = draw_bb(image, api_res["results"], None, text_function)
             if args.show_boxes:
                 annotated_image.show()
             if args.annotate_images:
                 annotated_image.save(
-                    path.with_name(f'{path.stem}_annotated{path.suffix}'))
+                    path.with_name(f"{path.stem}_annotated{path.suffix}")
+                )
 
         results.append(api_res)
         if args.crop_lp or args.crop_vehicle:

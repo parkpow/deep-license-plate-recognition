@@ -18,7 +18,7 @@ public class recognize {
         // Get api key from https://app.platerecognizer.com/start/ and replace MY_API_KEY
         String token = "MY_API_KEY";
         String file = "C:\\Users\\uzair\\Downloads\\Soren1.jpg";
-        
+
         try{
             HttpResponse<String> response = Unirest.post("https://api.platerecognizer.com/v1/plate-reader/")
             .header("Authorization", "Token "+token)
@@ -30,7 +30,7 @@ public class recognize {
         catch(Exception e){
             System.out.println(e);
         }
-        
+
         try{
             HttpResponse<String> response = Unirest.get("https://api.platerecognizer.com/v1/statistics/")
             .header("Authorization", "Token "+token)

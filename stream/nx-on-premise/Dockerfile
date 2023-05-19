@@ -1,4 +1,4 @@
-FROM python:3.9.7
+FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
@@ -16,4 +16,4 @@ RUN pip install -r requirements.txt
 # Copy source code
 COPY . /app/
 
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["python3", "nx_on_premise.py"]

@@ -1,4 +1,4 @@
-FROM python:3.9.7
+FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 # Copy python dependecies file
@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8001
 COPY . /app/
 
-CMD ["python3", "main.py"]
+CMD ["python3", "tags_updater.py"]

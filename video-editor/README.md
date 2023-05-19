@@ -42,7 +42,7 @@ Utilities for processing video with Snapshot and Blur
     ```
     A new video named **{camera_id}_visualization.avi** will be created in the folder containing your **config.ini**.
     > token is optional when using the Snapshot SDK
-   
+
     Blur Plates and Faces in a video, add `[[[blur]]]` under a camera section
     ```text
     [cameras]
@@ -60,7 +60,7 @@ Utilities for processing video with Snapshot and Blur
 4. Run Image
     ```bash
     docker run --rm -t --net=host -e LOGGING=DEBUG -v /home/username/stream:/user-data platerecognizer/video-editor
-   
+
     ```
 
 ## Run Parameters

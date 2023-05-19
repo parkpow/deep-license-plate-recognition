@@ -10,8 +10,8 @@ if __name__ == "__main__":
         tester = WebhookTester(url)
         tester.execute()
     except KeyboardInterrupt:
-        print('Stopping...')
+        print("Stopping...")
     except Exception as e:
-        print('--> An error occurred:')
+        print("--> An error occurred:")
         print(e)
-        print('--> The webhook failed.')
+        print("--> The webhook failed.")
