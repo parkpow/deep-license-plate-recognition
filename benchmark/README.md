@@ -1,4 +1,4 @@
-# SDK 1.3.17 Benchmark
+# SDK Benchmark
 
 The results are obtained using [benchmark.py](benchmark.py).
 - SDK is started with one worker per vCPU.
@@ -11,7 +11,7 @@ The results are obtained using [benchmark.py](benchmark.py).
 - All numbers are in **milliseconds**.
 - In **fast** mode, number of detection steps is always 1. May result in lower accuracy when using images with small vehicles.
 
-## Google Cloud Instance
+## Google Cloud Instance - Snapshot 1.3.17
 
 ###  n1-standard-4 (4 vCPUs, 15 GB memory), 1 x NVIDIA Tesla T4
 | Mode    | Resolution | Speed |
@@ -98,7 +98,7 @@ The results are obtained using [benchmark.py](benchmark.py).
 | regular | 2560x1440  | 171.0 |
 | fast    | 2560x1440  | 98.8  |
 
-## Bare Metal
+## Bare Metal - Snapshot 1.3.17
 
 ### Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
 | Mode    | Resolution | Speed |
@@ -147,3 +147,32 @@ The results are obtained using [benchmark.py](benchmark.py).
 | ------- | ---------- | ----- |
 | regular | 1280x720   | 1250  |
 | fast    | 1280x720   | 875   |
+
+### Jetson Orin Devkit - Snapshot 1.37
+
+With 2 workers:
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |    74.1 |
+| fast     | 800x600    |    49.2 |
+| regular  | 1280x720   |   103.4 |
+| fast     | 1280x720   |    52.5 |
+| regular  | 1920x1080  |   112.1 |
+| fast     | 1920x1080  |    59.6 |
+| regular  | 2560x1440  |   122.4 |
+| fast     | 2560x1440  |    69.2 |
+
+With 1 worker:
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |   119.8 |
+| fast     | 800x600    |    83.0 |
+| regular  | 1280x720   |   170.5 |
+| fast     | 1280x720   |    89.8 |
+| regular  | 1920x1080  |   190.9 |
+| fast     | 1920x1080  |   108.8 |
+| regular  | 2560x1440  |   220.1 |
+| fast     | 2560x1440  |   134.3 |
+
