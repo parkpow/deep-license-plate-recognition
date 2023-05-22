@@ -113,16 +113,16 @@ The results are obtained using [benchmark.py](benchmark.py).
 | fast    | 2560x1440  | 46.7  |
 
 ### Raspbery Pi 4 64 bits (1 worker)
-| Mode     | Resolution | Speed   |
-| -------- | ---------- | ------- |
-| regular  | 800x600    |   686.7 |
-| fast     | 800x600    |   401.7 |
-| regular  | 1280x720   |  1181.0 |
-| fast     | 1280x720   |   554.0 |
-| regular  | 1920x1080  |  1373.4 |
-| fast     | 1920x1080  |   677.8 |
-| regular  | 2560x1440  |  1587.1 |
-| fast     | 2560x1440  |   816.9 |
+| Mode    | Resolution | Speed  |
+| ------- | ---------- | ------ |
+| regular | 800x600    | 686.7  |
+| fast    | 800x600    | 401.7  |
+| regular | 1280x720   | 1181.0 |
+| fast    | 1280x720   | 554.0  |
+| regular | 1920x1080  | 1373.4 |
+| fast    | 1920x1080  | 677.8  |
+| regular | 2560x1440  | 1587.1 |
+| fast    | 2560x1440  | 816.9  |
 
 ### Raspberry Pi 3/4 (estimates) 32 bits
 | Mode    | Resolution | Speed |
@@ -148,44 +148,43 @@ The results are obtained using [benchmark.py](benchmark.py).
 | regular | 1280x720   | 1250  |
 | fast    | 1280x720   | 875   |
 
-### Jetson Orin Devkit - Snapshot 1.37
+### Jetson Orin Devkit - Snapshot 1.37 - With MMC
 
 With 4 workers:
 
-| Mode     | Resolution | Speed   |
-| -------- | ---------- | ------- |
-| regular  | 800x600    |    57.8 |
-| fast     | 800x600    |    38.7 |
-| regular  | 1280x720   |    78.2 |
-| fast     | 1280x720   |    40.3 |
-| regular  | 1920x1080  |    82.9 |
-| fast     | 1920x1080  |    43.7 |
-| regular  | 2560x1440  |    87.1 |
-| fast     | 2560x1440  |    47.9 |
+| Mode    | Resolution | Speed |
+| ------- | ---------- | ----- |
+| regular | 800x600    | 57.8  |
+| fast    | 800x600    | 38.7  |
+| regular | 1280x720   | 78.2  |
+| fast    | 1280x720   | 40.3  |
+| regular | 1920x1080  | 82.9  |
+| fast    | 1920x1080  | 43.7  |
+| regular | 2560x1440  | 87.1  |
+| fast    | 2560x1440  | 47.9  |
 
 With 2 workers:
 
-| Mode     | Resolution | Speed   |
-| -------- | ---------- | ------- |
-| regular  | 800x600    |    74.1 |
-| fast     | 800x600    |    49.2 |
-| regular  | 1280x720   |   103.4 |
-| fast     | 1280x720   |    52.5 |
-| regular  | 1920x1080  |   112.1 |
-| fast     | 1920x1080  |    59.6 |
-| regular  | 2560x1440  |   122.4 |
-| fast     | 2560x1440  |    69.2 |
+| Mode    | Resolution | Speed |
+| ------- | ---------- | ----- |
+| regular | 800x600    | 74.1  |
+| fast    | 800x600    | 49.2  |
+| regular | 1280x720   | 103.4 |
+| fast    | 1280x720   | 52.5  |
+| regular | 1920x1080  | 112.1 |
+| fast    | 1920x1080  | 59.6  |
+| regular | 2560x1440  | 122.4 |
+| fast    | 2560x1440  | 69.2  |
 
 With 1 worker:
 
-| Mode     | Resolution | Speed   |
-| -------- | ---------- | ------- |
-| regular  | 800x600    |   119.8 |
-| fast     | 800x600    |    83.0 |
-| regular  | 1280x720   |   170.5 |
-| fast     | 1280x720   |    89.8 |
-| regular  | 1920x1080  |   190.9 |
-| fast     | 1920x1080  |   108.8 |
-| regular  | 2560x1440  |   220.1 |
-| fast     | 2560x1440  |   134.3 |
-
+| Mode    | Resolution | Speed |
+| ------- | ---------- | ----- |
+| regular | 800x600    | 119.8 |
+| fast    | 800x600    | 83.0  |
+| regular | 1280x720   | 170.5 |
+| fast    | 1280x720   | 89.8  |
+| regular | 1920x1080  | 190.9 |
+| fast    | 1920x1080  | 108.8 |
+| regular | 2560x1440  | 220.1 |
+| fast    | 2560x1440  | 134.3 |

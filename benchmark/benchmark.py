@@ -21,6 +21,7 @@ def parse_arguments():
         "--threads", help="Use thread to parallelize API calls", default=4, type=int
     )
     parser.add_argument("--image", default="assets/car-4k.jpg")
+    parser.add_argument("--mmc", action="store_true")
     parser.add_argument("--iterations", default=50, type=int)
     return parser.parse_args()
 
@@ -38,15 +39,16 @@ def print_table(results):
         )
 
 
-def call_duration(path, sdk_url, config):
+def call_duration(path, sdk_url, config, mmc):
     now = default_timer()
     with open(path, "rb") as fp:
-        recognition_api(fp, sdk_url=sdk_url, config=config)
+        recognition_api(
+            fp, sdk_url=sdk_url, config=config, mmc="true" if mmc else "false"
+        )
     return (default_timer() - now) * 1000
 
 
 def benchmark(args, executor):
-    results = []
     image = Image.open(args.image)
     for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440)]:
         image.resize(resolution).save("/tmp/platerec-benchmark.jpg")
@@ -54,21 +56,20 @@ def benchmark(args, executor):
             now = default_timer()
             stats = list(
                 executor.map(
-                    partial(call_duration, sdk_url=args.sdk_url, config=config),
+                    partial(
+                        call_duration, sdk_url=args.sdk_url, config=config, mmc=args.mmc
+                    ),
                     ["/tmp/platerec-benchmark.jpg"] * args.iterations,
                 )
             )
             duration = (default_timer() - now) * 1000
-            results.append(
-                dict(
-                    resolution="%sx%s" % resolution,
-                    mode=config.get("mode", "regular"),
-                    min=min(stats),
-                    max=max(stats),
-                    avg=duration / args.iterations,
-                )
+            yield dict(
+                resolution="%sx%s" % resolution,
+                mode=config.get("mode", "regular"),
+                min=min(stats),
+                max=max(stats),
+                avg=duration / args.iterations,
             )
-    return results
 
 
 def mem_usage():
@@ -101,25 +102,20 @@ def main():
         # Warmup
         list(
             executor.map(
-                partial(call_duration, sdk_url=args.sdk_url, config={}),
-                [args.image] * 10,
+                partial(call_duration, sdk_url=args.sdk_url, config={}, mmc=args.mmc),
+                [args.image] * 2,
             )
         )
         # Benchmark
-        results = benchmark(args, executor)
+        results = list(benchmark(args, executor))
 
     # Memory Usage
-    print("CPU: %s%%" % cpu_percent())
+    print(f"CPU: {cpu_percent()}%")
     for pid, mem in mem_usage().items():
         print(
-            "PID: %5s, RES %10s (%10s), SHR %10s (%10s)"
-            % (
-                pid,
-                convert_size(mem.rss),
-                convert_size(mem.rss - initial_mem[pid].rss),
-                convert_size(mem.shared),
-                convert_size(mem.shared - initial_mem[pid].shared),
-            )
+            f"PID: {pid:5}, "
+            f"RES {convert_size(mem.rss):10} ({convert_size(mem.rss - initial_mem[pid].rss):10}), "
+            f"SHR {convert_size(mem.shared):10} ({convert_size(mem.shared - initial_mem[pid].shared):10})"
         )
     print_table(results)
 
