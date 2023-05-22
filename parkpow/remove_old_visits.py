@@ -183,7 +183,9 @@ if __name__ == "__main__":
         "-m",
         "--max-age",
         help="Number of previous days you want to remove.",
-        required=False,
+        type=int,
+        required=True,
+        
     )
 
     parser.add_argument(
@@ -194,13 +196,14 @@ if __name__ == "__main__":
     )
 
     cli_args = parser.parse_args()
-
+    
+    print(cli_args.max_age)
     if not cli_args.token:
         raise Exception("token is required")
     if not cli_args.max_age:
         raise Exception("max-age is required")
-    if not cli_args.max_age.isdigit() or int(cli_args.max_age) > 30:
-        raise Exception("max-age is a 1 to 30 required integer")
+    if cli_args.max_age < 1 or cli_args.max_age > 30:
+        raise Exception("max-age must be in range  1 to 30")
     if not cli_args.api_url:
         raise Exception("api-url is required")
 
