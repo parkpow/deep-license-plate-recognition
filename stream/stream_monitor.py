@@ -74,7 +74,7 @@ def monitor_worker(container_name, check_interval):
 
     while True:
         result = subprocess.run(
-            ["docker", "logs", "--tail", "1", container_name],
+            ["docker", "logs", "--tail", "10", container_name],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
@@ -90,19 +90,20 @@ def monitor_worker(container_name, check_interval):
             _state["container_running"] = True
 
         if len(docker_log) > 0:
-            log_line = parse_log_line(docker_log)
-            logging.debug(f"log_line: {log_line}")
-            if log_line:
-                log_time = log_line[2]
-                if previous_log_time and log_time == previous_log_time:
-                    logging.debug("No new logs detected")
-                else:
-                    camera = log_line[1]
-                    _state["last_log_times"][camera] = datetime.now()
-                    captures += 1
-                    previous_log_time = log_time
+            for line in docker_log.splitlines():
+                log_line = parse_log_line(line)
+                logging.debug(f"log_line: {log_line}")
+                if log_line:
+                    log_time = log_line[2]
+                    if previous_log_time and log_time == previous_log_time:
+                        logging.debug("No new logs detected")
+                    else:
+                        camera = log_line[1]
+                        _state["last_log_times"][camera] = datetime.now()
+                        captures += 1
+                        previous_log_time = log_time
         else:
-            logging.debug("Log line empty")
+            logging.debug("Log lines empty")
 
         time.sleep(check_interval)
         logging.debug(f"Captures: {captures}")
