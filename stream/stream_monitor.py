@@ -68,13 +68,13 @@ def parse_log_line(line):
         return [groups[0], groups[1], groups[2]]
 
 
-def monitor_worker(container_name, check_interval):
+def monitor_worker(container_name, check_interval, log_lines):
     captures = 0
     previous_log_time = None
 
     while True:
         result = subprocess.run(
-            ["docker", "logs", "--tail", "1", container_name],
+            ["docker", "logs", "--tail", str(log_lines * 2), container_name],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
@@ -90,19 +90,20 @@ def monitor_worker(container_name, check_interval):
             _state["container_running"] = True
 
         if len(docker_log) > 0:
-            log_line = parse_log_line(docker_log)
-            logging.debug(f"log_line: {log_line}")
-            if log_line:
-                log_time = log_line[2]
-                if previous_log_time and log_time == previous_log_time:
-                    logging.debug("No new logs detected")
-                else:
-                    camera = log_line[1]
-                    _state["last_log_times"][camera] = datetime.now()
-                    captures += 1
-                    previous_log_time = log_time
+            for line in docker_log.splitlines():
+                log_line = parse_log_line(line)
+                logging.debug(f"log_line: {log_line}")
+                if log_line:
+                    log_time = log_line[2]
+                    if previous_log_time and log_time == previous_log_time:
+                        logging.debug("No new logs detected")
+                    else:
+                        camera = log_line[1]
+                        _state["last_log_times"][camera] = datetime.now()
+                        captures += 1
+                        previous_log_time = log_time
         else:
-            logging.debug("Log line empty")
+            logging.debug("Log lines empty")
 
         time.sleep(check_interval)
         logging.debug(f"Captures: {captures}")
@@ -148,10 +149,18 @@ if __name__ == "__main__":
         default=20,
         help="Duration to use in considering a camera as offline in seconds",
     )
+    # Log Lines to Process
+    parser.add_argument(
+        "-n",
+        "--count",
+        type=int,
+        default=1,
+        help="Number of cameras in config.ini",
+    )
 
     args = parser.parse_args()
     monitor = threading.Thread(
-        target=monitor_worker, args=(args.container, args.interval)
+        target=monitor_worker, args=(args.container, args.interval, args.count)
     )
     server = threading.Thread(
         target=server_worker, args=(args.listen, args.port, args.duration)
