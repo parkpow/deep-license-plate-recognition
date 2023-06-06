@@ -148,7 +148,7 @@ The results are obtained using [benchmark.py](benchmark.py).
 | regular | 1280x720   | 1250  |
 | fast    | 1280x720   | 875   |
 
-### Jetson Orin Devkit - Snapshot 1.37 - With MMC
+### Jetson Orin Devkit - Snapshot 1.37
 
 With 4 workers:
 
