@@ -150,7 +150,7 @@ The results are obtained using [benchmark.py](benchmark.py).
 
 ### Jetson Orin Devkit - Snapshot 1.37
 
-With 4 workers:
+With 4 workers (`-e WORKERS=4`):
 
 | Mode    | Resolution | Speed |
 | ------- | ---------- | ----- |
@@ -163,7 +163,7 @@ With 4 workers:
 | regular | 2560x1440  | 87.1  |
 | fast    | 2560x1440  | 47.9  |
 
-With 2 workers:
+With 2 workers (`-e WORKERS=2`):
 
 | Mode    | Resolution | Speed |
 | ------- | ---------- | ----- |
@@ -176,7 +176,7 @@ With 2 workers:
 | regular | 2560x1440  | 122.4 |
 | fast    | 2560x1440  | 69.2  |
 
-With 1 worker:
+With 1 worker (`-e WORKERS=1`):
 
 | Mode    | Resolution | Speed |
 | ------- | ---------- | ----- |
