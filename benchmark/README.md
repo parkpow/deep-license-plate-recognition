@@ -188,3 +188,44 @@ With 1 worker (`-e WORKERS=1`):
 | fast    | 1920x1080  | 108.8 |
 | regular | 2560x1440  | 220.1 |
 | fast    | 2560x1440  | 134.3 |
+
+### Jetson Orin Devkit - Snapshot 1.38 (INFERENCE_ENGINE=tensorrt)
+
+With 4 workers (`-e WORKERS=4`):
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |    36.5 |
+| fast     | 800x600    |    29.2 |
+| regular  | 1280x720   |    42.1 |
+| fast     | 1280x720   |    29.9 |
+| regular  | 1920x1080  |    50.7 |
+| fast     | 1920x1080  |    38.1 |
+| regular  | 2560x1440  |    57.5 |
+| fast     | 2560x1440  |    43.5 |
+
+With 2 workers (`-e WORKERS=2`):
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |    47.2 |
+| fast     | 800x600    |    36.7 |
+| regular  | 1280x720   |    57.2 |
+| fast     | 1280x720   |    41.2 |
+| regular  | 1920x1080  |    70.3 |
+| fast     | 1920x1080  |    53.7 |
+| regular  | 2560x1440  |    93.8 |
+| fast     | 2560x1440  |    64.1 |
+
+With 1 worker (`-e WORKERS=1`):
+
+| Mode     | Resolution | Speed   |
+| -------- | ---------- | ------- |
+| regular  | 800x600    |    73.2 |
+| fast     | 800x600    |    59.7 |
+| regular  | 1280x720   |    90.2 |
+| fast     | 1280x720   |    69.2 |
+| regular  | 1920x1080  |   113.6 |
+| fast     | 1920x1080  |    89.1 |
+| regular  | 2560x1440  |   153.3 |
+| fast     | 2560x1440  |   110.8 |
