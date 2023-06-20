@@ -6,6 +6,11 @@ The results are obtained using [benchmark.py](benchmark.py).
 - API is called 50 times for each configuration.
 - API calls are parallelized. The client code makes **4 calls concurrently**.
 
+```shell
+cd /path/to/repository
+python benchmark/benchmark.py
+```
+
 #### Notes
 - **Speed** is duration / number_of_calls.
 - All numbers are in **milliseconds**.
