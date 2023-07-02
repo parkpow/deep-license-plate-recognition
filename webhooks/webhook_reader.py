@@ -1,8 +1,11 @@
 import cgi
 import json
+import os
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from json.decoder import JSONDecodeError
 
+upload_to = "uploads"
 
 class GetHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -17,15 +20,23 @@ class GetHandler(BaseHTTPRequestHandler):
         self.end_headers()
         ctype, pdict = cgi.parse_header(self.headers["Content-Type"])
         if ctype == "multipart/form-data":
-            pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
-            fields = cgi.parse_multipart(self.rfile, pdict)
+            form = cgi.FieldStorage( fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST', 'CONTENT_TYPE':self.headers['Content-Type'], })
             # Get webhook content
-            json_data = json.loads(fields.get("json")[0])
-            buffer = fields.get("upload")[0]
-            name = "new_image.jpg"
-            print("Saving image to %s" % name)
-            with open(name, "wb") as fp:
-                fp.write(buffer)
+            json_data = form.getvalue('json')
+            # Get webhook file
+            if 'upload' in form:
+                filename = form['upload'].filename
+                buffer = form['upload'].file.read()
+                if not os.path.exists(upload_to):
+                    try:
+                        os.makedirs(upload_to)
+                    except OSError:
+                        print("Error creating directory:", upload_to)
+
+                with open(f"./{upload_to}/{filename}", "wb") as fp:
+                    print("Saving image to %s" % filename)
+                    fp.write(buffer)
+
         else:
             raw_data = self.rfile.read(int(self.headers["content-length"])).decode(
                 "utf-8"
@@ -33,7 +44,9 @@ class GetHandler(BaseHTTPRequestHandler):
             if raw_data.startswith("json="):
                 raw_data = raw_data[5:]
             try:
-                json_data = json.loads(raw_data)
+                decoded_data = urllib.parse.unquote(raw_data)
+                decoded_data = decoded_data.replace("+", " ")
+                json_data = json.loads(decoded_data)
             except JSONDecodeError:
                 json_data = {}
         print(json_data)

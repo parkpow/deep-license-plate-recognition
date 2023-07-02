@@ -4,7 +4,7 @@
  * npm install
  *
  * # Run
- * node server.js
+ * node webhook_reader.js
  */
 
 var fs = require("fs");
@@ -22,7 +22,7 @@ let storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    cb(null, file.fieldname);
+    cb(null, file.originalname)
   },
 });
 
@@ -64,9 +64,18 @@ function collectRequestData(request, response) {
       }
     });
   } else {
-    jsonParser(request, response, function () {
-      console.log(JSON.stringify(request.body));
-      response.end("OK!");
+    var rawData = '';
+    request.on('data', (data) => {
+      rawData += data;
+    });
+    request.on('end', () => {
+      var decodedData = decodeURIComponent(rawData);
+      if (decodedData.includes("json=")){
+        decodedData = decodedData.split('+').join(' ');
+        const jsonData = decodedData.split("json=")[1]
+        console.log(jsonData)
+        response.end('OK!');
+      }
     });
   }
 }

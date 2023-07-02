@@ -3,9 +3,7 @@
 pip install Flask==1.1.2
 
 # Run app
-export FLASK_APP=app.py
-export FLASK_DEBUG=1
-python3 -m flask run -h 0.0.0.0 -p 8001
+python3 webhook_reader_flask.py
 
 """
 
@@ -27,8 +25,8 @@ def process_request():
     else:
         # Files exist for multipart/form-data
         files = request.files
-        app.logger.debug(f"files: {files}")
         if files:
+            app.logger.debug(f"files: {files}")
             app.logger.debug("Request contains image")
             if not os.path.exists(upload_to):
                 try:
@@ -47,7 +45,11 @@ def process_request():
             json_data = json.loads(form["json"])
         else:
             app.logger.debug("Request contains json")
-            json_data = request.json
+            form = request.form
+            json_data = json.loads(form["json"])
 
         app.logger.debug(f"json_data: {json_data}")
         return "OK"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8001, debug=True)
