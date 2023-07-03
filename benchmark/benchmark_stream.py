@@ -1,11 +1,11 @@
 import argparse
 import math
-import requests
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from timeit import default_timer
 
+import requests
 from psutil import cpu_percent, process_iter
 
 
@@ -27,18 +27,12 @@ def print_table(results):
     print("| Speed   | l_min  | l_max  |")
     print("| ------- | ------ | ------ |")
     for result in results:
-        print(
-            "| {avg:7.1f} | {min:6.1f} | {max:6.1f} |".format(
-                **result
-            )
-        )
+        print("| {avg:7.1f} | {min:6.1f} | {max:6.1f} |".format(**result))
 
 
 def stream_api(fp, stream_url, exit_on_error=True):
     fp.seek(0)
-    response = requests.post(
-        stream_url, files=dict(upload=fp)
-    )
+    response = requests.post(stream_url, files=dict(upload=fp))
     if response is None:
         return {}
     if response.status_code < 200 or response.status_code > 300:
@@ -51,9 +45,7 @@ def stream_api(fp, stream_url, exit_on_error=True):
 def call_duration(path, stream_url):
     now = default_timer()
     with open(path, "rb") as fp:
-        stream_api(
-            fp, stream_url=stream_url
-        )
+        stream_api(fp, stream_url=stream_url)
     return (default_timer() - now) * 1000
 
 
@@ -61,9 +53,8 @@ def benchmark(args, executor):
     now = default_timer()
     stats = list(
         executor.map(
-            partial(
-                call_duration, stream_url=args.stream_url),
-                [args.video] * args.iterations,
+            partial(call_duration, stream_url=args.stream_url),
+            [args.video] * args.iterations,
         )
     )
     duration = (default_timer() - now) * 1000
@@ -105,7 +96,7 @@ def main():
         list(
             executor.map(
                 partial(call_duration, stream_url=args.stream_url),
-                        [args.video] * 2,
+                [args.video] * 2,
             )
         )
         # Benchmark
