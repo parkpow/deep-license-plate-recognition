@@ -2,11 +2,16 @@ version: '3.8'
 
 services:
   alpr:
-    image: platerecognizer/alpr
+    image: platerecognizer/alpr-raspberry-pi
     container_name: alpr_container
     restart: unless-stopped
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://alpr:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - license:/license
     env_file:
@@ -16,7 +21,8 @@ services:
     image: platerecognizer/skew-correction
     container_name: skew_correction_container
     depends_on:
-      - alpr
+      alpr:
+        condition: service_healthy
     ports:
       - "8001:8001"
     environment:
@@ -44,3 +50,4 @@ services:
 
 volumes:
     license:
+        external: true
