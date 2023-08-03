@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   alpr:
-    image: platerecognizer/alpr-raspberry-pi
+    image: platerecognizer/alpr
     container_name: alpr_container
     restart: unless-stopped
     ports:
