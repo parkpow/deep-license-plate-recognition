@@ -10,3 +10,4 @@ dist/
 env.txt
 
 .DS_Store
+output/

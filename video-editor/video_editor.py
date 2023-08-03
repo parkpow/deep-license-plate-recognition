@@ -252,7 +252,11 @@ def process_video_route():
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    process_video(file, action)
+    try:
+        process_video(file, action)
+    except Exception as e:
+        lgr.error(e)
+        return jsonify({"error": str(e)}), 500
 
     return jsonify("Done."), 200
 
