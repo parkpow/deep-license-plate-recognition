@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  alpr:
+    image: platerecognizer/alpr
+    container_name: alpr_container
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - license:/license
+    env_file:
+      - ./env.txt
+
+  skew_correction:
+    image: platerecognizer/skew-correction
+    container_name: skew_correction_container
+    depends_on:
+      - alpr
+    ports:
+      - "8001:8001"
+    environment:
+      - SDK_URL=http://alpr:8080
+    env_file:
+      - ./env.txt
+
+  video_editor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video_editor_container
+    depends_on:
+      - alpr
+      - skew_correction
+    ports:
+      - "8081:8081"
+    environment:
+      - SDK_URL=http://alpr:8080
+      - BLUR_URL=http://skew_correction:8001
+    env_file:
+      - ./env.txt
+    volumes:
+      - ./output:/user-data
+
+volumes:
+    license:
