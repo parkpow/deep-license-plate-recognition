@@ -7,3 +7,7 @@ build/
 dist/
 
 .python-version
+env.txt
+
+.DS_Store
+output/

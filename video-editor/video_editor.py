@@ -1,13 +1,14 @@
 import logging
 import os
 import sys
+import tempfile
 import time
 from pathlib import Path
 
 import cv2
 import numpy as np
 import requests
-from configobj import ConfigObj
+from flask import Flask, jsonify, request
 from utils import draw_bounding_box_on_image
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
@@ -22,8 +23,6 @@ logging.basicConfig(
 lgr = logging.getLogger(__name__)
 
 BASE_WORKING_DIR = "/user-data/"
-
-CONFIG_FILE = f"{BASE_WORKING_DIR}config.ini"
 
 
 def recognition_api(cv2_frame, data, sdk_url, api_key):
@@ -143,72 +142,67 @@ def init_writer(filename, cap):
     )
 
 
-def process_camera(camera_id, camera_config):
-    lgr.debug(f"Processing camera: {camera_id}")
-    lgr.debug(f"camera_config: {camera_config}")
-    if camera_config["active"] != "yes":
-        lgr.debug("skipped inactive camera")
-        return
-
-    url = camera_config["url"]
+def process_video(video, action):
+    filename = video.filename
+    lgr.debug(f"Processing video: {filename}")
 
     # check processing actions for camera
-    enabled_actions = camera_config.sections
-    lgr.debug(f"enabled_actions: {enabled_actions}")
+    lgr.debug(f"enabled_actions: {action}")
 
-    frames_enabled = "frames" in enabled_actions
-    visualization_enabled = "visualization" in enabled_actions
-    blur_enabled = "blur" in enabled_actions
+    frames_enabled = "frames" in action
+    visualization_enabled = "visualization" in action
+    blur_enabled = "blur" in action
 
     lgr.debug(f"CONFIG frames_enabled: {frames_enabled}")
     lgr.debug(f"CONFIG visualization_enabled: {visualization_enabled}")
     lgr.debug(f"CONFIG blur_enabled: {blur_enabled}")
 
-    cap = cv2.VideoCapture(url)
+    out1, out2, frames_output_dir, sdk_url, snapshot_api_token, blur_url = (
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+
+    temp_dir = tempfile.mkdtemp()
+
+    # Save the uploaded video file to the temporary directory
+    video_path = os.path.join(temp_dir, video.filename)
+    video.save(video_path)
+
+    cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
         lgr.debug("Error opening video stream or file")
         exit(1)
 
     if visualization_enabled:
-        output1_filename = f"{BASE_WORKING_DIR}{camera_id}_visualization.avi"
+        output1_filename = f"{BASE_WORKING_DIR}{filename}_visualization.avi"
         out1 = init_writer(output1_filename, cap)
-    else:
-        out1 = None
 
     if blur_enabled:
-        output2_filename = f"{BASE_WORKING_DIR}{camera_id}_blur.avi"
+        output2_filename = f"{BASE_WORKING_DIR}{filename}_blur.avi"
         out2 = init_writer(output2_filename, cap)
-    else:
-        out2 = None
 
     # Create the output dir for frames if missing
     if frames_enabled:
-        frames_output_dir = f"{BASE_WORKING_DIR}{camera_id}_frames/"
+        frames_output_dir = f"{BASE_WORKING_DIR}{filename}_frames/"
         Path(frames_output_dir).mkdir(parents=True, exist_ok=True)
-    else:
-        frames_output_dir = None
-
-    lgr.debug(f"CONFIG frames_output_dir: {frames_output_dir}")
+        lgr.debug(f"CONFIG frames_output_dir: {frames_output_dir}")
 
     # Parse visualization parameters
     if visualization_enabled:
-        visualization = camera_config["visualization"]
-        sdk_url = visualization.get("sdk_url", None)
-        snapshot_api_token = visualization.get("token", None)
-    else:
-        sdk_url = None
-        snapshot_api_token = None
+        sdk_url = os.environ.get("SDK_URL")
+        snapshot_api_token = os.environ.get("TOKEN")
 
-    lgr.debug(f"CONFIG sdk_url: {sdk_url}")
-    lgr.debug(f"CONFIG snapshot_api_token: {snapshot_api_token}")
+        lgr.debug(f"CONFIG sdk_url: {sdk_url}")
+        lgr.debug(f"CONFIG snapshot_api_token: {snapshot_api_token}")
 
     # Parse blur parameters
     if blur_enabled:
-        blur = camera_config["blur"]
-        blur_url = blur.get("blur_url", None)
-    else:
-        blur_url = None
+        blur_url = os.environ.get("BLUR_URL")
 
     frame_count = 0
     while cap.isOpened():
@@ -239,20 +233,32 @@ def process_camera(camera_id, camera_config):
     if out2:
         out2.release()
 
-
-def main():
-    if not os.path.exists(CONFIG_FILE):
-        lgr.error("config.ini not found, did you forget to mount the stream volume?")
-        exit(1)
-
-    config = ConfigObj(CONFIG_FILE)
-    cameras = config["cameras"]
-    camera_ids = cameras.sections
-
-    for camera_id in camera_ids:
-        camera_config = cameras[camera_id]
-        process_camera(camera_id, camera_config)
+    lgr.debug(f"Done processing video {filename}")
+    os.remove(video_path)
+    os.rmdir(temp_dir)
 
 
-if __name__ == "__main__":
-    main()
+app = Flask(__name__)
+
+
+@app.route("/process-video", methods=["POST"])
+def process_video_route():
+    if "upload" not in request.files or "action" not in request.form:
+        return jsonify({"error": "Invalid request"}), 400
+
+    file = request.files["upload"]
+    action = request.form["action"]
+
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    try:
+        process_video(file, action)
+    except Exception as e:
+        lgr.error(e)
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify("Done."), 200
+
+
+app.run(host="0.0.0.0", port=8081, debug=True)
