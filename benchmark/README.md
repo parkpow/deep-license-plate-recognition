@@ -7,8 +7,9 @@ The results are obtained using [benchmark.py](benchmark.py).
 - API calls are parallelized. The client code makes **4 calls concurrently**.
 
 ```shell
-cd /path/to/repository
-python benchmark/benchmark.py
+git clone https://github.com/parkpow/deep-license-plate-recognition.git
+cd deep-license-plate-recognition
+python -m benchmark.benchmark
 ```
 
 #### Notes
