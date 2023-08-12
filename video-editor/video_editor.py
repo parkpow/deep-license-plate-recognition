@@ -178,17 +178,19 @@ def process_video(video, action):
         lgr.debug("Error opening video stream or file")
         exit(1)
 
+    filename_stem = Path(video_path).stem
+
     if visualization_enabled:
-        output1_filename = f"{BASE_WORKING_DIR}{filename}_visualization.avi"
+        output1_filename = f"{BASE_WORKING_DIR}{filename_stem}_visualization.avi"
         out1 = init_writer(output1_filename, cap)
 
     if blur_enabled:
-        output2_filename = f"{BASE_WORKING_DIR}{filename}_blur.avi"
+        output2_filename = f"{BASE_WORKING_DIR}{filename_stem}_blur.avi"
         out2 = init_writer(output2_filename, cap)
 
     # Create the output dir for frames if missing
     if frames_enabled:
-        frames_output_dir = f"{BASE_WORKING_DIR}{filename}_frames/"
+        frames_output_dir = f"{BASE_WORKING_DIR}{filename_stem}_frames/"
         Path(frames_output_dir).mkdir(parents=True, exist_ok=True)
         lgr.debug(f"CONFIG frames_output_dir: {frames_output_dir}")
 
