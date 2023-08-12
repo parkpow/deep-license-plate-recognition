@@ -3,7 +3,7 @@ version: '3.8'
 services:
   alpr:
     image: platerecognizer/alpr
-    container_name: alpr_container
+    container_name: alpr
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -19,7 +19,7 @@ services:
 
   skew_correction:
     image: platerecognizer/skew-correction
-    container_name: skew_correction_container
+    container_name: skew_correction
     depends_on:
       alpr:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: video_editor_container
+    container_name: video_editor
     depends_on:
       - alpr
       - skew_correction
