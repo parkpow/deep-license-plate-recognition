@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 import cv2
+import ffmpegcv
 import numpy as np
 import requests
 from flask import Flask, jsonify, request
@@ -125,21 +126,8 @@ def save_frame(count, cv2_image, save_dir, image_format="jpg"):
         raise Exception(f"Unrecognized Output format: {image_format}")
 
 
-def init_writer(filename, cap):
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    lgr.debug(f"Frames per second using video.get(cv2.CAP_PROP_FPS) : {fps}")
-
-    # Retrieve Default Resolution from camera
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-
-    # Define the codec and create VideoWriter object.
-    return cv2.VideoWriter(
-        filename,
-        cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-        fps,
-        (frame_width, frame_height),
-    )
+def init_writer(filename, fps):
+    return ffmpegcv.noblock(ffmpegcv.VideoWriter, filename, "h264", fps)
 
 
 def process_video(video, action):
@@ -172,23 +160,28 @@ def process_video(video, action):
     video_path = os.path.join(temp_dir, video.filename)
     video.save(video_path)
 
-    cap = cv2.VideoCapture(video_path)
+    cap = ffmpegcv.VideoCapture(video_path)
 
     if not cap.isOpened():
         lgr.debug("Error opening video stream or file")
         exit(1)
 
+    filename_stem = Path(video_path).stem
+    video_format_ext = "mp4"
+
     if visualization_enabled:
-        output1_filename = f"{BASE_WORKING_DIR}{filename}_visualization.avi"
-        out1 = init_writer(output1_filename, cap)
+        output1_filename = (
+            f"{BASE_WORKING_DIR}{filename_stem}_visualization.{video_format_ext}"
+        )
+        out1 = init_writer(output1_filename, cap.fps)
 
     if blur_enabled:
-        output2_filename = f"{BASE_WORKING_DIR}{filename}_blur.avi"
-        out2 = init_writer(output2_filename, cap)
+        output2_filename = f"{BASE_WORKING_DIR}{filename_stem}_blur.{video_format_ext}"
+        out2 = init_writer(output2_filename, cap.fps)
 
     # Create the output dir for frames if missing
     if frames_enabled:
-        frames_output_dir = f"{BASE_WORKING_DIR}{filename}_frames/"
+        frames_output_dir = f"{BASE_WORKING_DIR}{filename_stem}_frames/"
         Path(frames_output_dir).mkdir(parents=True, exist_ok=True)
         lgr.debug(f"CONFIG frames_output_dir: {frames_output_dir}")
 
