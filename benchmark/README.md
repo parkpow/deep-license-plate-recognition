@@ -1,6 +1,6 @@
 # SDK Benchmark
 
-The results are obtained using [benchmark.py](benchmark.py).
+The results are obtained using [benchmark_snapshot.py](benchmark_snapshot.py).
 - SDK is started with one worker per vCPU.
 - The image used is `assets/car-4k.jpg` resized to target resolution.
 - API is called 50 times for each configuration.
