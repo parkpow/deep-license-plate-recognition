@@ -9,7 +9,7 @@ The results are obtained using [benchmark_snapshot.py](benchmark_snapshot.py).
 ```shell
 git clone https://github.com/parkpow/deep-license-plate-recognition.git
 cd deep-license-plate-recognition
-python -m benchmark.benchmark
+python -m benchmark.benchmark_snapshot
 ```
 
 #### Notes
