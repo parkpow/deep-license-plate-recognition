@@ -1,4 +1,4 @@
-# SDK Benchmark
+# Snapshot SDK Benchmark
 
 The results are obtained using [benchmark_snapshot.py](benchmark_snapshot.py).
 - SDK is started with one worker per vCPU.
