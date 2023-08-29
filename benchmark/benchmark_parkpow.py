@@ -2,19 +2,18 @@ import argparse
 import datetime
 
 import requests
-from bs4 import BeautifulSoup
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Measure ParkPow load time.')
+    parser = argparse.ArgumentParser(description="Measure ParkPow load time.")
     parser.add_argument(
         "--url",
-        help='The base URL of the ParkPow website. Defaults to localhost.',
+        help="The base URL of the ParkPow website. Defaults to localhost.",
         default="http://127.0.0.1:8000",
     )
     parser.add_argument(
         "--email",
-        help='The email address to be used for login',
+        help="The email address to be used for login",
     )
     parser.add_argument(
         "--password",
@@ -28,10 +27,11 @@ def login(session, url, email, password):
 
     res1 = session.get(LOGIN_URL)
     csrf_token = res1.cookies["csrftoken"]
-    res2 = session.post(LOGIN_URL, data={"login": email, "password": password, "csrfmiddlewaretoken": csrf_token})
+    res2 = session.post(
+        LOGIN_URL,
+        data={"login": email, "password": password, "csrfmiddlewaretoken": csrf_token},
+    )
     return "dashboard" in res2.url
-
-
 
 
 def _get_load_time_or_none(res):
@@ -91,11 +91,17 @@ def get_result(session, url, path, plate, camera):
     for day in [1, 7, 14, 30, 60]:
         load_time = get_load_time(session, url, path, day)
         load_time_plate = get_load_time_search_plate(session, url, plate, path, day)
-        load_time_camera = get_load_time_filter_by_camera(session, url, camera, path, day)
+        load_time_camera = get_load_time_filter_by_camera(
+            session, url, camera, path, day
+        )
 
         load_time_str = f"{load_time}ms" if load_time else "failed to load"
-        load_time_plate_str = f"{load_time_plate}ms" if load_time_plate else "failed to load"
-        load_time_camera_str = f"{load_time_camera}ms" if load_time_camera else "failed to load"
+        load_time_plate_str = (
+            f"{load_time_plate}ms" if load_time_plate else "failed to load"
+        )
+        load_time_camera_str = (
+            f"{load_time_camera}ms" if load_time_camera else "failed to load"
+        )
 
         yield dict(
             day=day,
@@ -114,8 +120,11 @@ def print_table(title, results):
     print("|   Range   | Without filter  | License plate search | Filter 1 camera |")
     print("| --------- | --------------- | -------------------- | --------------- |")
     for result in results:
-        print("| {day:2n} day(s) | {no_filter:^15s} | {filter_plate:^20s} | {filter_camera:^15s} |"
-              .format(**result))
+        print(
+            "| {day:2n} day(s) | {no_filter:^15s} | {filter_plate:^20s} | {filter_camera:^15s} |".format(
+                **result
+            )
+        )
     print("| -------------------------------------------------------------------- |")
 
 
@@ -137,8 +146,6 @@ def main():
 
     plate = scrape_first_plate(session, args.url)
     camera = scrape_first_camera(session, args.url)
-
-
 
     if not plate:
         print("Failed to get a plate to search")
