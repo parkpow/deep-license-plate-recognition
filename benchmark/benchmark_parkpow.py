@@ -41,7 +41,7 @@ def _get_load_time_or_none(res):
         return None
 
 
-def scrape_first_plate(session, url):
+def get_first_plate(session, url):
     _url = f"{url}/api/v1/vehicles/"
     res = session.get(_url)
     if res.status_code == 200:
@@ -49,7 +49,7 @@ def scrape_first_plate(session, url):
     return False
 
 
-def scrape_first_camera(session, url):
+def get_first_camera(session, url):
     _url = f"{url}/api/v1/visit-list/"
     res = session.get(_url)
     if res.status_code == 200:
@@ -144,8 +144,8 @@ def main():
 
     print()
 
-    plate = scrape_first_plate(session, args.url)
-    camera = scrape_first_camera(session, args.url)
+    plate = get_first_plate(session, args.url)
+    camera = get_first_camera(session, args.url)
 
     if not plate:
         print("Failed to get a plate to search")
