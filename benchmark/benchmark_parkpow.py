@@ -56,8 +56,8 @@ def get_first_camera(session, url):
         return res.json()["results"][0]["start_cam"]["name"]
 
 
-def get_load_time(session, url, page="dashboard", days=1):
-    url = f"{url}/{page}/"
+def get_load_time(session, url, path="dashboard", days=1):
+    url = f"{url}/{path}/"
 
     time_delta = datetime.timedelta(days=days)
     dt_from = datetime.datetime.now() - time_delta
@@ -67,8 +67,8 @@ def get_load_time(session, url, page="dashboard", days=1):
     return _get_load_time_or_none(res)
 
 
-def get_load_time_search_plate(session, url, plate, page="dashboard", days=1):
-    url = f"{url}/{page}/"
+def get_load_time_search_plate(session, url, plate, path="dashboard", days=1):
+    url = f"{url}/{path}/"
     time_delta = datetime.timedelta(days=days)
 
     dt_from = datetime.datetime.now() - time_delta
@@ -77,8 +77,8 @@ def get_load_time_search_plate(session, url, plate, page="dashboard", days=1):
     return _get_load_time_or_none(res)
 
 
-def get_load_time_filter_by_camera(session, url, camera_name, page="dashboard", days=1):
-    url = f"{url}/{page}/"
+def get_load_time_filter_by_camera(session, url, camera_name, path="dashboard", days=1):
+    url = f"{url}/{path}/"
     time_delta = datetime.timedelta(days=days)
 
     dt_from = datetime.datetime.now() - time_delta
