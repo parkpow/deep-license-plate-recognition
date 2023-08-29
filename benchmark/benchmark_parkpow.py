@@ -39,7 +39,7 @@ def _get_load_time_or_none(res):
         return None
 
 
-def scrape_first_plate(session,url):
+def scrape_first_plate(session, url):
     _url = f"{url}/dashboard/"
     res = session.get(_url)
     if res.status_code == 200:
@@ -56,6 +56,7 @@ def scrape_first_camera(session, url):
     if res.status_code == 200:
         soup = BeautifulSoup(res.text, "html.parser")
         return soup.find("select", {"name": "camera"}).option.attrs["value"]
+
 
 def get_load_time(session, url, page="dashboard", days=1):
     url = f"{url}/{page}/"
@@ -86,13 +87,6 @@ def get_load_time_filter_by_camera(session, url, camera_id, page="dashboard", da
     res = session.get(url, params={"from": dt_from, "camera": camera_id})
 
     return _get_load_time_or_none(res)
-
-
-def loop_operation(operation):
-    for day in [1, 7, 14, 30, 60]:
-        load_time = operation(day)
-        load_time_str = f"{load_time}ms" if load_time else "failed to load"
-        print(f"{load_time_str}")
 
 
 def get_result(session, url, page, plate, camera):
