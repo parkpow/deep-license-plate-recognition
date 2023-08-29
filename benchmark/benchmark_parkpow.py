@@ -15,12 +15,10 @@ def parse_arguments():
     parser.add_argument(
         "--email",
         help='The email address to be used for login',
-        default="test1@gmail.com",
     )
     parser.add_argument(
         "--password",
         help="The corresponding password for the provided email.",
-        default="bt5Nt13llta^",
     )
     return parser.parse_args()
 
@@ -132,6 +130,10 @@ def print_table(title, results):
 def main():
     session = requests.session()
     args = parse_arguments()
+
+    if not args.email or not args.password:
+        print("Provide a valid credential with --email and --password. Exiting...")
+        return
 
     # Login
     print("Logging in...")
