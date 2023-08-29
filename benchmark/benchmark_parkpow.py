@@ -156,14 +156,14 @@ def main():
     print()
 
     # Dashboard statistics
-    results = get_result(session, args.url, "dashboard/?statistics=1", plate, camera)
+    results = get_result(session, args.url, "dashboard/?statistics=true", plate, camera)
     print_table("Dashboard Statistics", results)
 
     print()
     print()
 
     # Dashboard chart
-    results = get_result(session, args.url, "dashboard/?chart-data=1", plate, camera)
+    results = get_result(session, args.url, "dashboard/?chart-data=true", plate, camera)
     print_table("Dashboard Chart", results)
 
     print()
