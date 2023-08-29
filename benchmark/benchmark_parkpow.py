@@ -32,6 +32,8 @@ def login(session, url, email, password):
     return "dashboard" in res2.url
 
 
+
+
 def _get_load_time_or_none(res):
     if res.status_code == 200:
         return res.elapsed.microseconds / 1000
@@ -40,22 +42,18 @@ def _get_load_time_or_none(res):
 
 
 def scrape_first_plate(session, url):
-    _url = f"{url}/dashboard/"
+    _url = f"{url}/api/v1/vehicles/"
     res = session.get(_url)
     if res.status_code == 200:
-        soup = BeautifulSoup(res.text, "html.parser")
-        td = soup.find("td", class_="license_plate")
-        if td:
-            return td.a.string.strip()
+        return res.json()["results"][0]["license_plate"]
     return False
 
 
 def scrape_first_camera(session, url):
-    _url = f"{url}/dashboard/"
+    _url = f"{url}/api/v1/visit-list/"
     res = session.get(_url)
     if res.status_code == 200:
-        soup = BeautifulSoup(res.text, "html.parser")
-        return soup.find("select", {"name": "camera"}).option.attrs["value"]
+        return res.json()["results"][0]["start_cam"]["name"]
 
 
 def get_load_time(session, url, page="dashboard", days=1):
@@ -79,12 +77,12 @@ def get_load_time_search_plate(session, url, plate, page="dashboard", days=1):
     return _get_load_time_or_none(res)
 
 
-def get_load_time_filter_by_camera(session, url, camera_id, page="dashboard", days=1):
+def get_load_time_filter_by_camera(session, url, camera_name, page="dashboard", days=1):
     url = f"{url}/{page}/"
     time_delta = datetime.timedelta(days=days)
 
     dt_from = datetime.datetime.now() - time_delta
-    res = session.get(url, params={"from": dt_from, "camera": camera_id})
+    res = session.get(url, params={"from": dt_from, "camera_name": camera_name})
 
     return _get_load_time_or_none(res)
 
@@ -139,6 +137,8 @@ def main():
 
     plate = scrape_first_plate(session, args.url)
     camera = scrape_first_camera(session, args.url)
+
+
 
     if not plate:
         print("Failed to get a plate to search")
