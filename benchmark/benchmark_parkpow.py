@@ -89,11 +89,11 @@ def get_load_time_filter_by_camera(session, url, camera_id, page="dashboard", da
     return _get_load_time_or_none(res)
 
 
-def get_result(session, url, page, plate, camera):
+def get_result(session, url, path, plate, camera):
     for day in [1, 7, 14, 30, 60]:
-        load_time = get_load_time(session, url, page, day)
-        load_time_plate = get_load_time_search_plate(session, url, plate, page, day)
-        load_time_camera = get_load_time_filter_by_camera(session, url, camera, page, day)
+        load_time = get_load_time(session, url, path, day)
+        load_time_plate = get_load_time_search_plate(session, url, plate, path, day)
+        load_time_camera = get_load_time_filter_by_camera(session, url, camera, path, day)
 
         load_time_str = f"{load_time}ms" if load_time else "failed to load"
         load_time_plate_str = f"{load_time_plate}ms" if load_time_plate else "failed to load"
@@ -151,6 +151,20 @@ def main():
     # Dashboard
     results = get_result(session, args.url, "dashboard", plate, camera)
     print_table("Dashboard", results)
+
+    print()
+    print()
+
+    # Dashboard statistics
+    results = get_result(session, args.url, "dashboard/?statistics=1", plate, camera)
+    print_table("Dashboard Statistics", results)
+
+    print()
+    print()
+
+    # Dashboard chart
+    results = get_result(session, args.url, "dashboard/?chart-data=1", plate, camera)
+    print_table("Dashboard Chart", results)
 
     print()
     print()
