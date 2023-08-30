@@ -23,12 +23,12 @@ def parse_arguments():
 
 
 def login(session, url, email, password):
-    LOGIN_URL = f"{url}/accounts/login/"
+    login_url = f"{url}/accounts/login/"
 
-    res1 = session.get(LOGIN_URL)
+    res1 = session.get(login_url)
     csrf_token = res1.cookies["csrftoken"]
     res2 = session.post(
-        LOGIN_URL,
+        login_url,
         data={"login": email, "password": password, "csrfmiddlewaretoken": csrf_token},
     )
     return "dashboard" in res2.url
