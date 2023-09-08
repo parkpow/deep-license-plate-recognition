@@ -10,6 +10,8 @@ import ffmpegcv
 import numpy as np
 import requests
 from flask import Flask, jsonify, request
+from scipy.ndimage.interpolation import shift
+from scipy.ndimage.measurements import center_of_mass
 from utils import draw_bounding_box_on_image
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
@@ -128,6 +130,50 @@ def save_frame(count, cv2_image, save_dir, image_format="jpg"):
 
 def init_writer(filename, fps):
     return ffmpegcv.noblock(ffmpegcv.VideoWriter, filename, "h264", fps)
+
+
+def inter(images, t):
+    """
+    :param images: list of arrays/frames ordered according to motion
+    :param t: parameter ranging from 0 to 1 corresponding to first and last frame
+    :return: interpolated image
+    """
+
+    # direction of movement, assumed to be approx. linear
+    a = np.array(center_of_mass(images[0]))
+    b = np.array(center_of_mass(images[-1]))
+
+    # find index of two nearest frames
+    arr = np.array([center_of_mass(images[i]) for i in range(len(images))])
+    v = a + t * (b - a)  # convert t into vector
+    idx1 = (np.linalg.norm((arr - v), axis=1)).argmin()
+    arr[idx1] = np.array(
+        [0, 0]
+    )  # this is sloppy, should be changed if relevant values are near [0,0]
+    idx2 = (np.linalg.norm((arr - v), axis=1)).argmin()
+
+    if idx1 > idx2:
+        b = np.array(
+            center_of_mass(images[idx1])
+        )  # center of mass of the nearest contour
+        a = np.array(
+            center_of_mass(images[idx2])
+        )  # center of mass of second-nearest contour
+        tstar = np.linalg.norm(v - a) / np.linalg.norm(
+            b - a
+        )  # define parameter ranging from 0 to 1 for interpolation between two nearest frames
+        im1_shift = shift(images[idx2], (b - a) * tstar)  # shift frame 1
+        im2_shift = shift(images[idx1], -(b - a) * (1 - tstar))  # shift frame 2
+        return im1_shift + im2_shift  # return average
+
+    if idx1 < idx2:
+        b = np.array(center_of_mass(images[idx2]))
+        a = np.array(center_of_mass(images[idx1]))
+        tstar = np.linalg.norm(v - a) / np.linalg.norm(b - a)
+        im1_shift = shift(images[idx2], -(b - a) * (1 - tstar))
+        im2_shift = shift(images[idx1], (b - a) * tstar)
+
+        return im1_shift + im2_shift  # return average
 
 
 def process_video(video, action):
