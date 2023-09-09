@@ -123,10 +123,10 @@ def blur_frame(cv2_frame, blur_url):
     return blurred_frame, polygons, centers
 
 
-def match_polygons(old_centers, new_centers):
-    print(f"Old centers: {old_centers}")
-    print(f"New centers: {new_centers}")
-    DIST_THRESHOLD = 50
+def match_polygons(old_centers, new_centers, sample_rate):
+    # print(f"Old centers: {old_centers}")
+    # print(f"New centers: {new_centers}")
+    DIST_THRESHOLD = 10 * sample_rate
     matches = []
     num_new_centers = new_centers.shape[0]
     if num_new_centers > 0:
@@ -286,22 +286,22 @@ def process_video(video, action):
                 if frame_count % sample_rate == 1:
                     # Blurring each frame
                     blurred_frame, new_polygons, new_centers = blur_frame(frame, blur_url)
-                    print("Old polygons")
-                    for i, poly in enumerate(old_polygons):
-                        print(f"{i}: {poly}")
-                    print("New polygons")
-                    for i, poly in enumerate(new_polygons):
-                        print(f"{i}: {poly}")
-                    matches = match_polygons(old_centers, new_centers)
+                    # print("Old polygons")
+                    # for i, poly in enumerate(old_polygons):
+                    #     print(f"{i}: {poly}")
+                    # print("New polygons")
+                    # for i, poly in enumerate(new_polygons):
+                    #     print(f"{i}: {poly}")
+                    matches = match_polygons(old_centers, new_centers, sample_rate)
                     time_delta = 0
-                    print(f"Matches: {matches}")
+                    # print(f"Matches: {matches}")
                     while not frame_buffer.empty():
                         time_delta += 1
                         prev_frame = frame_buffer.get()
                         inter_polygons = interpolate(old_polygons, new_polygons, 
                                                      old_centers, new_centers, 
                                                      matches, time_delta / sample_rate)
-                        print(f"Interpolated polygons: {inter_polygons}")
+                        # print(f"Interpolated polygons: {inter_polygons}")
                         for poly in inter_polygons:
                             cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
                         out2.write(prev_frame)
