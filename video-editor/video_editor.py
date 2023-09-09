@@ -4,6 +4,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from queue import Queue
 
 import cv2
 import ffmpegcv
@@ -24,6 +25,7 @@ logging.basicConfig(
 lgr = logging.getLogger(__name__)
 
 BASE_WORKING_DIR = "/user-data/"
+BASE_WORKING_DIR = "/home/incrediblame/Downloads/"
 
 
 def recognition_api(cv2_frame, data, sdk_url, api_key):
@@ -105,10 +107,71 @@ def blur_api(cv2_frame, blur_url):
 
 def blur_frame(cv2_frame, blur_url):
     blur_response = blur_api(cv2_frame, blur_url)
-    arr = np.asarray(bytearray(blur_response.content), dtype=np.uint8)
-    blurred_frame = cv2.imdecode(arr, -1)  # 'Load it as it is'
+    polygons = [np.array(plate['polygon'], dtype=np.int32) for plate in blur_response.json()['plates']]
+    # arr = np.asarray(bytearray(blur_response.content), dtype=np.uint8)
+    # blurred_frame = cv2.imdecode(arr, -1)  # 'Load it as it is'
 
-    return blurred_frame
+    # Convert to int coordinates
+
+    # Blur polygons
+    blurred_frame = cv2_frame.copy()
+    cv2.fillPoly(blurred_frame, polygons, (0, 0, 255))
+    
+    centers = np.empty((len(polygons), 2), dtype=np.float32)
+    for i, poly in enumerate(polygons):
+        centers[i] = np.mean(poly, axis=0)
+
+    return blurred_frame, polygons, centers
+
+
+def match_polygons(old_centers, new_centers):
+    print(f"Old centers: {old_centers}")
+    print(f"New centers: {new_centers}")
+    DIST_THRESHOLD = 30
+    matches = []
+    num_new_centers = new_centers.shape[0]
+    if num_new_centers > 0:
+        new_indices = set(range(num_new_centers))
+        for i, old_point in enumerate(old_centers):
+            # if old_centers.shape[0] == 1 and new_centers.shape[0] == 2:
+            #     print(np.linalg.norm(new_centers - old_point, axis=1))
+            best_idx = np.argmin(np.linalg.norm(new_centers - old_point, axis=1))
+            best_dist = np.linalg.norm(new_centers[best_idx] - old_point)
+            if best_dist < DIST_THRESHOLD and best_idx in new_indices:
+                matches.append((i, best_idx))
+                new_indices.remove(best_idx)
+            else:
+                matches.append((i, -1))
+        
+        for i in new_indices:
+            matches.append((-1, i))
+    else:
+        for i in range(old_centers.shape[0]):
+            matches.append((i, -1))
+    
+    return matches
+
+
+def interpolate(old_polygons, new_polygons, old_centers, new_centers, matches, fraction):
+    inter_polygons = []
+    for old_idx, new_idx in matches:
+        if old_idx >= 0:
+            old_point = old_centers[old_idx]
+            old_poly = old_polygons[old_idx]
+        else:
+            old_point = new_centers[new_idx]
+            old_poly = new_polygons[new_idx]
+        if new_idx >= 0:
+            new_point = new_centers[new_idx]
+        else:
+            new_point = old_centers[old_idx]
+        
+        disp = (new_point - old_point) * fraction
+        # print(f"Fraction {fraction}, disp vector: {disp}")
+        inter_poly = old_poly + disp
+        inter_polygons.append(inter_poly.astype(np.int32))
+    
+    return inter_polygons
 
 
 def save_frame(count, cv2_image, save_dir, image_format="jpg"):
@@ -169,15 +232,18 @@ def process_video(video, action):
     filename_stem = Path(video_path).stem
     video_format_ext = "mp4"
 
+    fps_override = 5
     if visualization_enabled:
         output1_filename = (
             f"{BASE_WORKING_DIR}{filename_stem}_visualization.{video_format_ext}"
         )
-        out1 = init_writer(output1_filename, cap.fps)
+        # out1 = init_writer(output1_filename, cap.fps)
+        out1 = init_writer(output1_filename, fps_override)
 
     if blur_enabled:
         output2_filename = f"{BASE_WORKING_DIR}{filename_stem}_blur.{video_format_ext}"
-        out2 = init_writer(output2_filename, cap.fps)
+        # out2 = init_writer(output2_filename, cap.fps)
+        out2 = init_writer(output2_filename, fps_override)
 
     # Create the output dir for frames if missing
     if frames_enabled:
@@ -198,6 +264,11 @@ def process_video(video, action):
         blur_url = os.environ.get("BLUR_URL")
 
     frame_count = 0
+    start = time.time()
+    sample_rate = 5
+    old_polygons = []
+    old_centers = np.array([])
+    frame_buffer = Queue(maxsize=sample_rate)
     while cap.isOpened():
         ret, frame = cap.read()
         if ret:
@@ -213,10 +284,35 @@ def process_video(video, action):
                 out1.write(visualized_frame)
 
             if blur_enabled:
-                # Blurring each frame
-                blurred_frame = blur_frame(frame, blur_url)
-                out2.write(blurred_frame)
-
+                if frame_count % sample_rate == 1:
+                    # Blurring each frame
+                    blurred_frame, new_polygons, new_centers = blur_frame(frame, blur_url)
+                    print("Old polygons")
+                    for i, poly in enumerate(old_polygons):
+                        print(f"{i}: {poly}")
+                    print("New polygons")
+                    for i, poly in enumerate(new_polygons):
+                        print(f"{i}: {poly}")
+                    matches = match_polygons(old_centers, new_centers)
+                    time_delta = 0
+                    print(f"Matches: {matches}")
+                    while not frame_buffer.empty():
+                        time_delta += 1
+                        prev_frame = frame_buffer.get()
+                        inter_polygons = interpolate(old_polygons, new_polygons, 
+                                                     old_centers, new_centers, 
+                                                     matches, time_delta / sample_rate)
+                        print(f"Interpolated polygons: {inter_polygons}")
+                        for poly in inter_polygons:
+                            cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
+                        out2.write(prev_frame)
+                    out2.write(blurred_frame)
+                    old_polygons = new_polygons
+                    old_centers = new_centers
+                else:
+                    frame_buffer.put(frame)
+                
+ 
         else:
             break
 
@@ -225,6 +321,9 @@ def process_video(video, action):
         out1.release()
     if out2:
         out2.release()
+    
+    print(f"Time taken: {time.time() - start}")
+    print(f"Frame count: {frame_count}")
 
     lgr.debug(f"Done processing video {filename}")
     os.remove(video_path)
