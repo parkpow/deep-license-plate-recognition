@@ -115,11 +115,10 @@ def blur_frame(cv2_frame, blur_url):
 
     # Blur polygons
     blurred_frame = cv2_frame.copy()
-    cv2.fillPoly(blurred_frame, polygons, (0, 0, 255))
-    
     centers = np.empty((len(polygons), 2), dtype=np.float32)
     for i, poly in enumerate(polygons):
         centers[i] = np.mean(poly, axis=0)
+        cv2.fillPoly(blurred_frame, [poly], (0, 0, 255))
 
     return blurred_frame, polygons, centers
 
@@ -127,7 +126,7 @@ def blur_frame(cv2_frame, blur_url):
 def match_polygons(old_centers, new_centers):
     print(f"Old centers: {old_centers}")
     print(f"New centers: {new_centers}")
-    DIST_THRESHOLD = 30
+    DIST_THRESHOLD = 50
     matches = []
     num_new_centers = new_centers.shape[0]
     if num_new_centers > 0:
@@ -265,7 +264,7 @@ def process_video(video, action):
 
     frame_count = 0
     start = time.time()
-    sample_rate = 5
+    sample_rate = 10
     old_polygons = []
     old_centers = np.array([])
     frame_buffer = Queue(maxsize=sample_rate)
@@ -316,6 +315,13 @@ def process_video(video, action):
         else:
             break
 
+    # Flush the frame buffer
+    while not frame_buffer.empty():
+        prev_frame = frame_buffer.get()
+        for poly in old_polygons:
+            cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
+        out2.write(prev_frame)
+    
     cap.release()
     if out1:
         out1.release()
