@@ -264,63 +264,77 @@ def process_video(video, action):
 
     frame_count = 0
     start = time.time()
-    sample_rate = 10
+    sample_rate = 5
     old_polygons = []
     old_centers = np.array([])
     frame_buffer = Queue(maxsize=sample_rate)
+    old_frame = None
     while cap.isOpened():
-        ret, frame = cap.read()
+        ret, new_frame = cap.read()
         if ret:
             lgr.debug(f"Processing frame: {frame_count}")
             frame_count += 1
 
             if frames_enabled:
-                save_frame(frame_count, frame, frames_output_dir)
+                save_frame(frame_count, new_frame, frames_output_dir)
 
             if visualization_enabled:
                 # adding filled rectangle on each frame
-                visualized_frame = visualize_frame(frame, sdk_url, snapshot_api_token)
+                visualized_frame = visualize_frame(new_frame, sdk_url, snapshot_api_token)
                 out1.write(visualized_frame)
 
             if blur_enabled:
                 if frame_count % sample_rate == 1:
                     # Blurring each frame
-                    blurred_frame, new_polygons, new_centers = blur_frame(frame, blur_url)
+                    blurred_frame, new_polygons, new_centers = blur_frame(new_frame, blur_url)
                     # print("Old polygons")
                     # for i, poly in enumerate(old_polygons):
                     #     print(f"{i}: {poly}")
                     # print("New polygons")
                     # for i, poly in enumerate(new_polygons):
                     #     print(f"{i}: {poly}")
-                    matches = match_polygons(old_centers, new_centers, sample_rate)
-                    time_delta = 0
-                    # print(f"Matches: {matches}")
-                    while not frame_buffer.empty():
-                        time_delta += 1
-                        prev_frame = frame_buffer.get()
-                        inter_polygons = interpolate(old_polygons, new_polygons, 
-                                                     old_centers, new_centers, 
-                                                     matches, time_delta / sample_rate)
-                        # print(f"Interpolated polygons: {inter_polygons}")
-                        for poly in inter_polygons:
-                            cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
-                        out2.write(prev_frame)
+                    # matches = match_polygons(old_centers, new_centers, sample_rate)
+                    # time_delta = 0
+                    # # print(f"Matches: {matches}")
+                    # while not frame_buffer.empty():
+                    #     time_delta += 1
+                    #     prev_frame = frame_buffer.get()
+                    #     inter_polygons = interpolate(old_polygons, new_polygons, 
+                    #                                  old_centers, new_centers, 
+                    #                                  matches, time_delta / sample_rate)
+                    #     # print(f"Interpolated polygons: {inter_polygons}")
+                    #     for poly in inter_polygons:
+                    #         cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
+                    #     out2.write(prev_frame)
                     out2.write(blurred_frame)
                     old_polygons = new_polygons
                     old_centers = new_centers
                 else:
-                    frame_buffer.put(frame)
-                
+                    # frame_buffer.put(new_frame)
+                    new_grey = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
+                    for i, poly in enumerate(old_polygons):
+                        poly = poly.astype(np.float32)
+                        new_poly, _, _ = cv2.calcOpticalFlowPyrLK(old_frame, new_grey, poly, 
+                                                None, winSize = (15, 15),
+                                                maxLevel = 10, 
+                                                criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+                        disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0])
+                        new_poly = poly + disp
+                        cv2.fillPoly(new_frame, [new_poly.astype(np.int32)], (0, 0, 255))
+                        old_polygons[i] = new_poly
+                    out2.write(new_frame)
+
+                old_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
  
         else:
             break
 
     # Flush the frame buffer
     while not frame_buffer.empty():
-        prev_frame = frame_buffer.get()
+        old_frame = frame_buffer.get()
         for poly in old_polygons:
-            cv2.fillPoly(prev_frame, [poly], (0, 0, 255))
-        out2.write(prev_frame)
+            cv2.fillPoly(old_frame, [poly], (0, 0, 255))
+        out2.write(old_frame)
     
     cap.release()
     if out1:
