@@ -124,9 +124,17 @@ def blur_polygons(cv2_frame: np.ndarray, polygons: List[np.ndarray], writer: Any
     """
     Draws blurred polygons to the frame.
     """
+    # Prep totally blurred image
+    blur = cv2.GaussianBlur(cv2_frame, (21, 21), 30)
+    
+    # Prep mask
+    mask = np.zeros(cv2_frame.shape, dtype=np.uint8)
     for poly in polygons:
-        cv2.fillPoly(cv2_frame, [poly.astype(np.int32)], (0, 0, 255))
-    writer.write(cv2_frame)
+        cv2.fillPoly(mask, [poly.astype(np.int32)], (255, 255, 255))
+    
+    # Combine original and blur
+    result = cv2.bitwise_and(cv2_frame, cv2.bitwise_not(mask)) + cv2.bitwise_and(blur, mask)
+    writer.write(result)
 
 
 def save_frame(count, cv2_image, save_dir, image_format="jpg"):
@@ -287,18 +295,21 @@ def process_video(video, action):
     filename_stem = Path(video_path).stem
     video_format_ext = "mp4"
 
-    fps_override = 5
+    fps = cap.fps 
+    # Override FPS if provided
+    try:
+        fps = int(os.environ.get("FPS"))
+    except Exception:
+        pass
     if visualization_enabled:
         output1_filename = (
             f"{BASE_WORKING_DIR}{filename_stem}_visualization.{video_format_ext}"
         )
-        # out1 = init_writer(output1_filename, cap.fps)
-        out1 = init_writer(output1_filename, fps_override)
+        out1 = init_writer(output1_filename, fps)
 
     if blur_enabled:
         output2_filename = f"{BASE_WORKING_DIR}{filename_stem}_blur.{video_format_ext}"
-        # out2 = init_writer(output2_filename, cap.fps)
-        out2 = init_writer(output2_filename, fps_override)
+        out2 = init_writer(output2_filename, fps)
 
     # Create the output dir for frames if missing
     if frames_enabled:
@@ -320,7 +331,10 @@ def process_video(video, action):
 
     frame_count = 0
     start = time.time()
-    sample_rate = 10
+    try:
+        sample_rate = int(os.environ.get("SAMPLE"))
+    except Exception:
+        sample_rate = 1
     keyframe_count = 1 % sample_rate # for sample_rate = 1
     old_polygons = []
     frame_buffer = FrameBuffer(sample_rate)
