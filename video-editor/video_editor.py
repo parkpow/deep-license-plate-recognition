@@ -224,6 +224,18 @@ class FrameBuffer:
         return self.buffer[self.buffer_idx]
 
 
+GRAY_PADDING = 25
+PADDING_PARAMS = (
+    GRAY_PADDING,
+    GRAY_PADDING,
+    GRAY_PADDING,
+    GRAY_PADDING,
+    cv2.BORDER_REPLICATE,
+    None,
+    0,
+)
+
+
 def interpolate_polygons(
     cur_frame: np.ndarray,
     frame_buffer: FrameBuffer,
@@ -244,18 +256,16 @@ def interpolate_polygons(
         next_frame, next_gray = frame_buffer.get_forward()
         polygons = []
         for poly in prev_polygons:
-            # TODO: user small replicated padding to increase stability on the edge
-            # frame = cv2.copyMakeBorder(frame, padding, padding, padding, padding, cv2.BORDER_REPLICATE, None, 0)
             new_poly, _, _ = cv2.calcOpticalFlowPyrLK(
                 prev_gray,
                 next_gray,
-                poly,
+                poly + GRAY_PADDING,
                 None,
                 winSize=(15, 15),
                 maxLevel=10,
                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
             )
-            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0])
+            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0]) - GRAY_PADDING
             polygons.append(poly + avg_disp)
         frames_to_blur.append((next_frame, next_gray, polygons))
         prev_gray = next_gray
@@ -263,24 +273,23 @@ def interpolate_polygons(
 
     # Propagate new polygons backward with optical flow
     next_gray = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
+    next_gray = cv2.copyMakeBorder(next_gray, *PADDING_PARAMS)
     frame_buffer.put(cur_frame, next_gray)
     next_polygons = cur_polygons
     for i in range(num_frames):
         _, prev_gray, inter_polygons = frames_to_blur[-i - 1]
         polygons = []
         for poly in next_polygons:
-            # TODO: user small replicated padding to increase stability on the edge
-            # frame = cv2.copyMakeBorder(frame, padding, padding, padding, padding, cv2.BORDER_REPLICATE, None, 0)
             new_poly, _, _ = cv2.calcOpticalFlowPyrLK(
                 next_gray,
                 prev_gray,
-                poly,
+                poly + GRAY_PADDING,
                 None,
                 winSize=(15, 15),
                 maxLevel=10,
                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
             )
-            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0])
+            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0]) - GRAY_PADDING
             polygons.append(poly + avg_disp)
         inter_polygons.extend(polygons)
         next_gray = prev_gray
@@ -417,6 +426,7 @@ def process_video(video, action):
                 else:
                     # Stack non-keyframes into buffer
                     gray = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
+                    gray = cv2.copyMakeBorder(gray, *PADDING_PARAMS)
                     frame_buffer.put(cur_frame, gray)
         else:
             break
