@@ -316,12 +316,15 @@ def process_video(video, action):
     filename_stem = Path(video_path).stem
     video_format_ext = "mp4"
 
-    fps = cap.fps
     # Override FPS if provided
     try:
         fps = int(os.environ.get("FPS"))
     except Exception:
-        pass
+        # ffmpegcv cap.fps is not reliable
+        fps_cap = cv2.VideoCapture(video_path)
+        fps = fps_cap.get(cv2.CAP_PROP_FPS)
+        fps_cap.release()
+
     if visualization_enabled:
         output1_filename = (
             f"{BASE_WORKING_DIR}{filename_stem}_visualization.{video_format_ext}"
