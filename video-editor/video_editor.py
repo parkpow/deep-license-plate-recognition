@@ -4,7 +4,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 
 import cv2
 import ffmpegcv
@@ -110,7 +110,10 @@ def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
     """
     # Request polygons
     blur_response = blur_api(cv2_frame, blur_url)
-    polygons = [np.array(plate['polygon'], dtype=np.float32) for plate in blur_response.json()['plates']]
+    polygons = [
+        np.array(plate["polygon"], dtype=np.float32)
+        for plate in blur_response.json()["plates"]
+    ]
 
     # Calculate centers
     centers = np.empty((len(polygons), 2), dtype=np.float32)
@@ -120,20 +123,22 @@ def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
     return polygons, centers
 
 
-def blur_polygons(cv2_frame: np.ndarray, polygons: List[np.ndarray], writer: Any):
+def blur_polygons(cv2_frame: np.ndarray, polygons: list[np.ndarray], writer: Any):
     """
     Draws blurred polygons to the frame.
     """
     # Prep totally blurred image
     blur = cv2.GaussianBlur(cv2_frame, (21, 21), 30)
-    
+
     # Prep mask
     mask = np.zeros(cv2_frame.shape, dtype=np.uint8)
     for poly in polygons:
         cv2.fillPoly(mask, [poly.astype(np.int32)], (255, 255, 255))
-    
+
     # Combine original and blur
-    result = cv2.bitwise_and(cv2_frame, cv2.bitwise_not(mask)) + cv2.bitwise_and(blur, mask)
+    result = cv2.bitwise_and(cv2_frame, cv2.bitwise_not(mask)) + cv2.bitwise_and(
+        blur, mask
+    )
     writer.write(result)
 
 
@@ -161,22 +166,26 @@ class FrameBuffer:
     Stores frames in a ringbuffer.
     Provides useful methods for accessing frames.
     """
+
     def __init__(self, sample_rate: int):
-        self.buffer = [(np.array([], dtype=np.uint8), np.array([], dtype=np.uint8)) for _ in range(sample_rate)]
+        self.buffer = [
+            (np.array([], dtype=np.uint8), np.array([], dtype=np.uint8))
+            for _ in range(sample_rate)
+        ]
         self.buffer_idx = 0
-    
+
     def increment(self, steps: int = 1) -> None:
         """
         Moves index forward without changing the buffer.
         """
         self.buffer_idx = (self.buffer_idx + steps) % len(self.buffer)
-    
+
     def decrement(self, steps: int = 1) -> None:
         """
         Moves index backward without changing the buffer.
         """
         self.buffer_idx = (self.buffer_idx - steps) % len(self.buffer)
-    
+
     def put(self, frame: np.ndarray, gray: np.ndarray) -> None:
         """
         Pushes a frame and its grayscale version into the buffer.
@@ -184,8 +193,8 @@ class FrameBuffer:
         """
         self.buffer[self.buffer_idx] = (frame, gray)
         self.increment()
-    
-    def get_forward(self) -> Tuple[np.ndarray, np.ndarray]:
+
+    def get_forward(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Returns the content of the buffer at the current position.
         Then moves the index forward.
@@ -194,7 +203,7 @@ class FrameBuffer:
         self.increment()
         return frame, gray
 
-    def get_back(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_back(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Moves the index backward.
         Then returns the content of the buffer at that index.
@@ -203,12 +212,13 @@ class FrameBuffer:
         return self.buffer[self.buffer_idx]
 
 
-def interpolate_polygons(cur_frame: np.ndarray, 
-                         frame_buffer: FrameBuffer,
-                         num_frames: int,
-                         old_polygons: List[np.ndarray], 
-                         cur_polygons: List[np.ndarray],
-                         ) -> List[Tuple[np.ndarray, np.ndarray, List[np.ndarray]]]:
+def interpolate_polygons(
+    cur_frame: np.ndarray,
+    frame_buffer: FrameBuffer,
+    num_frames: int,
+    old_polygons: list[np.ndarray],
+    cur_polygons: list[np.ndarray],
+) -> list[tuple[np.ndarray, np.ndarray, list[np.ndarray]]]:
     """
     Approximates blurred polygons between keyframes.
     Returns a List of frames to write and their polygons.
@@ -224,16 +234,21 @@ def interpolate_polygons(cur_frame: np.ndarray,
         for poly in prev_polygons:
             # TODO: user small replicated padding to increase stability on the edge
             # frame = cv2.copyMakeBorder(frame, padding, padding, padding, padding, cv2.BORDER_REPLICATE, None, 0)
-            new_poly, _, _ = cv2.calcOpticalFlowPyrLK(prev_gray, next_gray, poly, 
-                                    None, winSize = (15, 15),
-                                    maxLevel = 10, 
-                                    criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+            new_poly, _, _ = cv2.calcOpticalFlowPyrLK(
+                prev_gray,
+                next_gray,
+                poly,
+                None,
+                winSize=(15, 15),
+                maxLevel=10,
+                criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
+            )
             avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0])
             polygons.append(poly + avg_disp)
         frames_to_blur.append((next_frame, next_gray, polygons))
         prev_gray = next_gray
         prev_polygons = polygons
-    
+
     # Propagate new polygons backward with optical flow
     next_gray = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
     frame_buffer.put(cur_frame, next_gray)
@@ -244,17 +259,23 @@ def interpolate_polygons(cur_frame: np.ndarray,
         for poly in next_polygons:
             # TODO: user small replicated padding to increase stability on the edge
             # frame = cv2.copyMakeBorder(frame, padding, padding, padding, padding, cv2.BORDER_REPLICATE, None, 0)
-            new_poly, _, _ = cv2.calcOpticalFlowPyrLK(next_gray, prev_gray, poly, 
-                                    None, winSize = (15, 15),
-                                    maxLevel = 10, 
-                                    criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+            new_poly, _, _ = cv2.calcOpticalFlowPyrLK(
+                next_gray,
+                prev_gray,
+                poly,
+                None,
+                winSize=(15, 15),
+                maxLevel=10,
+                criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
+            )
             avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0])
             polygons.append(poly + avg_disp)
         inter_polygons.extend(polygons)
         next_gray = prev_gray
         next_polygons = polygons
-    
+
     return frames_to_blur
+
 
 def process_video(video, action):
     filename = video.filename
@@ -295,7 +316,7 @@ def process_video(video, action):
     filename_stem = Path(video_path).stem
     video_format_ext = "mp4"
 
-    fps = cap.fps 
+    fps = cap.fps
     # Override FPS if provided
     try:
         fps = int(os.environ.get("FPS"))
@@ -335,7 +356,7 @@ def process_video(video, action):
         sample_rate = int(os.environ.get("SAMPLE"))
     except Exception:
         sample_rate = 1
-    keyframe_count = 1 % sample_rate # for sample_rate = 1
+    keyframe_count = 1 % sample_rate  # for sample_rate = 1
     old_polygons = []
     frame_buffer = FrameBuffer(sample_rate)
     prev_keyframe = 0
@@ -350,7 +371,9 @@ def process_video(video, action):
 
             if visualization_enabled:
                 # adding filled rectangle on each frame
-                visualized_frame = visualize_frame(cur_frame, sdk_url, snapshot_api_token)
+                visualized_frame = visualize_frame(
+                    cur_frame, sdk_url, snapshot_api_token
+                )
                 out1.write(visualized_frame)
 
             if blur_enabled:
@@ -359,7 +382,9 @@ def process_video(video, action):
 
                     # Draw skip-frames
                     num_frames = frame_count - prev_keyframe - 1
-                    frames_to_blur = interpolate_polygons(cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons)
+                    frames_to_blur = interpolate_polygons(
+                        cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons
+                    )
                     for frame, _, polygons in frames_to_blur:
                         blur_polygons(frame, polygons, out2)
 
@@ -383,16 +408,18 @@ def process_video(video, action):
 
         # Draw skip-frames
         num_frames = frame_count - prev_keyframe - 1
-        frames_to_blur = interpolate_polygons(cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons)
+        frames_to_blur = interpolate_polygons(
+            cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons
+        )
         for frame, _, polygons in frames_to_blur:
             blur_polygons(frame, polygons, out2)
 
         # Draw current frame
         blur_polygons(cur_frame, cur_polygons, out2)
-    
+
     lgr.debug(f"Frame count: {frame_count}")
     lgr.debug(f"Time taken: {time.time() - start}")
-    
+
     cap.release()
     if out1:
         out1.release()
