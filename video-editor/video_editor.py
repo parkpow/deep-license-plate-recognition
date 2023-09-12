@@ -245,7 +245,7 @@ def interpolate_polygons(
 ) -> list[tuple[np.ndarray, np.ndarray, list[np.ndarray]]]:
     """
     Approximates blurred polygons between keyframes.
-    Returns a List of frames to write and their polygons.
+    Returns a List of frames to write and their approximated polygons.
     """
     # Propagate old polygons forward with optical flow
     frames_to_blur = []
@@ -265,8 +265,7 @@ def interpolate_polygons(
                 maxLevel=10,
                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
             )
-            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0]) - GRAY_PADDING
-            polygons.append(poly + avg_disp)
+            polygons.append(new_poly - GRAY_PADDING)
         frames_to_blur.append((next_frame, next_gray, polygons))
         prev_gray = next_gray
         prev_polygons = polygons
@@ -289,8 +288,7 @@ def interpolate_polygons(
                 maxLevel=10,
                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
             )
-            avg_disp = np.sum(new_poly - poly, axis=0) / (poly.shape[0]) - GRAY_PADDING
-            polygons.append(poly + avg_disp)
+            polygons.append(new_poly - GRAY_PADDING)
         inter_polygons.extend(polygons)
         next_gray = prev_gray
         next_polygons = polygons
