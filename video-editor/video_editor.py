@@ -123,22 +123,34 @@ def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
     return polygons, centers
 
 
-def blur_polygons(cv2_frame: np.ndarray, polygons: list[np.ndarray], writer: Any):
+def blur_polygons(
+    cv2_frame: np.ndarray, polygons: list[np.ndarray], blur_amount: int, writer: Any
+):
     """
     Draws blurred polygons to the frame.
     """
-    # Prep totally blurred image
-    blur = cv2.GaussianBlur(cv2_frame, (21, 21), 30)
+    result = cv2_frame
+    channel_count = cv2_frame.shape[2]
+    ignore_mask_color = (255,) * channel_count
 
-    # Prep mask
-    mask = np.zeros(cv2_frame.shape, dtype=np.uint8)
     for poly in polygons:
-        cv2.fillPoly(mask, [poly.astype(np.int32)], (255, 255, 255))
+        polygon_height = abs(int(poly[3][1] - poly[0][1]))
+        polygon_width = abs(int(poly[2][0] - poly[3][0]))
 
-    # Combine original and blur
-    result = cv2.bitwise_and(cv2_frame, cv2.bitwise_not(mask)) + cv2.bitwise_and(
-        blur, mask
-    )
+        # Prep mask
+        mask = np.zeros(cv2_frame.shape, dtype=np.uint8)
+        cv2.fillConvexPoly(mask, np.int32(poly), ignore_mask_color, cv2.LINE_AA)
+
+        # Prep totally blurred image
+        kernel_width = (polygon_width // blur_amount) | 1
+        kernel_height = (polygon_height // blur_amount) | 1
+        blurred_image = cv2.GaussianBlur(cv2_frame, (kernel_width, kernel_height), 0)
+
+        # Combine original and blur
+        result = cv2.bitwise_and(result, cv2.bitwise_not(mask)) + cv2.bitwise_and(
+            blurred_image, mask
+        )
+
     writer.write(result)
 
 
@@ -351,6 +363,11 @@ def process_video(video, action):
 
     # Parse blur parameters
     if blur_enabled:
+        try:
+            blur_amount = int(os.environ.get("VIDEO_BLUR"))
+            blur_amount = max(1, min(10, blur_amount))
+        except Exception:
+            blur_amount = 3
         blur_url = os.environ.get("BLUR_URL")
 
     frame_count = 0
@@ -389,10 +406,10 @@ def process_video(video, action):
                         cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons
                     )
                     for frame, _, polygons in frames_to_blur:
-                        blur_polygons(frame, polygons, out2)
+                        blur_polygons(frame, polygons, blur_amount, out2)
 
                     # Draw current frame
-                    blur_polygons(cur_frame, cur_polygons, out2)
+                    blur_polygons(cur_frame, cur_polygons, blur_amount, out2)
 
                     # Update state variables
                     old_polygons = cur_polygons
@@ -415,10 +432,10 @@ def process_video(video, action):
             cur_frame, frame_buffer, num_frames, old_polygons, cur_polygons
         )
         for frame, _, polygons in frames_to_blur:
-            blur_polygons(frame, polygons, out2)
+            blur_polygons(frame, polygons, blur_amount, out2)
 
         # Draw current frame
-        blur_polygons(cur_frame, cur_polygons, out2)
+        blur_polygons(cur_frame, cur_polygons, blur_amount, out2)
 
     lgr.debug(f"Frame count: {frame_count}")
     lgr.debug(f"Time taken: {time.time() - start}")
