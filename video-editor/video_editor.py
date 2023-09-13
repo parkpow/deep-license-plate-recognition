@@ -166,6 +166,7 @@ def process_video(video, action):
     video_path = os.path.join(temp_dir, video.filename)
     video.save(video_path)
 
+    # TODO: grayscale videos are not supported by ffmpegcv
     cap = ffmpegcv.VideoCapture(video_path)
 
     if not cap.isOpened():
@@ -181,6 +182,7 @@ def process_video(video, action):
     except Exception:
         # ffmpegcv cap.fps is not reliable
         fps_cap = cv2.VideoCapture(video_path)
+        # TODO: this way is also not 100 proof, find a better way
         fps = fps_cap.get(cv2.CAP_PROP_FPS)
         fps_cap.release()
 
@@ -261,9 +263,7 @@ def process_video(video, action):
         out2.release()
 
     lgr.debug(f"Frame count: {frame_count}")
-    print(f"Frame count: {frame_count}")
     lgr.debug(f"Time taken: {time.time() - start}")
-    print(f"Time taken: {time.time() - start}")
     lgr.debug(f"Done processing video {filename}")
     os.remove(video_path)
     os.rmdir(temp_dir)

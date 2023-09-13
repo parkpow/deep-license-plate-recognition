@@ -68,6 +68,7 @@ class Interpolator(Thread):
     """
 
     OPTICAL_FLOW_WINDOW = (31, 31)
+    OPTICAL_FLOW_DIST = np.linalg.norm(np.array(OPTICAL_FLOW_WINDOW))
     GRAY_PADDING = OPTICAL_FLOW_WINDOW[0]
     PADDING_PARAMS = (
         GRAY_PADDING,
@@ -153,7 +154,7 @@ class Interpolator(Thread):
                 continue
 
             # Prep mask
-            window = frame[box[1] : box[3], box[0] : box[2]]
+            window = result[box[1] : box[3], box[0] : box[2]]
             mask = np.zeros(window.shape, dtype=np.uint8)
             cv2.fillConvexPoly(
                 mask, np.int32(poly - box[:2]), ignore_mask_color, cv2.LINE_AA
@@ -170,6 +171,30 @@ class Interpolator(Thread):
             ) + cv2.bitwise_and(blurred_window, mask)
 
         self.writer.write(result)
+
+    def _is_consistent(self, shift: np.ndarray) -> bool:
+        """
+        Checks if the optical flow shifts are consistent between each other.
+        """
+        lengths = np.linalg.norm(shift, axis=1)
+        if np.max(lengths) < 2:
+            return True
+
+        # Check average displacement length
+        avg_shift = np.mean(shift, axis=0)
+        avg_shift_len = np.linalg.norm(avg_shift)
+        if avg_shift_len < 0.5:
+            return False
+        avg_shift /= avg_shift_len  # normalize
+
+        # Check if direction is consistent with the average
+        for i, vec in enumerate(shift):
+            # This will not work if the polygon is moving towards the camera
+            # TODO: come up with a better check
+            if np.dot(vec, avg_shift) < 0.5 * lengths[i]:
+                return False
+
+        return True
 
     def _interpolate_polygons(
         self,
@@ -200,7 +225,10 @@ class Interpolator(Thread):
                         0.03,
                     ),
                 )
-                polygons.append(new_poly - self.GRAY_PADDING)
+                new_poly = new_poly - self.GRAY_PADDING
+                shift = new_poly - poly
+                if self._is_consistent(shift):
+                    polygons.append(new_poly)
             frames_to_blur.append((next_frame, next_gray, polygons))
             prev_gray = next_gray
             prev_polygons = polygons
@@ -225,7 +253,10 @@ class Interpolator(Thread):
                         0.03,
                     ),
                 )
-                polygons.append(new_poly - self.GRAY_PADDING)
+                new_poly -= self.GRAY_PADDING
+                shift = new_poly - poly
+                if self._is_consistent(shift):
+                    polygons.append(new_poly)
             inter_polygons.extend(polygons)
             next_gray = prev_gray
             next_polygons = polygons
