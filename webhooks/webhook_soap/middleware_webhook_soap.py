@@ -1,11 +1,12 @@
+#!/usr/bin/python3.6
 import cgi
 import json
 import argparse
-import requests
-import base64
+import base64  
 from datetime import datetime
 from urllib.parse import parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from zeep import Client, Transport
 
 class GetHandler(BaseHTTPRequestHandler):
     def forward_to_SOAP_service(self, json_data, image):
@@ -13,56 +14,39 @@ class GetHandler(BaseHTTPRequestHandler):
         soap_action = "http://tempuri.org/PostImage"
         service_user = cli_args.user
         service_key = cli_args.service_key
-
-        soap_template = """
-        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
-            <soapenv:Header/>
-            <soapenv:Body>
-                <tem:PostImage>
-                <tem:user>{}</tem:user>
-                <tem:password>{}</tem:password>
-                <tem:date>{}</tem:date>
-                <tem:plate>{}</tem:plate>
-                <tem:score>{}</tem:score>
-                <tem:image>{}</tem:image>
-                </tem:PostImage>
-            </soapenv:Body>
-        </soapenv:Envelope>
-        """
-
+ 
         timestamp = json_data['data']['timestamp_local']
-        plate = json_data['data']['results'][0]['plate']
-        score = json_data['data']['results'][0]['score']
+        plate = json_data['data']['results'][0]['plate'] 
+        score = json_data['data']['results'][0]['score'] 
 
         # Format timestamp and filename
         parsed_timestamp = datetime.strptime(timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
+        formatted_timestamp = parsed_timestamp.strftime("%-m/%-d/%Y %H:%M:%S") 
+ 
+        request_data = {
+                'user': service_user, 
+                'password': service_key,
+                'date': formatted_timestamp,
+                'plate': plate,
+                'score': score,
+                'image': image,
+                }
         
-        formatted_timestamp = parsed_timestamp.strftime("%-m/%-d/%Y %H:%M:%S")
-
-        # Format SOAP XML content
-        soap_xml = soap_template.format(service_user, service_key,formatted_timestamp, plate, score, image)
-        #print(soap_xml)
-
-        # Headers for the POST request
-        headers = {
-            "Content-Type": "text/xml; charset=utf-8",
-            "SOAPAction": f'"{soap_action}"'
-        }
-        
-        response = requests.post(url, data=soap_xml,headers=headers)
-
-        if response.status_code == 200:
-            #self.wfile.write(b"SOAP request successful.")
-            #self.wfile.write(b"Response content: " + response.content)
+        # Headers for the request
+        transport = Transport()
+        transport.session.headers["Content-Type"] = "text/xml; charset=utf-8"
+        transport.session.headers["SOAPAction"] = soap_action
+ 
+        client = Client(url, transport=transport)
+ 
+        response = client.service.PostImage(**request_data)
+ 
+        if response:
             print("SOAP request successful.")
-            print("Response content: " + str(response.content))
-
+            print("Response content: " + str(response))
         else:
-            #self.wfile.write("SOAP request failed. Status code: {}".format(response.status_code).encode())
-            #self.wfile.write(b"Response content: " + response.content)
-            print("SOAP request failed. Status code: {}".format(response.status_code))
-            print("Response content: " + str(response.text))
-
+            print("SOAP request failed.")
+            
         return response
 
     def do_GET(self):
