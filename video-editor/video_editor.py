@@ -217,7 +217,7 @@ def process_video(video, action):
     try:
         sample_rate = int(os.environ.get("SAMPLE"))
     except Exception:
-        sample_rate = 1
+        sample_rate = 5
     keyframe_residue = 1 % sample_rate  # for sample_rate = 1
     interpolator = Interpolator(sample_rate, out2)
     interpolator.start()
@@ -251,7 +251,7 @@ def process_video(video, action):
 
     # Flush the remaining skipframes
     if blur_enabled and interpolator.is_flush_needed(frame_count):
-        frame, _ = interpolator.frame_buffer.lookup_last()
+        frame, _ = interpolator.frame_buffer.queue[-1]
         polygons = get_blur_polygons(frame, blur_url)
         interpolator.flush(frame_count, polygons)
     interpolator.close()

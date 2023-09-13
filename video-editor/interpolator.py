@@ -1,63 +1,12 @@
 import math
 import os
 from multiprocessing import Event
+from queue import Queue
 from threading import Lock, Thread
 from typing import Any
 
 import cv2
 import numpy as np
-
-
-class FrameBuffer:
-    """
-    Stores frames in a ringbuffer.
-    Provides methods for accessing and pushing frames.
-    Double pointer method: put index and get index.
-    """
-
-    def __init__(self, sample_rate: int):
-        self.buffer = [
-            (np.array([], dtype=np.uint8), np.array([], dtype=np.uint8))
-            for _ in range(sample_rate)
-        ]
-        self.buffer_len = sample_rate
-        self.buffer_put_idx = 0
-        self.buffer_get_idx = -1
-
-    def _increment_put_idx(self) -> None:
-        """
-        Moves the put index forward without changing the buffer.
-        """
-        self.buffer_put_idx = (self.buffer_put_idx + 1) % self.buffer_len
-
-    def _increment_get_idx(self) -> None:
-        """
-        Moves the get index forward without changing the buffer.
-        """
-        self.buffer_get_idx = (self.buffer_get_idx + 1) % self.buffer_len
-
-    def put(self, frame: np.ndarray, gray: np.ndarray) -> None:
-        """
-        Pushes a frame and its grayscale version into the buffer.
-        Then moves the put index forward.
-        """
-        self.buffer[self.buffer_put_idx] = (frame, gray)
-        self._increment_put_idx()
-
-    def get(self) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Returns the content of the buffer at the current get index.
-        Then moves the get index forward.
-        """
-        frame, gray = self.buffer[self.buffer_get_idx]
-        self._increment_get_idx()
-        return frame, gray
-
-    def lookup_last(self) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Returns the content of the buffer at the previous put index.
-        """
-        return self.buffer[self.buffer_put_idx - 1]
 
 
 class Interpolator(Thread):
@@ -68,7 +17,6 @@ class Interpolator(Thread):
     """
 
     OPTICAL_FLOW_WINDOW = (31, 31)
-    OPTICAL_FLOW_DIST = np.linalg.norm(np.array(OPTICAL_FLOW_WINDOW))
     GRAY_PADDING = OPTICAL_FLOW_WINDOW[0]
     PADDING_PARAMS = (
         GRAY_PADDING,
@@ -83,8 +31,9 @@ class Interpolator(Thread):
     def __init__(self, sample_rate: int, writer: Any):
         super().__init__()
         self.writer = writer
-        self.frame_buffer = FrameBuffer(2 * sample_rate)
-
+        # self.frame_buffer = FrameBuffer(2 * sample_rate)
+        self.frame_buffer: Queue[tuple[np.ndarray, np.ndarray]] = Queue(2 * sample_rate)
+        self.frame_buffer.put((np.array([]), np.array([])))  # prime with dummy frame
         # State variables
         self.cur_frame: np.ndarray = np.ndarray([], dtype=np.uint8)
         self.cur_gray: np.ndarray = np.ndarray([], dtype=np.uint8)
@@ -164,6 +113,8 @@ class Interpolator(Thread):
             kernel_width = (polygon_width // self.blur_amount) | 1
             kernel_height = (polygon_height // self.blur_amount) | 1
             blurred_window = cv2.GaussianBlur(window, (kernel_width, kernel_height), 0)
+            # blurred_window = np.zeros(window.shape, dtype=np.uint8)
+            # blurred_window[:, :] = (0, 0, 255)
 
             # Combine original and blur
             result[box[1] : box[3], box[0] : box[2]] = cv2.bitwise_and(
@@ -206,10 +157,10 @@ class Interpolator(Thread):
         # Propagate old polygons forward with optical flow
         num_frames = self.cur_keyframe_num - self.prev_keyframe_num - 1
         frames_to_blur = []
-        _, prev_gray = self.frame_buffer.get()
+        _, prev_gray = self.frame_buffer.get_nowait()
         prev_polygons = self.old_polygons
         for _ in range(num_frames):
-            next_frame, next_gray = self.frame_buffer.get()
+            next_frame, next_gray = self.frame_buffer.get_nowait()
             polygons = []
             for poly in prev_polygons:
                 new_poly, _, _ = cv2.calcOpticalFlowPyrLK(
@@ -296,7 +247,7 @@ class Interpolator(Thread):
         """
         with self.processing_lock:
             gray = self._gray_pad(frame)
-            self.frame_buffer.put(frame, gray)
+            self.frame_buffer.put((frame, gray))
 
             # Update state variables
             self.cur_frame = frame
@@ -310,7 +261,7 @@ class Interpolator(Thread):
         """
         Stacks skipframes into a buffer.
         """
-        self.frame_buffer.put(frame, self._gray_pad(frame))
+        self.frame_buffer.put((frame, self._gray_pad(frame)))
 
     def is_flush_needed(self, frame_count: int) -> bool:
         """
@@ -329,7 +280,7 @@ class Interpolator(Thread):
                 return
 
             # Update state variables
-            self.cur_frame, self.cur_gray = self.frame_buffer.lookup_last()
+            self.cur_frame, self.cur_gray = self.frame_buffer.queue[-1]
             self.cur_keyframe_num = frame_count
             self.cur_polygons = polygons
 
