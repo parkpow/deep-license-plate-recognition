@@ -113,8 +113,6 @@ class Interpolator(Thread):
             kernel_width = (polygon_width // self.blur_amount) | 1
             kernel_height = (polygon_height // self.blur_amount) | 1
             blurred_window = cv2.GaussianBlur(window, (kernel_width, kernel_height), 0)
-            # blurred_window = np.zeros(window.shape, dtype=np.uint8)
-            # blurred_window[:, :] = (0, 0, 255)
 
             # Combine original and blur
             result[box[1] : box[3], box[0] : box[2]] = cv2.bitwise_and(
