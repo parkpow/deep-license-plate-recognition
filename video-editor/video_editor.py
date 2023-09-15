@@ -10,6 +10,7 @@ import ffmpegcv
 import numpy as np
 import requests
 from flask import Flask, jsonify, request
+from interpolator import Interpolator
 from utils import draw_bounding_box_on_image
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
@@ -103,12 +104,17 @@ def blur_api(cv2_frame, blur_url):
         return response
 
 
-def blur_frame(cv2_frame, blur_url):
+def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
+    """
+    Call Blur API to request polygons to be blurred.
+    """
     blur_response = blur_api(cv2_frame, blur_url)
-    arr = np.asarray(bytearray(blur_response.content), dtype=np.uint8)
-    blurred_frame = cv2.imdecode(arr, -1)  # 'Load it as it is'
+    polygons = [
+        np.array(plate["polygon"], dtype=np.float32)
+        for plate in blur_response.json()["plates"]
+    ]
 
-    return blurred_frame
+    return polygons
 
 
 def save_frame(count, cv2_image, save_dir, image_format="jpg"):
@@ -160,6 +166,7 @@ def process_video(video, action):
     video_path = os.path.join(temp_dir, video.filename)
     video.save(video_path)
 
+    # TODO: grayscale videos are not supported by ffmpegcv
     cap = ffmpegcv.VideoCapture(video_path)
 
     if not cap.isOpened():
@@ -169,15 +176,25 @@ def process_video(video, action):
     filename_stem = Path(video_path).stem
     video_format_ext = "mp4"
 
+    # Override FPS if provided
+    try:
+        fps = int(os.environ.get("FPS"))
+    except Exception:
+        # ffmpegcv cap.fps is not reliable
+        fps_cap = cv2.VideoCapture(video_path)
+        # TODO: this way is also not 100 proof, find a better way
+        fps = fps_cap.get(cv2.CAP_PROP_FPS)
+        fps_cap.release()
+
     if visualization_enabled:
         output1_filename = (
             f"{BASE_WORKING_DIR}{filename_stem}_visualization.{video_format_ext}"
         )
-        out1 = init_writer(output1_filename, cap.fps)
+        out1 = init_writer(output1_filename, fps)
 
     if blur_enabled:
         output2_filename = f"{BASE_WORKING_DIR}{filename_stem}_blur.{video_format_ext}"
-        out2 = init_writer(output2_filename, cap.fps)
+        out2 = init_writer(output2_filename, fps)
 
     # Create the output dir for frames if missing
     if frames_enabled:
@@ -197,6 +214,15 @@ def process_video(video, action):
     if blur_enabled:
         blur_url = os.environ.get("BLUR_URL")
 
+    try:
+        sample_rate = int(os.environ.get("SAMPLE"))
+    except Exception:
+        sample_rate = 5
+    keyframe_residue = 1 % sample_rate  # for sample_rate = 1
+    interpolator = Interpolator(sample_rate, out2)
+    interpolator.start()
+
+    start = time.time()
     frame_count = 0
     while cap.isOpened():
         ret, frame = cap.read()
@@ -213,12 +239,22 @@ def process_video(video, action):
                 out1.write(visualized_frame)
 
             if blur_enabled:
-                # Blurring each frame
-                blurred_frame = blur_frame(frame, blur_url)
-                out2.write(blurred_frame)
-
+                if frame_count % sample_rate == keyframe_residue:
+                    # Keyframe
+                    polygons = get_blur_polygons(frame, blur_url)
+                    interpolator.feed_keyframe(frame, frame_count, polygons)
+                else:
+                    # Skipframes
+                    interpolator.feed_skipframe(frame)
         else:
             break
+
+    # Flush the remaining skipframes
+    if blur_enabled and interpolator.is_flush_needed(frame_count):
+        frame, _ = interpolator.frame_buffer.queue[-1]
+        polygons = get_blur_polygons(frame, blur_url)
+        interpolator.flush(frame_count, polygons)
+    interpolator.close()
 
     cap.release()
     if out1:
@@ -226,6 +262,8 @@ def process_video(video, action):
     if out2:
         out2.release()
 
+    lgr.debug(f"Frame count: {frame_count}")
+    lgr.debug(f"Time taken: {time.time() - start}")
     lgr.debug(f"Done processing video {filename}")
     os.remove(video_path)
     os.rmdir(temp_dir)
