@@ -8,6 +8,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
   - [Stream and OpenEye](#stream-and-openeye)
     - [Start the Webhook Server](#start-the-webhook-server)
     - [Start Stream](#start-stream)
+  - [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
 
 
 ## Generic Webhook Server
@@ -132,3 +133,56 @@ timezone = UTC
 The example above shows the config.ini set up with the previously running webhook and two cameras with their respective RTSP links and their External camera ID. This same configuration can be used for N_Cameras.
 
 After modifying the config.ini, restart the Stream container.
+
+## Receive and Forward Webhook data to a SOAP service
+
+[This middleware example](https://github.com/parkpow/deep-license-plate-recognition/blob/master/webhooks/webhook_soap/middleware_webhook_soap.py) forwards the data coming from Stream or Snapshot SDK to a SOAP service that waits for `date`, `plate`, `score`, `image` fields and `user`/`password` for service authentication. 
+
+### Required parameters:
+
+- `--soap-service-url`
+- `--user` (service authentication user name)
+- `--service-key` (service authentication user key)
+
+### Command Excecution Format:
+
+```
+python3 /path/to/scripy/middleware_webhook_soap.py \
+--soap-service-url https://<SOAP_SERVICE_URL>?WSDL \
+--user <SOAP_SERVICE_ACCESS_USER_NAME> \
+--service-key <SOAP_SERVICE_KEY>
+```
+
+[Note that the webhook receiver listens on port 8002.](https://github.com/parkpow/deep-license-plate-recognition/blob/b2eca9ea39ab73ea6d49328bbde4f44a59c1e2e8/webhooks/webhook_soap/middleware_webhook_soap.py#L135C30-L135C34)
+
+### Stream Webhook configuration:
+
+- Set the parameter webhook_targets in config.ini to the host and port of your webhook.
+  
+```
+# List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone = UTC
+[cameras]
+  #...
+  # your global cameras configuration
+  #...
+  [[camera-1]]
+    active = yes
+    url = rtsp://192.168.0.108:8080/video/h264
+    webhook_targets = webhook-to-SOAP
+    #...
+    # your camera configuration
+    #...
+
+  # Webhook targets and their parameters
+    [webhooks]
+    caching = yes
+    [[webhook-to-SOAP]]
+      url = http://192.168.0.180:8002
+      image = yes
+      image_type = vehicle, plate
+      request_timeout = 30
+  ```
+### Shapshot Webhook configuration:
+
+Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware url.
