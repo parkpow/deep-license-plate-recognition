@@ -183,6 +183,6 @@ timezone = UTC
       image_type = vehicle, plate
       request_timeout = 30
   ```
-### Shapshot Webhook configuration:
+### Snapshot Webhook Configuration
 
 Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware url.
