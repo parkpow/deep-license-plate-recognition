@@ -144,7 +144,7 @@ After modifying the config.ini, restart the Stream container.
 - `--user` (service authentication user name)
 - `--service-key` (service authentication user key)
 
-### Command Excecution Format:
+### Command Excecution Format
 
 ```
 python3 /path/to/script/middleware_webhook_soap.py \
