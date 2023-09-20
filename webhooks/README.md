@@ -155,7 +155,7 @@ python3 /path/to/script/middleware_webhook_soap.py \
 
 [Note that the webhook receiver listens on port 8002.](https://github.com/parkpow/deep-license-plate-recognition/blob/b2eca9ea39ab73ea6d49328bbde4f44a59c1e2e8/webhooks/webhook_soap/middleware_webhook_soap.py#L135C30-L135C34)
 
-### Stream Webhook configuration:
+### Stream Webhook Configuration
 
 - Set the parameter `webhook_targets` in `config.ini` to the host and port of your webhook.
   
