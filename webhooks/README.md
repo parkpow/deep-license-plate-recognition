@@ -147,7 +147,7 @@ After modifying the config.ini, restart the Stream container.
 ### Command Excecution Format:
 
 ```
-python3 /path/to/scripy/middleware_webhook_soap.py \
+python3 /path/to/script/middleware_webhook_soap.py \
 --soap-service-url https://<SOAP_SERVICE_URL>?WSDL \
 --user <SOAP_SERVICE_ACCESS_USER_NAME> \
 --service-key <SOAP_SERVICE_KEY>
