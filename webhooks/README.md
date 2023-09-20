@@ -138,7 +138,7 @@ After modifying the config.ini, restart the Stream container.
 
 [This middleware example](https://github.com/parkpow/deep-license-plate-recognition/blob/master/webhooks/webhook_soap/middleware_webhook_soap.py) forwards the data coming from Stream or Snapshot SDK to a SOAP service that waits for `date`, `plate`, `score`, `image` fields and `user`/`password` for service authentication. 
 
-### Required parameters:
+### Required Parameters
 
 - `--soap-service-url`
 - `--user` (service authentication user name)
