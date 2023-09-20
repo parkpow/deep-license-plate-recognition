@@ -157,7 +157,7 @@ python3 /path/to/script/middleware_webhook_soap.py \
 
 ### Stream Webhook configuration:
 
-- Set the parameter webhook_targets in config.ini to the host and port of your webhook.
+- Set the parameter `webhook_targets` in `config.ini` to the host and port of your webhook.
   
 ```
 # List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
