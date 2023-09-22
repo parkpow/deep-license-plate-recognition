@@ -65,6 +65,7 @@ Build Solution and Run WebhookReader.exe as a Console Application
 
 1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.
 2. Send an example webhook to the server. If it is running correctly, it should exit without an error.
+3. Optionally, you can send an authentication token with `-e TOKEN=XXX`.
 
 ```shell
 docker run -e URL=http://MY_IP_ADDRESS:8001 platerecognizer/webhook-tester
@@ -136,7 +137,7 @@ After modifying the config.ini, restart the Stream container.
 
 ## Receive and Forward Webhook data to a SOAP service
 
-[This middleware example](https://github.com/parkpow/deep-license-plate-recognition/blob/master/webhooks/webhook_soap/middleware_webhook_soap.py) forwards the data coming from Stream or Snapshot SDK to a SOAP service that waits for `date`, `plate`, `score`, `image` fields and `user`/`password` for service authentication. 
+[This middleware example](https://github.com/parkpow/deep-license-plate-recognition/blob/master/webhooks/webhook_soap/middleware_webhook_soap.py) forwards the data coming from Stream or Snapshot SDK to a SOAP service that waits for `date`, `plate`, `score`, `image` fields and `user`/`password` for service authentication.
 
 ### Required Parameters
 
@@ -158,7 +159,7 @@ python3 /path/to/script/middleware_webhook_soap.py \
 ### Stream Webhook Configuration
 
 - Set the parameter `webhook_targets` in `config.ini` to the host and port of your webhook.
-  
+
 ```
 # List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 timezone = UTC

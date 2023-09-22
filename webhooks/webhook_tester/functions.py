@@ -1,4 +1,6 @@
 import json
+import os
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
@@ -29,8 +31,8 @@ class WebhookTester:
                     "data": {
                         "camera_id": "camera-1",
                         "filename": ("camera-1_screenshots/image.jpg"),
-                        "timestamp": "2021-10-27T06:20:55.161444Z",
-                        "timestamp_local": "2021-10-27 06:20:55.161444 00:00",
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                        "timestamp_local": str(datetime.now()),
                         "results": [
                             {
                                 "box": {
@@ -120,10 +122,13 @@ class WebhookTester:
         """
         if method.lower() not in ["get", "post"]:
             raise ValueError("Method not supported. Only accepts `get` or `post`.")
-
+        token = os.environ.get("TOKEN")
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Token {token}"
         try:
             response = getattr(requests, method.lower())(
-                url, data=data, files=files, timeout=30
+                url, data=data, files=files, timeout=30, headers=headers
             )
         except requests.exceptions.Timeout as exc:
             raise WebhookError("The request timed out.") from exc
