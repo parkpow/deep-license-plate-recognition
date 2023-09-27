@@ -45,13 +45,13 @@ def merge_paths(path1: Path, path2: Path):
     common_prefix = os.path.commonpath([path1, path2])
     if common_prefix == "/":
         # Custom output dir, exclude the first (/images/) prefix
-        print(f"path1: {path1}")
-        print(f"path2: {path2}")
+        lgr.debug(f"path1: {path1}")
+        lgr.debug(f"path2: {path2}")
         path3 = Path(path1) / Path(*path2.parts[2:])
     else:
         real_path = os.path.relpath(path2, common_prefix)
-        print(f"common_prefix: {common_prefix}")
-        print(f"real_path: {real_path}")
+        lgr.debug(f"common_prefix: {common_prefix}")
+        lgr.debug(f"real_path: {real_path}")
         path3 = path1 / Path(real_path)
 
     return path3
@@ -70,37 +70,40 @@ def get_output_path(output_dir, path, rename_file):
     return output
 
 
-def process(
-    args,
-    path: Path,
-    # data: dict,
-    # face_detection_threshold: float,
-    # exclusion,
-    output: Path,
-    # slices_count: int,
-    # overlap: int,
-):
+def process(args, path: Path, output: Path):
     """
     Process An Image
-
     """
-    # TODO blur_amount = int(os.getenv('BLUR', 3))
     lgr.debug(f"output path: {output}")
-
-    # Read Image File
     with open(path, "rb") as fp:
-        response = requests.post(args.blur_url, files=dict(upload=fp), stream=True)
+        data = {
+            "camera_id": args.camera_id,
+            "config": args.config,
+            "et": args.et,
+            "el": args.el,
+            "eb": args.eb,
+            "er": args.er,
+            "xmin": args.xmin,
+            "ymin": args.ymin,
+            "xmax": args.xmax,
+            "ymax": args.ymax,
+            "split": args.split,
+            "overlap": args.overlap,
+            "faces": args.faces,
+            "plates": args.plates,
+        }
+        response = requests.post(
+            args.blur_url, files=dict(upload=fp), data=data, stream=True
+        )
+        lgr.debug(f"Response: {response}")
         if response.status_code < 200 or response.status_code > 300:
             logging.error(response.text)
-            raise Exception("Error performing blur")
-
-        # TODO if json log. if file save
-        # print(response.text)
+            raise Exception(f"Error performing blur: {response.text}")
         response_content_type = response.headers["Content-Type"]
         lgr.debug(f"response_content_type: {response_content_type}")
         if response_content_type == "application/json":
             # Print the JSON response.
-            print(response.json())
+            lgr.info(response.json())
         elif response_content_type.startswith("image/"):
             # Save the image file.
             with open(output, "wb") as f:
@@ -112,18 +115,7 @@ def process(
             )
 
 
-def process_dir(
-    input_dir: Path,
-    args,
-    # data: dict,
-    # face_detection_threshold: float,
-    # exclusion: Exclusion,
-    output_dir: Path,
-    rename_file,
-    # slices_count,
-    # overlap,
-    resume,
-):
+def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
     """
     Recursively Process Images in a directory
 
@@ -134,13 +126,8 @@ def process_dir(
             process_dir(
                 path,
                 args,
-                # data,
-                # face_detection_threshold,
-                # exclusion,
                 output_dir,
                 rename_file,
-                # slices_count,
-                # overlap,
                 resume,
             )
         elif path.name.startswith("blur-") or path.name.endswith(
@@ -153,16 +140,10 @@ def process_dir(
             output_path = get_output_path(output_dir, path, rename_file)
             if resume and output_path.is_file():
                 continue
-
             process(
                 args,
                 path,
-                # data,
-                # face_detection_threshold,
-                # exclusion,
                 output_path,
-                # slices_count,
-                # overlap,
             )
 
 
@@ -170,10 +151,28 @@ def main():
     parser = argparse.ArgumentParser(
         description="Blur plates and faces in a folder recursively"
     )
-    parser.add_argument("--images", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=False)
-    parser.add_argument("--camera_id", required=False)
-    parser.add_argument("--config", required=False)
+    parser.add_argument(
+        "-b",
+        "--blur-url",
+        help="Url to blur SDK. Example http://localhost:5000",
+        required=True,
+    )
+    parser.add_argument(
+        "--images",
+        type=Path,
+        required=True,
+        help="Folder containing images to process.",
+    )
+    parser.add_argument(
+        "--plates", type=int, default="10", help="Plate blur intensity."
+    )
+    parser.add_argument("--faces", type=int, default="10", help="Face blur intensity.")
+    parser.add_argument(
+        "--camera_id", required=False, help="Camera ID forward to Snapshot"
+    )
+    parser.add_argument(
+        "--config", required=False, help="Extra engine config forward to Snapshot"
+    )
     parser.add_argument(
         "--et", type=float, required=False, default=0.0, help="Exclusion margin top."
     )
@@ -202,26 +201,20 @@ def main():
         "--split",
         type=int,
         required=False,
-        help="Process the image in multiple horizontal chunks instead of a single one. Slower but more accurate.",
+        help="Split large images into horizontal chunks to increase predictions.",
     )
     parser.add_argument(
         "--overlap",
         type=int,
         required=False,
-        default=20,
-        help="Percentage of overlap when creating the chunks.",
+        help="Percentage of overlap when splitting.",
     )
+    parser.add_argument("--output", type=Path, required=False, help="Output directory.")
     parser.add_argument(
         "--resume",
         action="store_true",
-        help="Skip blurred images. Checks if output path exists.",
+        help="Skip already blurred images.",
         default=False,
-    )
-    parser.add_argument(
-        "-b",
-        "--blur-url",
-        help="Url to blur sdk  For example, http://localhost:5000",
-        required=True,
     )
     args = parser.parse_args()
 
@@ -242,17 +235,7 @@ def main():
         rename_file = True
 
     start = time.time()
-    process_dir(
-        args.images,
-        args,
-        # face_detection_t,
-        # exclusion,
-        output_dir,
-        rename_file,
-        # slices_count,
-        # args.overlap,
-        args.resume,
-    )
+    process_dir(args.images, args, output_dir, rename_file, args.resume)
     end = time.time()
     tt = end - start
     lgr.debug(f"Processing complete. Time taken: {tt}")
