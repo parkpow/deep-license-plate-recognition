@@ -2,70 +2,59 @@
 
 Plate Recognizer lets you forward the inference results to a third party. Here are examples for how to use our [webhook API](http://docs.platerecognizer.com/#webhooks).
 
-- [Generic Webhook Server](#generic-webhook-server)
-  - [Sending Data to the Webhook Server](#sending-data-to-the-webhook-server)
-- [Home Assistant](#home-assistant)
-- [Stream and OpenEye](#stream-and-openeye)
-  - [Start the Webhook Server](#start-the-webhook-server)
-  - [Start Stream](#start-stream)
-- [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
-  - [Required Parameters](#required-parameters)
-  - [Command Excecution Format](#command-excecution-format)
-  - [Stream Webhook Configuration](#stream-webhook-configuration)
-  - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
+- [Webhooks Receiver](#webhooks-receiver)
+  - [Sample Code](#sample-code)
+    - [Python Without Dependencies](#python-without-dependencies)
+    - [Python and Flask](#python-and-flask)
+    - [Javascript / Node](#javascript--node)
+    - [C# / .Net Framework v4.8:](#c--net-framework-v48)
+    - [Sending Data to the Webhook Receiver](#sending-data-to-the-webhook-receiver)
+  - [Home Assistant](#home-assistant)
+  - [Stream and OpenEye](#stream-and-openeye)
+    - [Start the Webhook Server](#start-the-webhook-server)
+    - [Start Stream](#start-stream)
+  - [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
+    - [Required Parameters](#required-parameters)
+    - [Command Excecution Format](#command-excecution-format)
+    - [Stream Webhook Configuration](#stream-webhook-configuration)
+    - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
 
 
-## Generic Webhook Receiver
+## Sample Code
 
-Here are some webhook server examples. **Pick one** of the options below.
+After starting the receiver, configure Snapshot or Stream webhooks in Plate Recognizer with the URL http://<your-machine-ip>:8001/.
 
-- **Python and the standard library:**
+### Python Without Dependencies
 
-Start the server
-
-```bash
+```shell
 python3 webhook_reader.py
 ```
 
-- **Python and Flask:**
+### Python and Flask
 
-Install flask
-
-```bash
+```shell
 pip install Flask==1.1.2
-```
-
-Start the server
-
-```bash
 python3 webhook_reader_flask.py
 ```
 
-- **Javascript / Node:**
+### Javascript / Node
 
-Install dependencies
-
-```bash
+```shell
 npm install
-```
-
-Start the server
-
-```bash
 node webhook_reader.js
 ```
 
-- **C# / .Net Framework v4.8:**
+### C# / .Net Framework v4.8:
 
 Install [this NuGet package](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser) required for MultiPart Parsing
 
 ```shell
-PM> Install-Package HttpMultipartParser
+Install-Package HttpMultipartParser
 ```
 
 Build Solution and Run WebhookReader.exe as a Console Application
 
-### Sending Data to the Webhook Receiver
+## Sending Data to the Webhook Receiver
 
 1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.
 2. Send an example webhook to the server. If it is running correctly, it should exit without an error.
