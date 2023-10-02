@@ -65,7 +65,7 @@ Build Solution and Run WebhookReader.exe as a Console Application
 
 1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.
 2. Send an example webhook to the server. If it is running correctly, it should exit without an error.
-3. Optionally, you can send an authentication token with `-e TOKEN=XXX`.
+3. Optionally, you can send an authentication token with `-e TOKEN=XXX` or a camera with `-e CAMERA=XXX` to identify the webhook source.
 
 ```shell
 docker run -e URL=http://MY_IP_ADDRESS:8001 platerecognizer/webhook-tester

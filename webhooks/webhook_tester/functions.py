@@ -29,7 +29,7 @@ class WebhookTester:
                         "filename": ("camera-1_screenshots/image.jpg"),
                     },
                     "data": {
-                        "camera_id": "camera-1",
+                        "camera_id": os.environ.get("CAMERA", "camera-1"),
                         "filename": ("camera-1_screenshots/image.jpg"),
                         "timestamp": datetime.utcnow().isoformat() + "Z",
                         "timestamp_local": str(datetime.now()),
