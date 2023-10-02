@@ -8,7 +8,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Python and Flask](#python-and-flask)
     - [Javascript / Node](#javascript--node)
     - [C# / .Net Framework v4.8:](#c--net-framework-v48)
-    - [Sending Data to the Webhook Receiver](#sending-data-to-the-webhook-receiver)
+  - [Sending Data to the Webhook Receiver](#sending-data-to-the-webhook-receiver)
   - [Home Assistant](#home-assistant)
   - [Stream and OpenEye](#stream-and-openeye)
     - [Start the Webhook Server](#start-the-webhook-server)
