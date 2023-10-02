@@ -1,17 +1,21 @@
-# Webhooks
+# Webhooks Receiver
 
 Plate Recognizer lets you forward the inference results to a third party. Here are examples for how to use our [webhook API](http://docs.platerecognizer.com/#webhooks).
 
-  - [Generic Webhook Server](#generic-webhook-server)
-    - [Sending Data to the Webhook Server](#sending-data-to-the-webhook-server)
-  - [Home Assistant](#home-assistant)
-  - [Stream and OpenEye](#stream-and-openeye)
-    - [Start the Webhook Server](#start-the-webhook-server)
-    - [Start Stream](#start-stream)
-  - [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
+- [Generic Webhook Server](#generic-webhook-server)
+  - [Sending Data to the Webhook Server](#sending-data-to-the-webhook-server)
+- [Home Assistant](#home-assistant)
+- [Stream and OpenEye](#stream-and-openeye)
+  - [Start the Webhook Server](#start-the-webhook-server)
+  - [Start Stream](#start-stream)
+- [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
+  - [Required Parameters](#required-parameters)
+  - [Command Excecution Format](#command-excecution-format)
+  - [Stream Webhook Configuration](#stream-webhook-configuration)
+  - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
 
 
-## Generic Webhook Server
+## Generic Webhook Receiver
 
 Here are some webhook server examples. **Pick one** of the options below.
 
@@ -61,7 +65,7 @@ PM> Install-Package HttpMultipartParser
 
 Build Solution and Run WebhookReader.exe as a Console Application
 
-### Sending Data to the Webhook Server
+### Sending Data to the Webhook Receiver
 
 1. Find your machine local IP for example 192.168.0.206. You can use `ifconfig` to get it.
 2. Send an example webhook to the server. If it is running correctly, it should exit without an error.
