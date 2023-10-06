@@ -3,14 +3,14 @@ Detect person in video file or live camera feed.
 When a person is detected, send a webhook similar to Snapshot Cloud in real time.
 
 ## Setup
-1. Build the image
+### 1. Build Docker image
 First [download weights](https://drive.google.com/file/d/1liPJnM2MAVhdzlUpJjm8xfZ99Gk_Nokl/view?usp=sharing) into this directory then build docker image.
 ```bash
 docker build --tag platerecognizer/persons-detector .
 
 ```
 
-2. Run Image
+### 2. Run Built Image
 Example usage of processing platerecognizer demo rtsp and sending events to webhook.site
 ```
 docker run --rm -t platerecognizer/persons-detector\
@@ -19,7 +19,12 @@ docker run --rm -t platerecognizer/persons-detector\
   -image -heads -sample 10
 ```
 
-3. View Help
+### 3. Get Output
+The webhook payload format is similar to the one sent by Snapshot Cloud SDK
+https://guides.platerecognizer.com/docs/snapshot/api-reference/#webhooks
+
+
+### 3. View Help on Usage
 ```
 docker run --rm -t platerecognizer/persons-detector -h
 ```
@@ -39,11 +44,8 @@ optional arguments:
   -weights WEIGHTS  Model Weights
   -sample SAMPLE    Sample Rate
 ```
-
+### 4. Troubleshooting 
 Enable debug logging to preview the bounding boxes on the images sent out in the webhooks by adding:
 ```
  -e LOGGING=DEBUG
 ```
-
-The webhook payload format is similar to the one sent by Snapshot Cloud SDK
-https://guides.platerecognizer.com/docs/snapshot/api-reference/#webhooks
