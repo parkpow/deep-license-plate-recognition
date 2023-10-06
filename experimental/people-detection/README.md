@@ -11,7 +11,7 @@ docker build --tag platerecognizer/persons-detector .
 ```
 
 ### 2. Run Built Image
-Example usage of processing platerecognizer demo rtsp and sending events to webhook.site
+Example usage of processing platerecognizer demo rtsp and sending events to https://webhook.site
 ```
 docker run --rm -t platerecognizer/persons-detector\
   -url rtsp://platerec:8S5AZ7YasGc3m4@video.platerecognizer.com:8554/demo\
@@ -20,9 +20,7 @@ docker run --rm -t platerecognizer/persons-detector\
 ```
 
 ### 3. Get Output
-The webhook payload format is similar to the one sent by Snapshot Cloud SDK
-https://guides.platerecognizer.com/docs/snapshot/api-reference/#webhooks
-
+The webhook payload format is similar to [the one sent by Snapshot Cloud SDK](https://guides.platerecognizer.com/docs/snapshot/api-reference/#webhooks)
 
 ### 3. View Help on Usage
 ```
