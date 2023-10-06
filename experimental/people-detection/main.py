@@ -127,10 +127,10 @@ def main():
     )
     parser.add_argument("-webhook", required=True, type=str, help="Webhook Target")
     parser.add_argument(
-        "-image", action="store_true", default=False, help="Include Image"
+        "-image", action="store_true", default=False, help="Include image in webhook payload"
     )
     parser.add_argument(
-        "-heads", action="store_true", default=False, help="Include Heads"
+        "-heads", action="store_true", default=False, help="Detect heads and include in results"
     )
     parser.add_argument(
         "-weights", type=Path, default="crowdhuman_yolov5m.pt", help="Model Weights"
