@@ -36,15 +36,15 @@ Detect persons in live camera feed or video file
 
 optional arguments:
   -h, --help        show this help message and exit
-  -url URL          Video rtsp://, rtmp://, http:// or File in mounted volume
-  -device DEVICE    cuda device, i.e. 0 or 0,1,2,3 or cpu
-  -webhook WEBHOOK  Webhook Target
+  -url URL          Video URL, rtsp://, rtmp://, http:// or File path in a mounted volume
+  -device DEVICE    Use GPU or CPU, cpu or a cuda device i.e. 0 or 0,1,2,3
+  -webhook WEBHOOK  Webhook Target URL
   -image            Include image in webhook payload
   -heads            Detect heads and include in results
   -weights WEIGHTS  Model Weights
   -sample SAMPLE    Sample Rate
 ```
-### 4. Troubleshooting 
+### 4. Troubleshooting
 Enable debug logging to preview the bounding boxes on the images sent out in the webhooks by adding:
 ```
  -e LOGGING=DEBUG
