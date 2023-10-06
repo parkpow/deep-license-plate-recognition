@@ -39,8 +39,8 @@ optional arguments:
   -url URL          Video rtsp://, rtmp://, http:// or File in mounted volume
   -device DEVICE    cuda device, i.e. 0 or 0,1,2,3 or cpu
   -webhook WEBHOOK  Webhook Target
-  -image            Include Image
-  -heads            Include Heads
+  -image            Include image in webhook payload
+  -heads            Detect heads and include in results
   -weights WEIGHTS  Model Weights
   -sample SAMPLE    Sample Rate
 ```
