@@ -18,6 +18,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Command Excecution Format](#command-excecution-format)
     - [Stream Webhook Configuration](#stream-webhook-configuration)
     - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
+  - [Forward Stream Webhook Events to Synology API](#forward-stream-webhook-events-to-synology-api)
 
 
 ## Sample Code
@@ -179,4 +180,36 @@ timezone = UTC
   ```
 ### Snapshot Webhook Configuration
 
-Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware url.
+Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware URL.
+
+## Forward Stream Webhook Events to Synology API
+
+[This example](https://github.com/parkpow/deep-license-plate-recognition/tree/synology-middleware-rest/webhooks/webhook_rest) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
+
+### Setup
+1. Build the image
+``` bash
+docker build -t="platerecognizer/stream-svs-notifier" .
+```
+
+2. Run Image on Port 8002
+``` bash
+docker run --rm -t \
+    -p 8002:8002 \
+    -e REST_SERVICE_URL=[SVS_webhook_URL]?token=[API_TOKEN] \
+    platerecognizer/stream-svs-notifier
+    
+    
+# Example
+docker run --rm -t \ 
+    -p 8002:8002 \
+    -e REST_SERVICE_URL=http://220.123.123.123:31000/webapi/SurveillanceStation/Webhook/Incoming/v1?token=aaa \
+    platerecognizer/stream-svs-notifier
+```
+
+3. Configure Stream Webhook Targets
+``` bash
+  webhook_targets = http://[stream-svs-notifier IP]:8002
+```
+> [Restart Stream after config changes](https://guides.platerecognizer.com/docs/stream/configuration). `stream-svs-notifier IP` is the IP address of the server or computer running stream-svs-notifier.
+
