@@ -15,8 +15,8 @@ First [download weights](https://drive.google.com/file/d/1liPJnM2MAVhdzlUpJjm8xf
     ```
 
 ### 2. Run Built Image
-Example usage of processing platerecognizer demo rtsp and sending events to [webhook.site](https://webhook.site)
-Run With CPU support:
+Example usage of processing platerecognizer demo rtsp and sending events to [webhook.site](https://webhook.site)  
+1. Run With CPU only:
 ```shell
 docker run --rm -t platerecognizer/persons-detector\
   -url rtsp://platerec:8S5AZ7YasGc3m4@video.platerecognizer.com:8554/demo\
@@ -24,7 +24,7 @@ docker run --rm -t platerecognizer/persons-detector\
   -image -heads -sample 10
 ```
 
-Run With GPU support:
+2. Run With GPU support:
 ```shell
 docker run --rm --gpus=all -t platerecognizer/persons-detector\
   -url rtsp://platerec:8S5AZ7YasGc3m4@video.platerecognizer.com:8554/demo\
