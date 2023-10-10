@@ -121,21 +121,8 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
 
     :return:
     """
-    for path in input_dir.iterdir():
-        if path.is_dir():
-            process_dir(
-                path,
-                args,
-                output_dir,
-                rename_file,
-                resume,
-            )
-        elif path.name.startswith("blur-") or path.name.endswith(
-            f"_clean{path.suffix}"
-        ):
-            lgr.debug(f"Skipping output file: {path}")
-            continue
-        else:
+    for path in input_dir.glob("**/*"):
+        if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
             output_path = get_output_path(output_dir, path, rename_file)
             if resume and output_path.is_file():
