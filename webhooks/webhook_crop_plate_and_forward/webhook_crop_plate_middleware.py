@@ -3,7 +3,6 @@ import cgi
 import json
 import argparse
 import requests
-from datetime import datetime
 from urllib.parse import parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
