@@ -88,7 +88,7 @@ if __name__ == "__main__":
     )
     parser.epilog += (
         "Examples:\n"
-        "Crop and append license plate image from original or vehicle image comming in Stream/Snapshot webhook and forward: "
+        "Crop license plate image from original or vehicle image incoming in Stream/Snapshot webhook, append and forward to another webhook endpoint: "
         "./webhook_crop_image_middleware.py --webhook-url https://your-webhook-site.com/endpoint"
     )
 
