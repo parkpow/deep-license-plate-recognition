@@ -18,7 +18,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Command Excecution Format](#command-excecution-format)
     - [Stream Webhook Configuration](#stream-webhook-configuration)
     - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
-
+  - [Extract license plate image from webhook and forward to another endpoint](#extract-license-plate-image-from-webhook-and-forward-to-another-endpoint)
 
 ## Sample Code
 
@@ -180,3 +180,29 @@ timezone = UTC
 ### Snapshot Webhook Configuration
 
 Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware url.
+
+## Extract license plate image from webhook and forward to another endpoint
+
+[This webhook middleware example](webhooks/webhook_crop_plate_and_forward) receives a webhook request from [Snapshot SDK](https://guides.platerecognizer.com/docs/snapshot/api-reference#example-of-post-payload) and [Stream](https://guides.platerecognizer.com/docs/stream/results#receiving-webhook-data), uses the original or vehicle image incoming in the request, and crops the plate based on `box` object that contains the bounding box coordinates in such incoming images.
+
+Note that Stream has a built-in solution to send license plate image, it must be configured, see: https://guides.platerecognizer.com/docs/stream/configuration#image_type
+
+### Install Requirements
+
+Install libraries `Pillow` and `requests` executing `pip install <library_name>` in your console.
+If you are using virtual environment, make sure to have it activated.
+
+### Running the middleware:
+
+Format:
+
+`python3 webhook_crop_image_middleware.py --webhook-url https://your-webhook-url.com/endpoint`
+
+Example: 
+
+`python3 webhook_crop_image_middleware.py --webhook-url https://your-webhook-url.com/endpoint](https://webhook.site/f510622a-07e9-4d9f-bc0c-4a57c4196039`
+
+
+
+
+
