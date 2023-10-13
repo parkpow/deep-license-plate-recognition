@@ -32,11 +32,14 @@ class GetHandler(BaseHTTPRequestHandler):
         # Send the request
         response = requests.post(url=url, headers=HEADERS, data=data)
 
-        if response:
+        if response.status_code is 200:
             print("rest request successful.")
             print("Response content: " + str(response))
         else:
-            print("rest request failed.")
+            print("\033[31mERROR:    rest request failed.")
+            print("Action Rule URL: " + url)
+            print("Body: " + str(data))
+            print("Response code: " + str(response.status_code) + "\033[0m")
 
         return response
 
