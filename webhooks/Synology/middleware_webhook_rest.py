@@ -32,7 +32,7 @@ class GetHandler(BaseHTTPRequestHandler):
         # Send the request
         response = requests.post(url=url, headers=HEADERS, data=data)
 
-        if response.status_code is 200:
+        if response.status_code == 200:
             print("rest request successful.")
             print("Response content: " + str(response))
         else:
