@@ -120,22 +120,33 @@ def main():
         "-url",
         required=True,
         type=str,
-        help="Video rtsp://, rtmp://, http:// or File in mounted volume",
+        help="Video URL, rtsp://, rtmp://, http:// or File path in a mounted volume",
     )
     parser.add_argument(
-        "-device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
+        "-device",
+        default="",
+        help="Use GPU or CPU, cpu or a cuda device i.e. 0 or 0,1,2,3",
     )
-    parser.add_argument("-webhook", required=True, type=str, help="Webhook Target")
+    parser.add_argument("-webhook", required=True, type=str, help="Webhook target URL")
     parser.add_argument(
-        "-image", action="store_true", default=False, help="Include image in webhook payload"
+        "-image",
+        action="store_true",
+        default=False,
+        help="Include image in webhook payload",
     )
     parser.add_argument(
-        "-heads", action="store_true", default=False, help="Detect heads and include in results"
+        "-heads",
+        action="store_true",
+        default=False,
+        help="Detect heads and include in results",
     )
     parser.add_argument(
-        "-weights", type=Path, default="crowdhuman_yolov5m.pt", help="Model Weights"
+        "-weights",
+        type=Path,
+        default="crowdhuman_yolov5m.pt",
+        help="Model weights file path",
     )
-    parser.add_argument("-sample", type=int, default=2, help="Sample Rate")
+    parser.add_argument("-sample", type=int, default=2, help="Sample rate")
     args = parser.parse_args()
 
     device = select_device(args.device)
