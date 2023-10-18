@@ -18,6 +18,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Command Excecution Format](#command-excecution-format)
     - [Stream Webhook Configuration](#stream-webhook-configuration)
     - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
+  - [Forward Stream Webhook Events to Synology API](#forward-stream-webhook-events-to-synology-api)
   - [Extract license plate image from webhook and forward to another endpoint](#extract-license-plate-image-from-webhook-and-forward-to-another-endpoint)
 
 ## Sample Code
@@ -177,15 +178,47 @@ timezone = UTC
       image_type = vehicle, plate
       request_timeout = 30
   ```
-### Snapshot Webhook Configuration
+  
+## Forward Stream Webhook Events to Synology API
 
-Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware url.
+[This example](https://github.com/parkpow/deep-license-plate-recognition/tree/synology-middleware-rest/webhooks/webhook_rest) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
+
+### Setup
+1. Build the image
+``` bash
+docker build -t="platerecognizer/stream-svs-notifier" .
+```
+
+2. Run Image on Port 8002
+``` bash
+docker run --rm -t \
+    -p 8002:8002 \
+    -e REST_SERVICE_URL=[SVS_webhook_URL]?token=[API_TOKEN] \
+    platerecognizer/stream-svs-notifier
+    
+    
+# Example
+docker run --rm -t \ 
+    -p 8002:8002 \
+    -e REST_SERVICE_URL=http://220.123.123.123:31000/webapi/SurveillanceStation/Webhook/Incoming/v1?token=aaa \
+    platerecognizer/stream-svs-notifier
+```
+
+3. Configure Stream Webhook Targets
+``` bash
+  webhook_targets = http://[stream-svs-notifier IP]:8002
+```
+> [Restart Stream after config changes](https://guides.platerecognizer.com/docs/stream/configuration). `stream-svs-notifier IP` is the IP address of the server or computer running stream-svs-notifier.
 
 ## Extract license plate image from webhook and forward to another endpoint
 
 [This webhook middleware example](webhooks/webhook_crop_plate_and_forward) receives a webhook request from [Snapshot SDK](https://guides.platerecognizer.com/docs/snapshot/api-reference#example-of-post-payload) and [Stream](https://guides.platerecognizer.com/docs/stream/results#receiving-webhook-data), uses the original or vehicle image incoming in the request, and crops the plate based on `box` object that contains the bounding box coordinates in such incoming images.
 
 Note that Stream has a built-in solution to send license plate image, it must be configured, see: https://guides.platerecognizer.com/docs/stream/configuration#image_type
+  
+### Using Snapshot? Register this middleware url as a Webhook receiver in PaterRecognizer platform
+
+Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware URL.
 
 ### Install Requirements
 
