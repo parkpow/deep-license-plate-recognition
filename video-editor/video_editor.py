@@ -18,11 +18,11 @@ LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
 logging.basicConfig(
     stream=sys.stdout,
     level=LOG_LEVEL,
-    style="{",
-    format="{asctime} {levelname} {name} {threadName} : {message}",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    format="%(levelname)-5s  [%(name)s.%(lineno)d] => %(message)s",
 )
 
-lgr = logging.getLogger(__name__)
+lgr = logging.getLogger("video-editor")
 
 BASE_WORKING_DIR = "/user-data/"
 
@@ -286,7 +286,7 @@ def process_video_route():
     try:
         process_video(file, action)
     except Exception as e:
-        lgr.error(e)
+        lgr.error("Error:", exc_info=e)
         return jsonify({"error": str(e)}), 500
 
     return jsonify("Done."), 200
