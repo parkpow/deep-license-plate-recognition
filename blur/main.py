@@ -12,8 +12,8 @@ LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
 logging.basicConfig(
     stream=sys.stdout,
     level=LOG_LEVEL,
-    style="{",
-    format="{asctime} {levelname} {name} {threadName} : {message}",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    format="%(levelname)-5s  [%(name)s.%(lineno)d] => %(message)s",
 )
 
 lgr = logging.getLogger("blur")
