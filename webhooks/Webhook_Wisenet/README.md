@@ -1,0 +1,90 @@
+# Connect Stream to Wisenet Wave
+
+With our Stream-Wisenet integration, you can send stream detection events to your Wisenet Wave server via a webhook. This way, a bookmarks with detection information is saved on the Wave timeline. Later, you can search for the detections and locate the timeline where the detection occurred, view, or download the detection video
+
+Follow the procedure below to start the integrator:
+
+## **Manual Installation:**
+
+Install flask and requests
+
+```bash
+pip install Flask
+```
+
+```bash
+pip install requests
+```
+
+Start the server
+
+```bash
+python3 file_name.py <parameter>
+
+example:
+python3 main.py --server_host "https://192.168.5.10:7001" --port 5001 --username admin --password admin123
+
+```
+
+Optional parameters:
+
+- --port
+- --debug
+- --ssl
+
+Required parameters:
+
+- --username
+- --password
+
+For external access
+
+- --host=0.0.0.0 (default)
+
+Next, configure and start Stream:
+
+- Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the Camera_id parameter provided by Wisenet Wave.
+- Set the parameter webhook_targets in config.ini to the host and port of your webhook.
+
+```ini
+# List of TZ names on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone = UTC
+
+[cameras]
+  # Full list of regions: http://docs.platerecognizer.com/#countries
+  regions = gb
+  image_format = $(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg
+
+  webhook_targets = http://192.168.5.10:5001
+
+  [[Wisenet-Camera-id-1]]
+    active = yes
+    url = rtsp://192.168.0.110:8080/video/h264
+  [[Wisenet-Camera-id-X]]
+    active = yes
+    url = rtsp://192.168.0.120:8080/video/h264
+```
+
+The example above shows the config.ini set up with the previously running webhook and two cameras with their respective RTSP links and their camera_ID. This same configuration can be used for N_Cameras.
+
+After modifying the config.ini, restarts the Stream container.
+
+## Docker Setup
+
+To run the script in a docker container, use the procedure below:
+
+1. Build the image
+
+   ```bash
+   docker build --tag platerecognizer/webhook-wisenet .
+
+   ```
+
+2. Run the image
+
+   ```bash
+  example:
+  
+  docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 platerecognizer/webhook-wisenet
+
+   ```
