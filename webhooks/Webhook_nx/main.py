@@ -74,7 +74,7 @@ def handle_event():
         payload = {
             "serverId": server_id,
             "name": parsed_json["data"]["results"][0]["plate"],
-            "description": "Teste05",
+            "description": "Stream",
             "startTimeMs": convert_to_timestamp_milliseconds(parsed_json["data"]["timestamp_local"]),
             "durationMs": 5000,
             "tags": ["Stream"],
