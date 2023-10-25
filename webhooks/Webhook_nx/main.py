@@ -2,15 +2,13 @@ import argparse
 import json
 import os
 import sys
+import logging
 from datetime import datetime
-import logging 
-
+from threading import Timer
 import requests
 import requests.cookies
 import urllib3
 from flask import Flask, jsonify, request
-
-from threading import Timer  
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 session = requests.Session()

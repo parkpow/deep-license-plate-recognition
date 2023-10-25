@@ -1,12 +1,16 @@
-# Connect Stream to Wisenet Wave
+# Connect Stream to you VMS (based on NX Witness)
 
-With our Stream-Wisenet integration, you can send stream detection events to your Wisenet Wave server via a webhook. This way, a bookmarks with detection information is saved on the Wave timeline. Later, you can search for the detections and locate the timeline where the detection occurred, view, or download the detection video
+With our integration, you can send Stream detection events to your VMS server via a webhook. This way, a bookmarks with detection information is saved on the timeline. Later, you can search for the detections and locate the timeline where the detection occurred, view, or download the detection video.
 
-Follow the procedure below to start the integrator:
+our integration is not limited to NX Witness ; it also supports Wisenet Wave and DW Spectrum. This expanded support enables you to connect your surveillance system with even more versatility and efficiency.
+
+
+![Texto Alternativo da Imagem](../../assets/vms-integration.jpg)
+
 
 ## **Manual Installation:**
 
-Install flask and requests
+Install flask, requests and waitress
 
 ```bash
 pip install Flask
@@ -16,10 +20,14 @@ pip install Flask
 pip install requests
 ```
 
+```bash
+pip install waitress
+```
+
 Start the server
 
 ```bash
-python3 file_name.py <parameter>
+python3 main.py <parameter>
 
 example:
 python3 main.py --server_host "https://192.168.5.10:7001" --port 5001 --username admin --password admin123
@@ -43,7 +51,7 @@ For external access
 
 Next, configure and start Stream:
 
-- Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the Camera_id parameter provided by Wisenet Wave.
+- Set the [Camera-ID](https://guides.platerecognizer.com/docs/stream/configuration#hierarchical-configuration), present in the config.ini configuration file, equal to the VMS-Camera-ID parameter provided by VMS.
 - Set the parameter webhook_targets in config.ini to the host and port of your webhook.
 
 ```ini
@@ -57,10 +65,10 @@ timezone = UTC
 
   webhook_targets = http://192.168.5.10:5001
 
-  [[Wisenet-Camera-id-1]]
+  [[VMS-Camera-id-1]]
     active = yes
     url = rtsp://192.168.0.110:8080/video/h264
-  [[Wisenet-Camera-id-X]]
+  [[VMS-Camera-id-N]]
     active = yes
     url = rtsp://192.168.0.120:8080/video/h264
 ```
@@ -76,15 +84,14 @@ To run the script in a docker container, use the procedure below:
 1. Build the image
 
    ```bash
-   docker build --tag platerecognizer/webhook-wisenet .
-
+   docker build --tag platerecognizer/webhook-vms .
    ```
 
 2. Run the image
 
    ```bash
-  example:
-  
-  docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 platerecognizer/webhook-wisenet
+    example:
 
+    docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 platerecognizer/webhook-vms
+    
    ```
