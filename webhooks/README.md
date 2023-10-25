@@ -181,7 +181,7 @@ timezone = UTC
   
 ## Forward Stream Webhook Events to Synology API
 
-[This example](https://github.com/parkpow/deep-license-plate-recognition/tree/synology-middleware-rest/webhooks/webhook_rest) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
+[This example](Synology/) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
 
 ### Setup
 1. Build the image
