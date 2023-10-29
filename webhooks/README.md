@@ -204,7 +204,7 @@ Example:
 
 ## Stream to Nx Witness, Wisenet Wave or DW Spectrum 
 
-[This project](webhooks/Webhook_nx/README.md) uses Stream webhooks to send license plate data to your NX-based VMS. 
+[This project](Webhook_nx/README.md) uses Stream webhooks to send license plate data to your NX-based VMS. 
 You can also use the `mail.py` file as a foundation for integrating other information into the VMS Bookmark, such as GPS data.
 
 
