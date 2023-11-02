@@ -7,14 +7,34 @@ from urllib import parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 import os
+import dateutil.parser as dp
 
 class GetHandler(BaseHTTPRequestHandler):
+    def is_timestamp(self, s):
+		try:
+			dp.parse(s)
+			return False
+		except ValueError:
+			try:
+				int(s)
+				return True
+			except ValueError:
+				return False
+                
     def forward_to_rest_service(self, json_data):
         url = os.getenv('REST_SERVICE_URL')
 
         # The data from the plate regognizer
         timestamp = json_data['data']['timestamp_local']
         plate = json_data['data']['results'][0]['plate']
+
+        if (self.is_timestamp(timestamp) == False):
+			try:
+				parsed_t = dp.parse(timestamp)
+				timestamp = str(int(parsed_t.timestamp()))
+			except ValueError:
+				print("\033[31mERROR:	Invalid timestamp format.%s\033[0m", timestamp)
+				return
 
         # SVS support time, text1, text2, text3 to be the keys
         request_data = {
