@@ -95,3 +95,23 @@ To run the script in a docker container, use the procedure below:
     docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 platerecognizer/webhook-vms
     
    ```
+
+# Blacklist/WhiteList with Parkpow
+In conjunction with Parkpow, you can choose a TAG so that the VMS can display it and add it as bookmark information. The TAG can define authorized or blocked vehicles, and later it is possible to search for vehicles by the TAG.
+
+The inclusion or exclusion of vehicles in a TAG is done directly in [Parkpow](https://parkpow.com/). The vehicle list is updated every 20 seconds.  
+
+To activate this functionality, add the parameters --tag and --parkpow_token to the execution command.
+
+Required parameters:
+
+- --tag
+- --parkpow_token
+
+
+```bash
+example:
+
+docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 -e TAG=Authorized -e PARKPOW_TOKEN=YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  platerecognizer/webhook-vms
+
+```
