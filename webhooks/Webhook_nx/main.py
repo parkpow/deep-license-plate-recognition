@@ -5,6 +5,7 @@ import sys
 import logging
 from datetime import datetime
 from threading import Timer
+import csv
 import requests
 import requests.cookies
 import urllib3
@@ -61,6 +62,42 @@ def server_info(args):
         sys.exit(1)
 
 
+def parkpow_get_tags(args):
+    url = "https://app.parkpow.com/api/v1/vehicles/"
+    querystring = {"tags": f"{args.tag}"}
+    headers = {"Authorization": f"Token {args.parkpow_token}"}
+
+    try:
+        response = requests.get(url, headers=headers, params=querystring)
+        response.raise_for_status()
+        parsed_json = json.loads(response.text)
+
+        if "results" in parsed_json:
+            with open("list.csv", "w", newline="") as csv_file:
+                csv_writer = csv.writer(csv_file)
+                csv_writer.writerow(["license_plate"])
+
+                for result in parsed_json["results"]:
+                    if "license_plate" in result:
+                        license_plate = result["license_plate"].upper()
+                        csv_writer.writerow([license_plate])
+
+        logging.info("List tag information successfully updated.")
+    except requests.exceptions.RequestException as err:
+        logging.error(f"Failed to retrieve Parkpow information: {err}")
+        sys.exit(1)
+
+    renew_timer = Timer(20, lambda: parkpow_get_tags(args))
+    renew_timer.start()
+
+
+def parkpow_check_license(license_plate):
+    try:
+        with open("list.csv", "r") as csv_file:
+            return True if license_plate in csv_file.read() else False
+    except FileNotFoundError:
+        return False
+
 
 @app.route("/", methods=["POST"])
 def handle_event():
@@ -70,21 +107,22 @@ def handle_event():
 
     try:
         parsed_json = json.loads(request_data)
+      
         url = f"{server_host}/rest/v2/devices/{parsed_json['data']['camera_id']}/bookmarks"
+        license_plate = parsed_json["data"]["results"][0]["plate"].upper()
         payload = {
             "serverId": server_id,
-            "name": parsed_json["data"]["results"][0]["plate"],
-            "description": "Stream",
+            "name": license_plate,
+            "description": args.tag.upper() if parkpow_check_license(license_plate) else "",
             "startTimeMs": convert_to_timestamp_milliseconds(parsed_json["data"]["timestamp_local"]),
             "durationMs": 5000,
-            "tags": ["Stream"],
+            "tags": [args.tag] if parkpow_check_license(license_plate) else ["Stream"],
             "creationTimeMs": 0
         }
         headers = {
             "Content-Type": "application/json",
         }
         response = session.post(url, json=payload, headers=headers, verify=args.ssl)
-
         if response.status_code == 200:
             logging.info("Request was successful. Response code: 200")
         else:
@@ -108,6 +146,8 @@ if __name__ == "__main__":
     parser.add_argument("--username", type=str, help="username")
     parser.add_argument("--password", type=str, help="password")
     parser.add_argument("--ssl", type=bool, default=False, help="Enable ssl verification (boolean)")
+    parser.add_argument("--parkpow_token", type=str, help="Token Parkpow")
+    parser.add_argument("--tag", type=str, help="Parkpow TAG")
 
     args = parser.parse_args()
 
@@ -116,14 +156,23 @@ if __name__ == "__main__":
     args.password = os.getenv("PASSWORD", args.password)
     args.ssl = os.getenv("SSL", args.ssl)
     args.debug = os.getenv("DEBUG", args.debug)
+    args.tag = os.getenv("TAG", args.tag)
+    args.parkpow_token = os.getenv("PARKPOW_TOKEN", args.parkpow_token)
 
 
     if server_host is None or args.password is None or args.username is None:
-        print("Variables server_host, password and usarname are required.")
+        logging.error("Variables server_host, password and usarname are required.")
         sys.exit(1)
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    if args.tag or args.parkpow_token:
+        if args.tag is None or args.parkpow_token is None:
+            logging.error("Variables tag and parkpow_token are required to activate")
+            sys.exit(1)
+        else:
+            parkpow_get_tags(args)
 
     session_create(args)
     server_id = server_info(args)
