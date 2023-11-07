@@ -64,46 +64,37 @@ def server_info(args):
 
 def parkpow_get_tags(args):
     url = "https://app.parkpow.com/api/v1/vehicles/"
-    querystring = {"tags":f"{args.tag}"}
-    payload = ""
+    querystring = {"tags": f"{args.tag}"}
     headers = {"Authorization": f"Token {args.parkpow_token}"}
-    results = []
-    
+
     try:
-        response = requests.get(url, data=payload, headers=headers, params=querystring)
+        response = requests.get(url, headers=headers, params=querystring)
         response.raise_for_status()
         parsed_json = json.loads(response.text)
 
         if "results" in parsed_json:
-            for result in parsed_json["results"]:
-                if "license_plate" in result:
-                    results.append(result["license_plate"].upper())
+            with open("list.csv", "w", newline="") as csv_file:
+                csv_writer = csv.writer(csv_file)
+                csv_writer.writerow(["license_plate"])
 
-        with open("list.csv", "w", newline="") as csv_file:
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow(["license_plate"])
-            for license_plate in results:
-                csv_writer.writerow([license_plate])
+                for result in parsed_json["results"]:
+                    if "license_plate" in result:
+                        license_plate = result["license_plate"].upper()
+                        csv_writer.writerow([license_plate])
 
         logging.info("List tag information successfully updated.")
     except requests.exceptions.RequestException as err:
         logging.error(f"Failed to retrieve Parkpow information: {err}")
         sys.exit(1)
 
-    renew_timer = Timer(20, lambda: parkpow_get_tags(args))  
+    renew_timer = Timer(20, lambda: parkpow_get_tags(args))
     renew_timer.start()
+
 
 def parkpow_check_license(license_plate):
     try:
         with open("list.csv", "r") as csv_file:
-            csv_reader = csv.reader(csv_file)
-            next(csv_reader)  
-
-            for row in csv_reader:
-                if row and row[0] == license_plate.upper():
-                    return True
-
-        return False
+            return True if license_plate in csv_file.read() else False
     except FileNotFoundError:
         return False
 
