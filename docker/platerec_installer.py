@@ -121,23 +121,26 @@ def get_update(product):
             dbc.Col(
                 [
                     dbc.Button(
-                        "Update", color="secondary", id=f"update-image-{product}"
+                        "Update",
+                        color="secondary",
+                        id=f"update-image-{product}",
+                        style={"width": "100%"},
                     ),
                     html.Span(
                         "Updated", id=f"span-update-{product}", className="align-middle"
                     ),
                 ],
-                width=1,
-            ),
-            dcc.Loading(
-                type="circle",
-                children=html.Div(id=f"loading-update-{product}"),
-                parent_className="col-auto",
+                width=2,
             ),
             dbc.Label(
                 "Update the Docker image.",
                 html_for=f"update-image-{product}",
                 className="col-auto align-self-center",
+            ),
+            dcc.Loading(
+                type="circle",
+                children=html.Div(id=f"loading-update-{product}"),
+                parent_className="col-auto",
             ),
         ],
         style=NONE,
@@ -152,13 +155,18 @@ def get_uninstall(product):
             dbc.Col(
                 [
                     dbc.Button(
-                        "Uninstall", color="danger", id=f"uninstall-image-{product}"
+                        "Uninstall",
+                        color="danger",
+                        id=f"uninstall-image-{product}",
+                        style={"width": "100%"},
                     ),
                     html.Span(
                         "",
                         id=f"span-uninstall-{product}",
                         className="align-middle",
-                        style={"color": "red"},
+                        style={
+                            "color": "red",
+                        },
                     ),
                     dbc.Modal(
                         [
@@ -183,7 +191,12 @@ def get_uninstall(product):
                         centered=True,
                     ),
                 ],
-                width=1,
+                width=2,
+            ),
+            dbc.Label(
+                "Remove the Docker image and mark the product as uninstalled.",
+                html_for=f"uninstall-image-{product}",
+                className="col-auto align-self-center",
             ),
             dcc.Loading(
                 type="circle",
@@ -191,11 +204,6 @@ def get_uninstall(product):
                     id=f"loading-uninstall-{product}",
                 ),
                 parent_className="col-auto",
-            ),
-            dbc.Label(
-                "Remove the Docker image and mark the product as uninstalled.",
-                html_for=f"uninstall-image-{product}",
-                className="col-auto align-self-center",
             ),
         ],
         style=NONE,
@@ -528,9 +536,10 @@ def get_continue(product):
                         "Show Docker Command",
                         color="primary",
                         id=f"button-submit-{product}",
+                        style={"width": "100%"},
                     ),
                 ],
-                width=1,
+                width=2,
             ),
             dbc.Label(
                 "Confirm settings and show docker command.",
@@ -565,11 +574,12 @@ def edit_config():
                 [
                     dbc.Button(
                         "Configure",
-                        color="primary",
+                        color="success",
                         id="button-stream-config",
+                        style={"width": "100%"},
                     ),
                 ],
-                width=1,
+                width=2,
             ),
             dbc.Label(
                 "Edit configurations for your Stream license",
@@ -961,14 +971,15 @@ def uninstall_button_snapshot(n_clicks, hardware):
     ],
 )
 def configure_stream(n_clicks, key):
+    conf_button = {"display": "block", "width": "100%"}
     if dash.callback_context.triggered[0]["prop_id"] == "button-stream-config.n_clicks":
         if key:
             config_url = f"https://app.platerecognizer.com/stream-config/{key}"
             webbrowser.open(config_url)
-            return FLEX, ""
+            return conf_button, ""
         else:
-            return FLEX, "License key is required."
-    return FLEX, ""
+            return conf_button, "License key is required."
+    return conf_button, ""
 
 
 @app.callback(
