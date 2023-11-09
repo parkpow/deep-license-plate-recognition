@@ -121,23 +121,26 @@ def get_update(product):
             dbc.Col(
                 [
                     dbc.Button(
-                        "Update", color="secondary", id=f"update-image-{product}"
+                        "Update",
+                        color="secondary",
+                        id=f"update-image-{product}",
+                        style={"width": "100%"},
                     ),
                     html.Span(
                         "Updated", id=f"span-update-{product}", className="align-middle"
                     ),
                 ],
-                width=1,
-            ),
-            dcc.Loading(
-                type="circle",
-                children=html.Div(id=f"loading-update-{product}"),
-                parent_className="col-auto",
+                width=2,
             ),
             dbc.Label(
                 "Update the Docker image.",
                 html_for=f"update-image-{product}",
                 className="col-auto align-self-center",
+            ),
+            dcc.Loading(
+                type="circle",
+                children=html.Div(id=f"loading-update-{product}"),
+                parent_className="col-auto",
             ),
         ],
         style=NONE,
@@ -152,13 +155,18 @@ def get_uninstall(product):
             dbc.Col(
                 [
                     dbc.Button(
-                        "Uninstall", color="danger", id=f"uninstall-image-{product}"
+                        "Uninstall",
+                        color="danger",
+                        id=f"uninstall-image-{product}",
+                        style={"width": "100%"},
                     ),
                     html.Span(
                         "",
                         id=f"span-uninstall-{product}",
                         className="align-middle",
-                        style={"color": "red"},
+                        style={
+                            "color": "red",
+                        },
                     ),
                     dbc.Modal(
                         [
@@ -183,7 +191,12 @@ def get_uninstall(product):
                         centered=True,
                     ),
                 ],
-                width=1,
+                width=2,
+            ),
+            dbc.Label(
+                "Remove the Docker image and mark the product as uninstalled.",
+                html_for=f"uninstall-image-{product}",
+                className="col-auto align-self-center",
             ),
             dcc.Loading(
                 type="circle",
@@ -191,11 +204,6 @@ def get_uninstall(product):
                     id=f"loading-uninstall-{product}",
                 ),
                 parent_className="col-auto",
-            ),
-            dbc.Label(
-                "Remove the Docker image and mark the product as uninstalled.",
-                html_for=f"uninstall-image-{product}",
-                className="col-auto align-self-center",
             ),
         ],
         style=NONE,
@@ -304,6 +312,23 @@ def get_boot(product):
     )
 
 
+def get_local_config():
+    return dbc.Row(
+        [
+            dbc.Label(
+                ["Do you want to modify your stream configuration locally?"],
+                html_for="check-config-local",
+                width=7,
+            ),
+            dbc.Col(
+                dbc.Checkbox(id="check-config-local", className="align-bottom"),
+                width=4,
+            ),
+        ],
+        class_name="mb-3",
+    )
+
+
 def get_port(product):
     return dbc.Row(
         [
@@ -374,6 +399,7 @@ def get_video_checkbox(product):
             dbc.Label(
                 [f"Use {product.capitalize()} on a local video file."],
                 html_for=f"check-video-{product}",
+                id=f"label-video-{product}",
                 width=7,
             ),
             dbc.Col(
@@ -397,6 +423,7 @@ def get_video_picker(product):
                     f"Select a video file. If it is not inside your {product.capitalize()} folder, we will copy it there. Big files (~400Mb) may slow down your system."
                 ],
                 html_for=f"pickup-video-{product}",
+                id=f"label-pickup-{product}",
                 width=7,
             ),
             dcc.Loading(
@@ -429,7 +456,8 @@ def get_config_label(product):
             "Edit your Stream configuration file. See the ",
             html.A("documentation", href=STREAM_DOCS_LINK, target="_blank"),
             " for details.",
-        ]
+        ],
+        id=f"label-config-{product}",
     )
 
 
@@ -445,6 +473,15 @@ def get_config_body(product):
 def get_status(product):
     return html.P(
         children="", style={"color": "red"}, className="mb-0", id=f"p-status-{product}"
+    )
+
+
+def get_config_status():
+    return html.P(
+        children="",
+        style={"color": "red"},
+        className="mb-0",
+        id="p-status-config",
     )
 
 
@@ -499,9 +536,10 @@ def get_continue(product):
                         "Show Docker Command",
                         color="primary",
                         id=f"button-submit-{product}",
+                        style={"width": "100%"},
                     ),
                 ],
-                width=1,
+                width=2,
             ),
             dbc.Label(
                 "Confirm settings and show docker command.",
@@ -526,6 +564,30 @@ def get_confirm(product):
             id="danger-danger-provider",
             message="Danger danger! Are you sure you want to continue?",
         ),
+    )
+
+
+def edit_config():
+    return dbc.Row(
+        [
+            dbc.Col(
+                [
+                    dbc.Button(
+                        "Configure",
+                        color="success",
+                        id="button-stream-config",
+                        style={"width": "100%"},
+                    ),
+                ],
+                width=2,
+            ),
+            dbc.Label(
+                "Edit configurations for your Stream license",
+                html_for="button-stream-config",
+                className="col-auto align-self-center",
+            ),
+        ],
+        class_name="mt-3 mb-3",
     )
 
 
@@ -563,6 +625,7 @@ app.layout = dbc.Container(
                                 get_license_key(STREAM),
                                 get_directory(STREAM),
                                 get_boot(STREAM),
+                                get_local_config(),
                                 get_video_checkbox(STREAM),
                                 get_video_picker(STREAM),
                             ],
@@ -574,6 +637,7 @@ app.layout = dbc.Container(
                             [
                                 get_config_label(STREAM),
                                 get_config_body(STREAM),
+                                get_config_status(),
                                 get_status(STREAM),
                                 dbc.Card(
                                     [get_success_card(STREAM)],
@@ -589,6 +653,7 @@ app.layout = dbc.Container(
                         ),
                         dbc.Form(
                             [
+                                edit_config(),
                                 get_continue(STREAM),
                                 get_update(STREAM),
                                 get_uninstall(STREAM),
@@ -750,6 +815,27 @@ def select_video(checked):
 
 @app.callback(
     [
+        Output("pickup-video-stream", "style"),
+        Output("label-pickup-stream", "style"),
+        Output("check-video-stream", "style"),
+        Output("label-video-stream", "style"),
+        Output("area-config-stream", "style"),
+        Output("label-config-stream", "style"),
+    ],
+    [
+        Input("check-config-local", "value"),
+    ],
+)
+def local_config(checked):
+    if checked:
+        config = {"display": "block", "width": WIDTH, "height": "300px"}
+        return [FLEX, FLEX, FLEX, FLEX, config, FLEX]
+    else:
+        return [NONE, NONE, NONE, NONE, NONE, NONE]
+
+
+@app.callback(
+    [
         Output("span-videopath-stream", "children"),
         Output("loading-upload-stream", "children"),
     ],
@@ -875,6 +961,25 @@ def uninstall_button_snapshot(n_clicks, hardware):
         return [FLEX]
     else:
         return [NONE]
+
+
+@app.callback(
+    [Output("button-stream-config", "style"), Output("p-status-config", "children")],
+    [
+        Input("button-stream-config", "n_clicks"),
+        State("input-key-stream", "value"),
+    ],
+)
+def configure_stream(n_clicks, key):
+    conf_button = {"display": "block", "width": "100%"}
+    if dash.callback_context.triggered[0]["prop_id"] == "button-stream-config.n_clicks":
+        if key:
+            config_url = f"https://app.platerecognizer.com/stream-config/{key}"
+            webbrowser.open(config_url)
+            return conf_button, ""
+        else:
+            return conf_button, "License key is required."
+    return conf_button, ""
 
 
 @app.callback(
