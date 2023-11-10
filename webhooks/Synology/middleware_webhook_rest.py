@@ -5,21 +5,18 @@ import base64
 from urllib.parse import parse_qs
 from urllib import parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime
 import requests
 import os
-import dateutil.parser as dp
 
 class GetHandler(BaseHTTPRequestHandler):
-    def is_timestamp(self, s):
-		try:
-			dp.parse(s)
-			return False
-		except ValueError:
-			try:
-				int(s)
-				return True
-			except ValueError:
-				return False
+    def is_timestamp(self, timestamp):
+	try:
+		format_string = '%Y-%m-%d %H:%M:%S.%f%z'
+		dt_object = dt_object = datetime.strptime(timestamp, format_string)
+		return dt_object
+	except ValueError:
+		return None
                 
     def forward_to_rest_service(self, json_data):
         url = os.getenv('REST_SERVICE_URL')
@@ -28,13 +25,12 @@ class GetHandler(BaseHTTPRequestHandler):
         timestamp = json_data['data']['timestamp_local']
         plate = json_data['data']['results'][0]['plate']
 
-        if (self.is_timestamp(timestamp) == False):
-			try:
-				parsed_t = dp.parse(timestamp)
-				timestamp = str(int(parsed_t.timestamp()))
-			except ValueError:
-				print("\033[31mERROR:	Invalid timestamp format.%s\033[0m", timestamp)
-				return
+	dt_object = self.is_timestamp(timestamp)
+        if dt_object:
+		timestamp = str(dt_object.timestamp())
+	else:
+		print("\033[31mERROR:	Invalid timestamp format.%s\033[0m", timestamp)
+		return
 
         # SVS support time, text1, text2, text3 to be the keys
         request_data = {
