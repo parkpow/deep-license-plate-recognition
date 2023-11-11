@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import math
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
@@ -9,18 +10,49 @@ from timeit import default_timer
 import requests
 import subprocess
 import time
+import cv2
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmark Video Blur")
     parser.add_argument(
-        "--video-editor-url", default="http://localhost:8081/process-video"
+        "--video-editor-url",
+        default="http://localhost:8081/process-video",
+        help="URL endpoint to process video files with Blur",
+        required=False,
     )
-    parser.add_argument("--sample", default="60,50")
-    parser.add_argument("--video", default="assets/cars.mp4")
-    parser.add_argument("--blur-output", default="output/cars_blur.mp4")
-    parser.add_argument("--benchmark-results", default="benchmark_results.txt")
+    parser.add_argument(
+        "--sample",
+        help="One or more samples separated by a comma, for example: 60,50,30",
+        required=False,
+    )
+    parser.add_argument(
+        "--video",
+        help="File path of video file to be processed with Blur, for example: assets/cars.mp4",
+        required=False,
+    )
+    parser.add_argument(
+        "--blur-output",
+        default="output/cars_blur.mp4",
+        help="Video file path where blur saves the already processed file",
+        required=False,
+    )
+    parser.add_argument(
+        "--benchmark-results",
+        default="benchmark_results.txt",
+        help="File to store benchmarking results",
+        required=False,
+    )
     return parser.parse_args()
+
+
+def get_duration(args):
+    video = cv2.VideoCapture(args.video)
+    fps = video.get(cv2.CAP_PROP_FPS)
+    frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    seconds = frame_count // fps
+    video_time = datetime.timedelta(seconds=seconds)
+    return str(video_time)
 
 
 def write_results(args, results):
@@ -32,20 +64,25 @@ def write_results(args, results):
     # Open the file in append mode if it exists, or create it if it doesn't
     mode = "a" if file_exists else "w"
 
+    # Get video duration utilizing OpenCV
+    length = get_duration(args)
+
     with open(file_path, mode) as file:
         if not file_exists:
             file.write(
-                "| {:<6} | {:<11} | {:>8} |\n".format(
-                    "Sample", "Output Size", "Duration"
+                "| {:<18} | {:<6} | {:<11} | {:>19} |\n".format(
+                    "Video Duration (m)", "Sample", "Output Size", "Processing Time (s)"
                 )
             )
-            file.write("| ------ | ----------- | -------- |\n")
+            file.write(
+                "| ------------------ | ------ | ----------- | ------------------- |\n"
+            )
 
         # Append or write the results
         for result in results:
             file.write(
-                "| {:>6} | {:>11} | {:>8.1f} |\n".format(
-                    result["rate"], result["size"], result["duration"]
+                "| {:>18} | {:>6} | {:>11} | {:>19.1f} |\n".format(
+                    length, result["rate"], result["size"], result["duration"]
                 )
             )
 
@@ -136,9 +173,7 @@ def check_api_access(api_url, max_wait_time=60, poll_interval=2):
     return False
 
 
-def main():
-    args = parse_arguments()
-
+def main(args):
     rate_string = args.sample
     number_strings = rate_string.split(",")
     sample_rates = [int(x) for x in number_strings]
@@ -183,4 +218,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+
+    if not args.sample:
+        raise Exception("sample is required")
+    elif not args.video:
+        raise Exception("video is required")
+    else:
+        main(args)
