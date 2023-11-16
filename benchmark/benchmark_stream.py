@@ -17,7 +17,7 @@ def parse_arguments():
         default="http://localhost:80",
     )
     parser.add_argument("--video", default="assets/cars.mp4")
-    parser.add_argument("--iterations", default=20, type=int)
+    parser.add_argument("--iterations", default=5, type=int)
     return parser.parse_args()
 
 
@@ -96,7 +96,7 @@ def main():
         list(
             executor.map(
                 partial(call_duration, stream_url=args.stream_url),
-                [args.video] * 2,
+                [args.video],
             )
         )
         # Benchmark
