@@ -166,7 +166,7 @@ def save_cropped(api_res, path, args):
 
 def save_results(results, args):
     path = args.output_file
-    if not path.parent.exists():
+    if not Path(path).parent.exists():
         print("%s does not exist" % path)
         return
     if not results:
