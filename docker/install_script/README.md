@@ -1,0 +1,47 @@
+## Stream installer script
+
+The provided shell script (stream.sh) is tailored to facilitate the seamless setup and operation of an on-premise P Stream on your system. This script dynamically verifies the presence of Docker and installs it if not already available.
+
+Subsequently, the script orchestrates the configuration and launch of Stream, incorporating default. By default, it designates the script execution location as the foundational directory, creating a dedicated "stream" folder to house default configuration files and the outputs of the Stream.
+
+The Docker container instantiated by the script is denoted as "stream" and is configured to restart automatically unless intentionally halted. Additionally, the Stream is set up to commence automatically upon system boot, ensuring a seamless and persistent integration into your system environment.
+
+
+### Prerequisites
+ - Administrator permissions or membership in the docker group.
+ - Supported system architecture Linux Debia or Ubuntu (x86_64), Raspberry pi (armv7l, aarch64, armv7hf).
+
+### Docker Image
+
+The script pulls the Plate Recognizer Stream Docker image based on your system's architecture.
+
+-  x86_64 architecture: platerecognizer/alpr-stream
+-  ARM architectures (armv7l, aarch64, armv7hf): platerecognizer/alpr-stream:raspberry
+Running the Stream
+
+
+### Usage
+Run the script with the following parameters:
+```bash
+
+./stream_setup.sh [-t=YOUR_PLATE_RECOGNIZER_TOKEN] [-l=YOUR_LICENSE_KEY]
+```
+### Parameters:
+
+- `-t, --token` - [Stream License Token](https://app.platerecognizer.com/products/stream/).
+- `-l, --license_key` - [Stream License Key](https://app.platerecognizer.com/products/stream/).
+
+If the parameters are not provided, the script will interactively prompt you to enter the token and license key.
+
+Example Usage:
+bash
+
+```bash 
+bash ./stream_setup.sh -t=YYYYYYYYYYYYY -l=XXXXXXXXXXXXXXX 
+```
+
+```bash 
+bash ./stream_setup.sh 
+```
+
+
