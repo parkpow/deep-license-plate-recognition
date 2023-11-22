@@ -7,105 +7,38 @@ instance.
 
 1. Open Lambda on your AWS dashboard.
 2. Click "Create function".
-3. Fill the function name with "test_webhook". Select Python for the Runtime, then click "Create function".
-4. Inside the code editor, replace the content with the code from lambda_function.py. This code sample will receive
+![readme_images/lambda_create_function.png](readme_images/lambda_create_function.png)
+3. Fill the function name with "test_webhook". Select Python 3.10 for the Runtime, then click "Create function".
+![readme_images/lambda_create_function_detail.png](readme_images/lambda_create_function_detail.png)
+4. Inside the code editor, replace the content with the code from [lambda_function.py](./lambda_function.py). This code sample will receive
    webhook data and log them into CloudWatch.
-
-```python
-import base64
-import json
-from urllib.parse import unquote_plus
-
-
-def print_vehicle_info(results):
-    for result in results:
-        print("Vehicle detected:")
-        print("Plate: ", result["candidates"][0]["plate"])
-        print("Color: ", result["color"][0]["color"])
-        print(
-            "Make - Model: ",
-            result["model_make"][0]["make"] + " - " + result["model_make"][0]["model"],
-        )
-        print("Orientation: ", result["orientation"][0]["orientation"])
-
-
-def handle_payload_with_image(body, boundary):
-    # Split the body into parts using the boundary
-    parts = body.split(b"--" + boundary.encode("utf-8"))
-
-    # Filter out empty parts
-    parts = [part for part in parts if part.strip()]
-
-    # Process each part
-    for part in parts:
-        try:
-            # Separate headers and content
-            headers, content = part.split(b"\r\n\r\n", 1)
-        except ValueError:
-            # Skip if the part is not valid
-            continue
-
-        # Handle JSON data
-        if b"json" in headers:
-            data = json.loads(content.decode("utf-8"))
-            results = data["data"]["results"]
-            print_vehicle_info(results)
-
-        # Handle image
-        if b"upload" in headers:
-            # Add logic to handle image
-            pass
-
-
-def handle_payload(body):
-    # Handle JSON data
-    if b"json" in body:
-        content = unquote_plus(body.split(b"json=")[1].decode("utf-8"))
-        data = json.loads(content)
-        results = data["data"]["results"]
-        print_vehicle_info(results)
-
-
-def lambda_handler(event, context):
-    # Retrieve the raw request body from the Lambda event
-    body = base64.b64decode(event["body"])
-
-    # Extract content type and boundary from headers
-    content_type = event["headers"]["content-type"]
-
-    split_by_boundary = content_type.split("boundary=")
-
-    if len(split_by_boundary) > 1:
-        # There is image included in payload
-        boundary = split_by_boundary[1]
-        handle_payload_with_image(body, boundary)
-
-    else:
-        handle_payload(body)
-
-    # Return a response
-    response = {"statusCode": 200, "body": "Webhook processing successful"}
-    return response
-```
-
 5. Click Deploy
+![readme_images/lambda_code_editor.png](readme_images/lambda_code_editor.png)
 
 ### Create API gateway
 
 1. Open API Gateway dashboard in AWS.
 2. Click "Create API"
+![readme_images/api_create.png](readme_images/api_create.png)
 3. Click the "Build" button for HTTP API.
+![readme_images/api_select_http.png](readme_images/api_select_http.png)
 4. Click "Add integration", then select Lambda.
 5. In the "Lambda function" text box, search for the function you created earlier.
 6. Fill "API name" with "test_api". Then click the "Next" button.
+![readme_images/api_configure.png](readme_images/api_configure.png)
 7. Select "POST" as the Method. Click "Next".
+![readme_images/api_method.png](readme_images/api_method.png)
 8. We are going to skip creating Stages, so click "Next" again and then click "Create".
+![readme_images/api_review.png](readme_images/api_review.png)
 9. On the left side menu, click the link "API: test_api".
+![readme_images/api_overview.png](readme_images/api_overview.png)
 10. Copy the "Invoke URL". Put this url into your Snapshot/Stream webhook configuration and append it
     with `/test_webhook`.
+![readme_images/api_invoke_url.png](readme_images/api_invoke_url.png)
 
 ### CloudWatch logs
 1. Open "CloudWatch" in AWS.
 2. Open Logs > Log groups.
 3. Click the log group for "test_webhook".
+![readme_images/cloudwatch_log_group.png](readme_images/cloudwatch_log_group.png)
 4. When your webhook receive new data, it will log the basic information about the vehicle here.
