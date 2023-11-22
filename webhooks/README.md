@@ -20,6 +20,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
   - [Forward Stream Webhook Events to Synology API](#forward-stream-webhook-events-to-synology-api)
   - [Extract license plate image from webhook and forward to another endpoint](#extract-license-plate-image-from-webhook-and-forward-to-another-endpoint)
+  - [Webhook via AWS Lambda](#webhook-via-aws-lambda)
 
 ## Sample Code
 
@@ -240,5 +241,6 @@ Example:
 [This project](Webhook_nx/README.md) uses Stream webhooks to send license plate data to your NX-based VMS. 
 You can also use the `mail.py` file as a foundation for integrating other information into the VMS Bookmark, such as GPS data.
 
-
+## Webhook via AWS Lambda
+[This guide](webhook_lambda/) aims to provide you with a minimum sample to receive webhook data from Snapshot/Stream on your AWS Lambda instance.
 
