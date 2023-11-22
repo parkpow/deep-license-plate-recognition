@@ -10,7 +10,7 @@ install_docker() {
     else
         echo "Docker not found. Installing Docker..."
         curl -fsSL https://get.docker.com -o get-docker.sh
-        sudo sh get-docker.sh > /dev/null 2>&1
+        sh get-docker.sh > /dev/null 2>&1
         echo "Docker installed successfully."
     fi
 }
