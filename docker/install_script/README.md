@@ -1,6 +1,6 @@
 ## Automatic Stream installation script
 
-The provided shell script (stream.sh) is tailored to facilitate the seamless setup and operation of an on-premise P Stream on your system. This script dynamically verifies the presence of Docker and installs it if not already available.
+The provided shell script (stream.sh) is tailored to facilitate the seamless setup and operation of an on-premise P Stream on your system. This script dynamically verifies the presence of Docker and installs it if it is not already available.
 
 Subsequently, the script orchestrates the configuration and launch of Stream, incorporating defaults. By default, it designates the script execution location as the foundational directory, creating a dedicated "stream" folder to house default configuration files and the outputs of the Stream.
 
