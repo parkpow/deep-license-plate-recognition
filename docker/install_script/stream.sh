@@ -88,7 +88,7 @@ else
     exit 1
 fi
 
-echo "Running the Stream..."
+echo "Running Stream..."
 $docker_command
 
 
