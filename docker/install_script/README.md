@@ -9,7 +9,7 @@ The Docker container instantiated by the script is denoted as "stream" and is co
 
 ### Prerequisites
  - Administrator permissions or membership in the docker group.
- - Supported system architecture Linux Debia or Ubuntu (x86_64), Raspberry pi (armv7l, aarch64, armv7hf).
+ - Supported system architectures: Linux Debian or Ubuntu (x86_64), Raspberry pi (armv7l, aarch64, armv7hf).
 
 ### Docker Image
 
