@@ -1,4 +1,4 @@
-## Stream installer script
+## Automatic Stream installation script
 
 The provided shell script (stream.sh) is tailored to facilitate the seamless setup and operation of an on-premise P Stream on your system. This script dynamically verifies the presence of Docker and installs it if not already available.
 
@@ -24,24 +24,37 @@ Running the Stream
 Run the script with the following parameters:
 ```bash
 
-./stream_setup.sh [-t=YOUR_PLATE_RECOGNIZER_TOKEN] [-l=YOUR_LICENSE_KEY]
+./stream_setup.sh [-t=YOUR_TOKEN] [-l=YOUR_LICENSE_KEY]
 ```
-### Parameters:
+#### Parameters:
 
 - `-t, --token` - [Stream License Token](https://app.platerecognizer.com/products/stream/).
 - `-l, --license_key` - [Stream License Key](https://app.platerecognizer.com/products/stream/).
 
 If the parameters are not provided, the script will interactively prompt you to enter the token and license key.
 
-Example Usage:
-bash
+#### Unique command:
+
+Use the following command to download and run the script in one step. It facilitates the automation of installations in larger scripts or automated environments, such as virtual machine provisioning or containerized environments.
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/parkpow/deep-license-plate-recognition/script-Install-stream/docker/master/stream.sh)" -- -t=YOUR_TOKEN -l=YOUR_LICENSE_KEY
+```
+
+### Example Usage:
+
+
+```bash 
+bash ./stream_setup.sh 
+```
 
 ```bash 
 bash ./stream_setup.sh -t=YYYYYYYYYYYYY -l=XXXXXXXXXXXXXXX 
 ```
 
-```bash 
-bash ./stream_setup.sh 
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/parkpow/deep-license-plate-recognition/script-Install-stream/docker/master/stream.sh)" -- -t=YYYYYYYYYYYYYYYYYYYYYYYYYYYYY -l=XXXXXXXXXX
+
 ```
 
 
