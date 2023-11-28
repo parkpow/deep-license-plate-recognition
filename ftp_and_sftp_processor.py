@@ -7,6 +7,7 @@ import stat
 import sys
 import tempfile
 import time
+import ftplib
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from ftplib import FTP, error_perm, error_reply
@@ -67,33 +68,57 @@ class FileTransferProcessor(ABC):
         file_list = []
         dirs = []
         nondirs = []
+
         self.set_working_directory(args.folder)
 
         file_list, dirs, nondirs = self.retrieve_files()
-        logging.info("Found %s file(s) in %s.", len(file_list), args.folder)
+
+        logging.info("Found %s file(s) in %s.", len(
+            nondirs), self.get_working_directory())
+
         # processing files
         self.process_files(nondirs)
 
         for folder in dirs:
-            folder_path = f"{self.folder}/{folder}"
+            folder_path = f"./{folder}"
             self.camera_id = folder
             self.set_working_directory(folder_path)
-
             nondirs = []
             file_list = self.list_files()
 
-            for info in file_list:
-                ls_type, name = info[0], info[-1]
-                if ls_type.startswith("d"):
-                    # Don't process files any deeper
-                    pass
-                else:
+        for info in file_list:
+            name = info[-1]
+            ls_type = info[0] if self.os_linux else info[-2]
+            if ls_type.startswith("d") or ls_type == "<DIR>":
+                # Don't process files any deeper
+                pass
+            else:
+                if self.os_linux:
                     nondirs.append(
                         [name, self.parse_date(info[-4], info[-3], info[-2])]
                     )
+                else:
+                    file_date = info[0].split("-")
+                    file_time = info[1]
 
-            logging.info("Found %s file(s) in %s.", len(nondirs), folder)
-            self.process_files(nondirs)
+                    if "AM" in file_time or "PM" in file_time:
+                        parsed_time = datetime.strptime(file_time, "%I:%M%p")
+                        file_time = parsed_time.strftime(
+                            "%H:%M"
+                        )  # from AM/PM to 24-hour format
+
+                    nondirs.append(
+                        [
+                            name,
+                            self.parse_date(
+                                file_date[0], file_date[1], file_time, linux=False
+                            ),
+                        ]
+                    )
+
+        logging.info("Found %s file(s) in %s.", len(
+            nondirs), self.get_working_directory())
+        self.process_files(nondirs)
 
     def track_processed(self):
         """
@@ -119,7 +144,6 @@ class FileTransferProcessor(ABC):
             if "error" in result.lower():
                 print(f"file couldn't be deleted: {result}")
             else:
-                print(result)
                 self.processed.remove(file)
 
     def process_files(self, ftp_files):
@@ -165,62 +189,9 @@ class FileTransferProcessor(ABC):
             dirs = []
             nondirs = []
             func(self, file_list, dirs, nondirs)
-            logging.info(
-                "Found %s file(s) in %s.", len(nondirs), self.get_working_directory()
-            )
             return file_list, dirs, nondirs
 
         return wrapper
-
-
-class FTPProcessor(FileTransferProcessor):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.ftp = None
-        self.os_linux = None
-
-    def connect(self):
-        self.ftp = FTP(timeout=120)
-        self.ftp.connect(self.hostname, self.port)
-        self.ftp.login(self.ftp_user, self.ftp_password)
-        logging.info(f"Connected to FTP server at self.{self.hostname}")
-        return self.ftp
-
-    def delete_file(self, file):
-        try:
-            response = self.ftp.delete(file)
-            return f"File {file} deleted. Server response: {response}"
-        except error_perm as e:
-            return f"Permission error: {e}"
-        except error_reply as e:
-            return f"Other FTP error: {e}"
-        except Exception as e:
-            return f"An unexpected error occurred: {e}"
-
-    def get_working_directory(self):
-        return self.ftp.pwd()
-
-    def set_working_directory(self, path):
-        self.ftp.cwd(path)
-
-    def is_linux_os(self, file_list):
-        # check if OS is Linux or Windows
-        for info in file_list:
-            info_first_possition = info[0]
-            if info_first_possition.startswith("d") or info_first_possition.startswith(
-                "-"
-            ):
-                return True
-            return False
-
-    def set_ftp_binary_file(self, file, image):
-        """Retrieve a file in binary transfer mode
-
-        Args:
-            file (String): remote file path
-            image (TemporaryFile): image file destination
-        """
-        self.ftp.retrbinary("RETR " + file, image.write)
 
     def get_month_literal(self, month_number):
 
@@ -254,6 +225,7 @@ class FTPProcessor(FileTransferProcessor):
             x = self.get_month_literal(x)
 
         date_string = f"{x} {int(y):02} {z}"
+
         if ":" in z:
             modify_year = True
             parse_string = "%b %d %H:%M"
@@ -269,9 +241,64 @@ class FTPProcessor(FileTransferProcessor):
         logging.debug(f"Parsed date: {date_time_obj}")
         return date_time_obj
 
+
+class FTPProcessor(FileTransferProcessor):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.ftp = None
+        self.os_linux = None
+        #print(self.__dict__)
+
+    def connect(self):
+        self.ftp = FTP(timeout=120)
+        self.ftp.connect(self.hostname, self.port)
+        self.ftp.login(self.ftp_user, self.ftp_password)
+        logging.info(f"Connected to FTP server at {self.hostname}")
+        return self.ftp
+
+    def delete_file(self, file):
+        try:
+            response = self.ftp.delete(file)
+            return f"File {file} deleted. Server response: {response}"
+        except error_perm as e:
+            return f"Permission error: {e}"
+        except error_reply as e:
+            return f"Other FTP error: {e}"
+        except Exception as e:
+            return f"An unexpected error occurred: {e}"
+
+    def get_working_directory(self):
+        return self.ftp.pwd()
+
+    def set_working_directory(self, path):
+        try:
+            self.ftp.cwd(path)
+        except ftplib.error_perm as e:
+            print(f"Error 550: {e}")
+
+    def is_linux_os(self, file_list):
+        # check if OS is Linux or Windows
+        for info in file_list:
+            info_first_possition = info[0]
+            if info_first_possition.startswith("d") or info_first_possition.startswith(
+                "-"
+            ):
+                return True
+            return False
+
+    def set_ftp_binary_file(self, file, image):
+        """Retrieve a file in binary transfer mode
+
+        Args:
+            file (String): remote file path
+            image (TemporaryFile): image file destination
+        """
+        self.ftp.retrbinary("RETR " + file, image.write)
+
     def list_files(self):
         file_list = []
-        self.ftp.retrlines("LIST", lambda x: file_list.append(x.split(maxsplit=8)))
+        self.ftp.retrlines(
+            "LIST", lambda x: file_list.append(x.split(maxsplit=8)))
         return file_list
 
     @FileTransferProcessor.get_files_and_dirs
@@ -311,17 +338,43 @@ class SFTPProcessor(FileTransferProcessor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.sftp = None
+        self.os_linux = True
+        #print(self.__dict__)
 
     def connect(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if self.ftp_password:
-            ssh.connect(self.hostname, self.port, self.ftp_user, self.ftp_password)
-        else:
-            key = paramiko.RSAKey.from_private_key_file(self.pkey)
-            ssh.connect(self.hostname, self.port, self.ftp_user, pkey=key)
-        self.sftp = ssh.open_sftp()
-        logging.info(f"Connected to SFTP server at {self.hostname}")
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            if self.ftp_password and not self.pkey:
+                print(self.hostname, self.port,
+                      self.ftp_user, self.ftp_password)
+                ssh.connect(self.hostname, port=self.port, username=self.ftp_user,
+                            password=self.ftp_password, look_for_keys=False, allow_agent=False)
+
+            else:
+                try:
+                    key = paramiko.RSAKey.from_private_key_file(self.pkey)
+                    ssh.connect(self.hostname, self.port,
+                                self.ftp_user, pkey=key)
+                except paramiko.AuthenticationException as e:
+                    logging.error(f"Authentication failed: {e}")
+                    raise
+                except Exception as e:
+                    logging.error(f"An unexpected error occurred: {e}")
+                    raise
+
+            self.sftp = ssh.open_sftp()
+            logging.info(f"Connected to SFTP server at {self.hostname}")
+
+        except paramiko.AuthenticationException:
+            logging.error(
+                "Authentication failed. Please check your credentials.")
+        except paramiko.SSHException as e:
+            logging.error(f"SSH connection error: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+
         return self.sftp
 
     def delete_file(self, file):
@@ -339,7 +392,10 @@ class SFTPProcessor(FileTransferProcessor):
         return self.sftp.getcwd()
 
     def set_working_directory(self, path):
-        self.sftp.chdir(path)
+        try:
+            self.sftp.chdir(path)
+        except Exception as e:
+            print(f"Error changing working directory: {e}")
 
     def set_ftp_binary_file(self, file, image):
         """Copy a remote file (remotepath) from the SFTP server and write to an open file or file-like object
@@ -348,20 +404,42 @@ class SFTPProcessor(FileTransferProcessor):
             file (String): remote file path
             image (TemporaryFile): image file destination
         """
-        self.sftp.getfo("RETR " + file, image.write)
+        wd = self.get_working_directory()
+        self.sftp.getfo(wd + "/" + file, image)
 
     def list_files(self):
-        root = Path(self.folder)
-        return self.sftp.listdir_attr(str(root))
+
+        file_list = []
+
+        try:
+            file_list_attr = self.sftp.listdir_attr()
+
+            for attr in file_list_attr:
+                file_list.append(str(attr).split())
+
+            for info in file_list:
+                # info format: ['-rw-------', '1', '0', '0', '175289', '16', 'Nov', '18:10', 'demo.jpg']
+                # adapting to linux standard: ['-rw-------', '1', '0', '0', '175289', 'Nov', '16', '18:10', 'demo.jpg']
+                tmp_month = info[-3]
+                info[-3] = info[-4]
+                info[-4] = tmp_month
+
+        except Exception as e:
+            print(f"Error listing files: {e}")
+            return
+
+        return file_list
 
     @FileTransferProcessor.get_files_and_dirs
     def retrieve_files(self, file_list, dirs, nondirs):
+
         for info in file_list:
-            name = info.filename
-            if stat.S_ISDIR(info.st_mode):
+            name = info[-1]
+            if info[0].startswith("d"):
                 dirs.append(name)
             else:
-                nondirs.append([name, info.st_mtime])
+                nondirs.append(
+                    [name, self.parse_date(info[-4], info[-3], info[-2])])
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -382,7 +460,8 @@ ftp_and_sftp_processor.py -H host -U user1 -P pass -s http://localhost:8080
 """,
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
+    parser.add_argument("-a", "--api-key",
+                        help="Your API key.", required=False)
     parser.add_argument(
         "-r",
         "--regions",
@@ -455,7 +534,7 @@ ftp_and_sftp_processor.py -c sftp -U usr1  -P pass -H 192.168.0.59 -f /tmp/image
         "-P",
         "--ftp-password",
         help="Transfer protocol server user's password",
-        required=True,
+        required=False,
     )
     parser.add_argument("--pkey", help="SFTP Private Key Path", required=False)
     parser.add_argument(
@@ -509,7 +588,7 @@ def ftp_process(args):
     else:
         if not args.ftp_password and not args.pkey:
             raise Exception("ftp_password or pkey path are required")
-        file_processor = SFTPProcessor(**args)
+        file_processor = SFTPProcessor(**args_dict)
 
     """
     for attr, value in file_processor.__dict__.items():
