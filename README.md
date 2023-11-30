@@ -3,7 +3,7 @@
 Get high-accuracy, developer-friendly **automatic license plate recognition** ([ALPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) or automatic number plate recognition ([ANPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) software! The core of our ALPR, ANPR system is based on state of the art deep neural networks architectures.
 
 - [Reading License Plates from **Images**](#reading-license-plates-from-images)
-  - [Process images from an FTP server](#process-images-from-an-ftp-server)
+  - [Process images from an FTP or SFTP server](#process-images-from-an-ftp-or-sftp-server)
   - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
   - [Benchmark](benchmark/)
 - [Number Plate Recognition on a **Video** or Camera Stream](https://platerecognizer.com/stream/?utm_source=github&utm_medium=website)
@@ -118,17 +118,41 @@ python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-bl
 
 <br><br><br>
 
-### Process images from an FTP server
+### Process images from an FTP or SFTP server
 
 You can send images directly to our FTP. See our [FTP integration](https://app.platerecognizer.com/start/camera-software) for details.
 
-If you want to use your own FTP, another option is to process images with `ftp_processor`:
+If you want to use your own FTP or SFTP server, another option is to process images with `ftp_and_sftp_processor.py`:
 > For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-on-an-ftp-server)
 
-`python ftp_processor.py --api-key MY_API_KEY --ftp-host hostname --ftp-user user --ftp-password password --folder /path/to/server_folder`
+`python ftp_and_sftp_processor.py --api-key MY_API_KEY --hostname FTP_HOST_NAME --ftp-user FTP_USER --ftp-password FTP_USER_PASSWORD --folder /path/to/server_folder`
 
-To remove images from FTP server after processing, add the argument `--delete`.
+By default the script is prepared to process images in FTP servers, if you want to process images in an SFTP server, add the argument `--protocol sftp`.
 
+To remove images from FTP or SFTP server after processing, add the argument `--delete`.
+
+| Arguments              | Description                                                                                 |
+|------------------------|---------------------------------------------------------------------------------------------|
+| -h, --help             | Show help message                                                                           |
+| -a, --api-key          | Your API key.                                                                               |
+| -r, --regions          | Match the license plate pattern for a specific region.                                      |
+| -s, --sdk-url          | URL to self-hosted SDK. For example, http://localhost:8080                                  |
+| -c, --protocol         | Protocol to use, available choices 'ftp'(default) or 'sftp'                                          |
+| -t, --timestamp        | Timestamp.                                                                                  |
+| -H, --hostname         | Host.                                                                                       |
+| -p, --port             | Port                                                                                        |
+| -U, --ftp-user         | Transfer protocol server user                                                               |
+| -P, --ftp-password     | Transfer protocol server user's password                                                    |
+| -d, --delete           | Remove images from the FTP server after processing. Optionally specify a timeout in seconds.|
+| -f, --folder           | Specify a folder with images on the FTP server.                                             |
+| -o, --output-file      | Save the result to a file.                                                                  |
+| -i, --interval         | Periodically fetch new images from the server every interval seconds.                       |
+| --camera-id            | Name of the source camera.                                                                  |
+| --cameras-root         | Root folder containing dynamic cameras.                                                     |
+| --format               | Format of the result, available choices 'json'(default) or 'csv'                            |
+| --mmc                  | Predict vehicle make and model (SDK only). It has to be enabled.                            |
+| --pkey                 | SFTP Private Key Path.                                                                      |
+  
 <br><br><br>
 
 ## Automatic Image Transfer
