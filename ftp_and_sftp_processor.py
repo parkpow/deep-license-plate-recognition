@@ -3,7 +3,6 @@ import argparse
 import json
 import logging
 import os
-import stat
 import sys
 import tempfile
 import time
@@ -11,7 +10,6 @@ import ftplib
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from ftplib import FTP, error_perm, error_reply
-from pathlib import Path
 
 import paramiko
 
@@ -65,10 +63,6 @@ class FileTransferProcessor(ABC):
         pass
 
     def processing_single_camera(self, args):
-        file_list = []
-        dirs = []
-        nondirs = []
-
         self.set_working_directory(args.folder)
 
         file_list, dirs, nondirs = self.retrieve_files()
@@ -247,7 +241,6 @@ class FTPProcessor(FileTransferProcessor):
         super().__init__(**kwargs)
         self.ftp = None
         self.os_linux = None
-        #print(self.__dict__)
 
     def connect(self):
         self.ftp = FTP(timeout=120)
@@ -333,14 +326,12 @@ class FTPProcessor(FileTransferProcessor):
                         ]
                     )
 
-
 class SFTPProcessor(FileTransferProcessor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.sftp = None
         self.os_linux = True
-        #print(self.__dict__)
-
+        
     def connect(self):
         try:
             ssh = paramiko.SSHClient()
@@ -612,7 +603,6 @@ def ftp_process(args):
     else:
         file_processor.processing_single_camera(args)
 
-
 def main():
     args = parse_arguments(custom_args)
 
@@ -625,7 +615,6 @@ def main():
             time.sleep(args.interval)
     else:
         ftp_process(args)
-
 
 if __name__ == "__main__":
     main()
