@@ -123,7 +123,7 @@ python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-bl
 You can send images directly to our FTP. See our [FTP integration](https://app.platerecognizer.com/start/camera-software) for details.
 
 If you want to use your own FTP or SFTP server, another option is to process images with `ftp_and_sftp_processor.py`:
-> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-on-an-ftp-server)
+> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-are-on-an-ftp-or-sftp-server)
 
 `python ftp_and_sftp_processor.py --api-key MY_API_KEY --hostname FTP_HOST_NAME --ftp-user FTP_USER --ftp-password FTP_USER_PASSWORD --folder /path/to/server_folder`
 
