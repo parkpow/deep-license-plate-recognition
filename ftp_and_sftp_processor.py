@@ -482,8 +482,8 @@ ftp_and_sftp_processor.py -H host -U user1 -P pass -s http://localhost:8080
     args_hook(parser)
     args = parser.parse_args()
 
-    if not args.sdk_url or not args.api_key:
-        raise Exception("api-key and sdk-url parameters are required")
+    if not args.api_key:
+        raise Exception("api-key parameter is required")
 
     return args
 
