@@ -349,19 +349,19 @@ def post_processing(results):
     return results
 
 
-def process_image(path, args, engine_config):
+def process_split_image(path, args, engine_config):
     # Predictions
     fp = Image.open(path)
     if fp.mode != "RGB":
         fp = fp.convert("RGB")
     images = [((0, 0), fp)]  # Entire image
+
     # Top left and top right crops
-    if args.split_image:
-        y = 0
-        win_size = 0.55
-        width, height = fp.width * win_size, fp.height * win_size
-        for x in [0, int((1 - win_size) * fp.width)]:
-            images.append(((x, y), fp.crop((x, y, x + width, y + height))))
+    y = 0
+    win_size = 0.55
+    width, height = fp.width * win_size, fp.height * win_size
+    for x in [0, int((1 - win_size) * fp.width)]:
+        images.append(((x, y), fp.crop((x, y, x + width, y + height))))
 
     # Inference
     api_results = {}
@@ -409,18 +409,22 @@ def process_image(path, args, engine_config):
         b["xmax"] = b["xmax"] + padding_x
         b["ymax"] = b["ymax"] + padding_y
 
-    if args.show_boxes or args.annotate_images:
-        image = Image.open(path)
-        annotated_image = draw_bb(image, results["results"], None, text_function)
-        if args.show_boxes:
-            annotated_image.show()
-        if args.annotate_images:
-            annotated_image.save(path.with_name(f"{path.stem}_annotated{path.suffix}"))
-
-    if args.crop_lp or args.crop_vehicle:
-        save_cropped(results, path, args)
-
     return results
+
+
+def process_full_image(path, args, engine_config):
+    with open(path, "rb") as fp:
+        api_res = recognition_api(
+            fp,
+            args.regions,
+            args.api_key,
+            args.sdk_url,
+            config=engine_config,
+            camera_id=args.camera_id,
+            mmc=args.mmc,
+        )
+
+    return api_res
 
 
 def main():
@@ -439,7 +443,21 @@ def main():
         if not path.exists():
             continue
         if Path(path).is_file():
-            results.append(process_image(path, args, engine_config))
+            if args.split_image:
+                results.append(process_split_image(path, args, engine_config))
+            else:
+                results.append(process_full_image(path, args, engine_config))
+        if args.show_boxes or args.annotate_images and "results" in results:
+            image = Image.open(path)
+            annotated_image = draw_bb(image, results["results"], None, text_function)
+            if args.show_boxes:
+                annotated_image.show()
+            if args.annotate_images:
+                annotated_image.save(
+                    path.with_name(f"{path.stem}_annotated{path.suffix}")
+                )
+        if args.crop_lp or args.crop_vehicle:
+            save_cropped(results, path, args)
     if args.output_file:
         save_results(results, args)
     else:
