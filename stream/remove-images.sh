@@ -6,12 +6,34 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Check if service is already installed
+if [[ -e /etc/platerecognizer ]]; then
+    echo "The service is already installed. Do you want to uninstall it?"
+    read -p "Enter 'yes' to uninstall or 'no' to cancel: " answer
+    case "$answer" in
+    [Yy] | [Yy][Ee][Ss])
+        systemctl stop stream-remove-images &>/dev/null
+        systemctl disable stream-remove-images &>/dev/null
+        rm -rf /etc/systemd/system/stream-remove-images.service
+        rm -rf /etc/platerecognizer
+        rm -rf /usr/local/sbin/remove-images
+        sed -i '/root remove-images/d' /etc/crontab
+
+        echo "Service removed successfully."
+        ;;
+    *)
+        echo "Uninstallation cancelled."
+        exit 0
+        ;;
+    esac
+fi
+
 hours=1
 
 # Install cron
 if ! dpkg -s cron >/dev/null 2>&1; then
     echo "Cron is not installed. Installing..."
-    sudo apt install cron
+    apt install cron
 fi
 
 # Check current timezone
@@ -101,4 +123,4 @@ remove-images
 
 echo "Service successfully installed."
 
-rm -f remove-images.sh
+rm -rf remove-images.sh
