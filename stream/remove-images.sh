@@ -38,6 +38,9 @@ done
 # Get current working directory for Stream
 stream_directory=$(pwd)
 
+# Get file age threshold
+threshold=$((hours * 60))
+
 # Add scheduler to change passwod every 12AM UTC
 echo -e "0 */$hours\t* * *\troot\tremove-images" >>/etc/crontab
 systemctl restart cron
@@ -50,7 +53,7 @@ cat <<'EOFSH' >/usr/local/sbin/remove-images
 cd $stream_directory
 
 # Delete image files in the current directory
-find . -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -delete
+find . -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -mmin +$threshold -delete
 
 # Delete empty directories after deleting the images (optional)
 find . -type d -empty -delete
