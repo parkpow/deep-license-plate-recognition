@@ -59,8 +59,14 @@ This script runs nightly to remove images that are over xx hours in Stream folde
 
 Make sure to enter this command inside the Stream folder.
 
+_Note: This script must be run as a root user._
+
+### Installation
 
 ```bash
  wget -q 'https://raw.githubusercontent.com/parkpow/deep-license-plate-recognition/master/stream/remove-images.sh' && chmod +x remove-images.sh && ./remove-images.sh
 ```
-_Note: This script must be run as a root user._
+
+### Uninstall
+
+To uninstall the service, just rerun the script and confirm the uninstallation.
