@@ -59,12 +59,11 @@ find . -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -mmin +
 find . -type d -empty -delete
 EOFSH
 
-sed -i "s|STREAM-DIRECTORY|$(stream_directory)|g" /usr/local/sbin/remove-images
-sed -i "s|THRESHOLD|$(threshold)|g" /usr/local/sbin/remove-images
+sed -i "s|STREAM-DIRECTORY|$stream_directory|g" /usr/local/sbin/remove-images
+sed -i "s|THRESHOLD|$threshold|g" /usr/local/sbin/remove-images
 
 # Make service executable
-cd /usr/local/sbin
-chmod +x remove-images
+chmod +x /usr/local/sbin/remove-images
 cd ~
 
 # Create start up service
