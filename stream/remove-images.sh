@@ -63,8 +63,8 @@ stream_directory=$(pwd)
 # Get file age threshold
 threshold=$((hours * 60))
 
-# Add scheduler to change passwod every 12AM UTC
-echo -e "0 */$hours\t* * *\troot\tremove-images" >>/etc/crontab
+# Add scheduler to remove images nightly
+echo -e "0 0\t* * *\troot\tremove-images" >>/etc/crontab
 systemctl restart cron
 
 # Create remove-images service
