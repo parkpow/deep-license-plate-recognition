@@ -349,6 +349,21 @@ def post_processing(results):
     return results
 
 
+def output_image(args, path, results):
+    print(type(results))
+    print(type(results["results"]))
+    print(type(results["results"][-1]))
+    if args.show_boxes or args.annotate_images and "results" in results:
+        image = Image.open(path)
+        annotated_image = draw_bb(image, results["results"], None, text_function)
+        if args.show_boxes:
+            annotated_image.show()
+        if args.annotate_images:
+            annotated_image.save(path.with_name(f"{path.stem}_annotated{path.suffix}"))
+    if args.crop_lp or args.crop_vehicle:
+        save_cropped(results, path, args)
+
+
 def process_split_image(path, args, engine_config):
     # Predictions
     fp = Image.open(path)
@@ -409,6 +424,7 @@ def process_split_image(path, args, engine_config):
         b["xmax"] = b["xmax"] + padding_x
         b["ymax"] = b["ymax"] + padding_y
 
+    output_image(args, path, results)
     return results
 
 
@@ -424,6 +440,7 @@ def process_full_image(path, args, engine_config):
             mmc=args.mmc,
         )
 
+    output_image(args, path, api_res)
     return api_res
 
 
@@ -447,17 +464,6 @@ def main():
                 results.append(process_split_image(path, args, engine_config))
             else:
                 results.append(process_full_image(path, args, engine_config))
-        if args.show_boxes or args.annotate_images and "results" in results:
-            image = Image.open(path)
-            annotated_image = draw_bb(image, results["results"], None, text_function)
-            if args.show_boxes:
-                annotated_image.show()
-            if args.annotate_images:
-                annotated_image.save(
-                    path.with_name(f"{path.stem}_annotated{path.suffix}")
-                )
-        if args.crop_lp or args.crop_vehicle:
-            save_cropped(results, path, args)
     if args.output_file:
         save_results(results, args)
     else:
