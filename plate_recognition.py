@@ -350,9 +350,6 @@ def post_processing(results):
 
 
 def output_image(args, path, results):
-    print(type(results))
-    print(type(results["results"]))
-    print(type(results["results"][-1]))
     if args.show_boxes or args.annotate_images and "results" in results:
         image = Image.open(path)
         annotated_image = draw_bb(image, results["results"], None, text_function)
