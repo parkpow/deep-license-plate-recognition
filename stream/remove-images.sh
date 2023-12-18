@@ -6,6 +6,18 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Check if the /etc/os-release file exists
+if [[ ! -e /etc/os-release ]]; then
+    echo -e "OS release file not found, exiting..." && exit 1
+fi
+source /etc/os-release
+
+# Check if the ID variable contains 'debian' or 'ubuntu'
+if [[ "$ID" != 'ubuntu' && "$ID" != "debian" ]]; then
+    echo -e "[\e[1;31mError\e[0m] This script is for Debian or Ubuntu only, exiting..."
+    exit 1
+fi
+
 # Check if service is already installed
 if [[ -e /etc/platerecognizer ]]; then
     echo "The service is already installed. Do you want to uninstall it?"
