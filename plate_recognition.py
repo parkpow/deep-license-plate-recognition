@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import io
 import argparse
 import collections
 import csv
@@ -7,6 +8,7 @@ import json
 import math
 import time
 from collections import OrderedDict
+from itertools import combinations
 from pathlib import Path
 
 import requests
@@ -225,6 +227,11 @@ Enable Make Model and Color prediction:
         action="store_true",
         help="Draw bounding boxes around license plates and save the resulting image.",
     )
+    parser.add_argument(
+        "--split-image",
+        action="store_true",
+        help="Do extra lookups on parts of the image. Useful on high resolution images.",
+    )
 
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
@@ -274,6 +281,166 @@ def text_function(result):
     return result["plate"]
 
 
+def bb_iou(a, b):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    x_a = max(a["xmin"], b["xmin"])
+    y_a = max(a["ymin"], b["ymin"])
+    x_b = min(a["xmax"], b["xmax"])
+    y_b = min(a["ymax"], b["ymax"])
+
+    # compute the area of both the prediction and ground-truth
+    # rectangles
+    area_a = (a["xmax"] - a["xmin"]) * (a["ymax"] - a["ymin"])
+    area_b = (b["xmax"] - b["xmin"]) * (b["ymax"] - b["ymin"])
+
+    # compute the area of intersection rectangle
+    area_inter = max(0, x_b - x_a) * max(0, y_b - y_a)
+    return area_inter / float(max(area_a + area_b - area_inter, 1))
+
+
+def clean_objs(objects, threshold=0.1):
+    # Only keep the ones with best score or no overlap
+    for o1, o2 in combinations(objects, 2):
+        if (
+            "remove" in o1
+            or "remove" in o2
+            or bb_iou(o1["box"], o2["box"]) <= threshold
+        ):
+            continue
+        if o1["score"] > o2["score"]:
+            o2["remove"] = True
+        else:
+            o1["remove"] = True
+    return [x for x in objects if "remove" not in x]
+
+
+def merge_results(images):
+    result = dict(results=[])
+    for data in images:
+        for item in data["prediction"]["results"]:
+            result["results"].append(item)
+            for b in [item["box"], item["vehicle"].get("box", {})]:
+                b["ymin"] += data["y"]
+                b["xmin"] += data["x"]
+                b["ymax"] += data["y"]
+                b["xmax"] += data["x"]
+    result["results"] = clean_objs(result["results"])
+    return result
+
+
+def inside(a, b):
+    return (
+        a["xmin"] > b["xmin"]
+        and a["ymin"] > b["ymin"]
+        and a["xmax"] < b["xmax"]
+        and a["ymax"] < b["ymax"]
+    )
+
+
+def post_processing(results):
+    new_list = []
+    for item in results["results"]:
+        if item["score"] < 0.2 and any(
+            [inside(x["box"], item["box"]) for x in results["results"] if x != item]
+        ):
+            continue
+        new_list.append(item)
+    results["results"] = new_list
+    return results
+
+
+def output_image(args, path, results):
+    if args.show_boxes or args.annotate_images and "results" in results:
+        image = Image.open(path)
+        annotated_image = draw_bb(image, results["results"], None, text_function)
+        if args.show_boxes:
+            annotated_image.show()
+        if args.annotate_images:
+            annotated_image.save(path.with_name(f"{path.stem}_annotated{path.suffix}"))
+    if args.crop_lp or args.crop_vehicle:
+        save_cropped(results, path, args)
+
+
+def process_split_image(path, args, engine_config):
+    # Predictions
+    fp = Image.open(path)
+    if fp.mode != "RGB":
+        fp = fp.convert("RGB")
+    images = [((0, 0), fp)]  # Entire image
+
+    # Top left and top right crops
+    y = 0
+    win_size = 0.55
+    width, height = fp.width * win_size, fp.height * win_size
+    for x in [0, int((1 - win_size) * fp.width)]:
+        images.append(((x, y), fp.crop((x, y, x + width, y + height))))
+
+    # Inference
+    api_results = {}
+    results = []
+    usage = []
+    camera_ids = []
+    timestamps = []
+    processing_times = []
+    for (x, y), im in images:
+        im_bytes = io.BytesIO()
+        im.save(im_bytes, "JPEG", quality=95)
+        im_bytes.seek(0)
+        api_res = recognition_api(
+            im_bytes,
+            args.regions,
+            args.api_key,
+            args.sdk_url,
+            config=engine_config,
+            camera_id=args.camera_id,
+            mmc=args.mmc,
+        )
+        results.append(dict(prediction=api_res, x=x, y=y))
+        usage.append(api_res["usage"])
+        camera_ids.append(api_res["camera_id"])
+        timestamps.append(api_res["timestamp"])
+        processing_times.append(api_res["processing_time"])
+
+    api_results["filename"] = Path(path).name
+    api_results["timestamp"] = timestamps[len(timestamps) - 1]
+    api_results["camera_id"] = camera_ids[len(camera_ids) - 1]
+    results = post_processing(merge_results(results))
+    results = OrderedDict(list(api_results.items()) + list(results.items()))
+    results["usage"] = usage[len(usage) - 1]
+    results["processing_time"] = round(sum(processing_times), 3)
+
+    # Set bounding box padding
+    for item in results["results"]:
+        # Decrease padding size for large bounding boxes
+        b = item["box"]
+        width, height = b["xmax"] - b["xmin"], b["ymax"] - b["ymin"]
+        padding_x = int(max(0, width * (0.3 * math.exp(-10 * width / fp.width))))
+        padding_y = int(max(0, height * (0.3 * math.exp(-10 * height / fp.height))))
+        b["xmin"] = b["xmin"] - padding_x
+        b["ymin"] = b["ymin"] - padding_y
+        b["xmax"] = b["xmax"] + padding_x
+        b["ymax"] = b["ymax"] + padding_y
+
+    output_image(args, path, results)
+    return results
+
+
+def process_full_image(path, args, engine_config):
+    with open(path, "rb") as fp:
+        api_res = recognition_api(
+            fp,
+            args.regions,
+            args.api_key,
+            args.sdk_url,
+            config=engine_config,
+            camera_id=args.camera_id,
+            mmc=args.mmc,
+        )
+
+    output_image(args, path, api_res)
+    return api_res
+
+
 def main():
     args = parse_arguments(custom_args)
     paths = args.files
@@ -289,30 +456,11 @@ def main():
     for path in paths:
         if not path.exists():
             continue
-        with open(path, "rb") as fp:
-            api_res = recognition_api(
-                fp,
-                args.regions,
-                args.api_key,
-                args.sdk_url,
-                config=engine_config,
-                camera_id=args.camera_id,
-                mmc=args.mmc,
-            )
-
-        if (args.show_boxes or args.annotate_images) and "results" in api_res:
-            image = Image.open(path)
-            annotated_image = draw_bb(image, api_res["results"], None, text_function)
-            if args.show_boxes:
-                annotated_image.show()
-            if args.annotate_images:
-                annotated_image.save(
-                    path.with_name(f"{path.stem}_annotated{path.suffix}")
-                )
-
-        results.append(api_res)
-        if args.crop_lp or args.crop_vehicle:
-            save_cropped(api_res, path, args)
+        if Path(path).is_file():
+            if args.split_image:
+                results.append(process_split_image(path, args, engine_config))
+            else:
+                results.append(process_full_image(path, args, engine_config))
     if args.output_file:
         save_results(results, args)
     else:
