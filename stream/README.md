@@ -52,3 +52,21 @@ In another terminal, you can query Stream status.
  curl localhost:8001
  # {"active": false, "cameras": {}}
 ```
+
+## Remove Stream Images
+
+This script runs nightly to remove images that are over xx hours in Stream folder. However, if you wouldn't want to save images locally at all, you may refer to this [guide](https://guides.platerecognizer.com/docs/stream/faq#how-do-i-not-save-vehicle-or-plates-images-in-my-localstreamfolder-when-forwarding-webhook-data).
+
+Make sure to enter this command inside the Stream folder.
+
+_Note: This script must be run as a root user._
+
+### Installation
+
+```bash
+ wget -q 'https://raw.githubusercontent.com/parkpow/deep-license-plate-recognition/master/stream/remove-images.sh' && chmod +x remove-images.sh && ./remove-images.sh
+```
+
+### Uninstall
+
+To uninstall the service, just rerun the script and confirm the uninstallation.
