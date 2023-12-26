@@ -68,15 +68,5 @@ Chdir into the `docker` folder and run this command:
 
 This will generate the EXE in the following path **deep-license-plate-recognition\docker\dist**
 
-## 7. Sign the EXE with CA certificate
-The signtool is installed when you install the Build tools.
-
-Assumming the following enviroment:
-- The CA Certificate is located in this path: "C:\Users\hp\Downloads\PRPP-Cert-022621.pfx"
-- The CA Certificate password is: Uxz#######
-- The Output EXE from the previous step is located in this path: "C:\Users\hp\Downloads\PlateRecognizer-Installer.exe"
-
-Run this command to sign the EXE:
-```
-C:\Program Files (x86)\Windows Kits\10\App Certification Kit>signtool.exe sign /debug /f "C:\Users\hp\Downloads\PRPP-Cert-022621.pfx" /p Uxz####### "C:\Users\hp\Downloads\PlateRecognizer-Installer.exe"
-```
+## 7. Code Sign the EXE
+Check [this Google doc](https://docs.google.com/document/d/12Bvc7LffTOmJNTWMdGWaDxHAeL37ukvWBNSTQu6ZgLM/edit?usp=sharing) for instructions.

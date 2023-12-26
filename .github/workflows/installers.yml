@@ -34,29 +34,28 @@ jobs:
         name: PlateRecognizer-Installer-Linux
         path: docker/dist/PlateRecognizer-Installer
 
-  sign-installer:
-    name: Sign
-    runs-on: windows-latest
-    needs: windows-installer
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: Windows-Installer-unsigned
-          path: dist
+  # sign-installer:
+  #   name: Sign
+  #   runs-on: windows-latest
+  #   needs: windows-installer
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: Windows-Installer-unsigned
+  #         path: dist
 
-      - uses: DanaBear/code-sign-action@98c79121b376beab8d6a9484f445089db4461bca
-        with:
-          certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
-          timestampUrl: '${{ secrets.TIMESTAMP_URL }}'
-          folder: dist
-          recursive: true
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: PlateRecognizer-Installer-Windows
-          path: dist
+  #     - uses: DanaBear/code-sign-action@98c79121b376beab8d6a9484f445089db4461bca
+  #       with:
+  #         certificate: '${{ secrets.CERTIFICATE }}'
+  #         password: '${{ secrets.PASSWORD }}'
+  #         certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
+  #         timestampUrl: '${{ secrets.TIMESTAMP_URL }}'
+  #         folder: dist
+  #         recursive: true
+  #     - uses: actions/upload-artifact@v2
+  #       with:
+  #         name: PlateRecognizer-Installer-Windows
+  #         path: dist
 
   mac-installer:
     runs-on: macos-latest
