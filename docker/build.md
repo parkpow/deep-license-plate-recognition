@@ -69,4 +69,4 @@ Chdir into the `docker` folder and run this command:
 This will generate the EXE in the following path **deep-license-plate-recognition\docker\dist**
 
 ## 7. Code Sign the EXE
-Check [this Google doc](https://docs.google.com/document/d/12Bvc7LffTOmJNTWMdGWaDxHAeL37ukvWBNSTQu6ZgLM/edit#heading=h.wdqaplxvh8cb) for instructions.
+Check [this Google doc](https://docs.google.com/document/d/12Bvc7LffTOmJNTWMdGWaDxHAeL37ukvWBNSTQu6ZgLM/edit?usp=sharing) for instructions.
