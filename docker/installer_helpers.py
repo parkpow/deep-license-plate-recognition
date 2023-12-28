@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import sys
+import webbrowser
 from pathlib import Path
 from ssl import SSLError
 
@@ -170,3 +171,18 @@ def uninstall_docker_image(hardware):
     cmd = "docker image prune -f"
     os.system(cmd)
     return [None, "Image successfully uninstalled."]
+
+
+def launch_browser(url):
+    my_env = dict(os.environ)
+    os_platform = get_os()
+    if os_platform == "Windows":
+        return webbrowser.open(url)
+    elif os_platform == "Darwin":
+        opener = "open"
+    elif os_platform == "Linux":
+        opener = "xdg-open"
+    else:
+        raise Exception(f"Unrecognized OS platform: {os_platform}")
+
+    subprocess.call([opener, url], env=my_env, shell=False)

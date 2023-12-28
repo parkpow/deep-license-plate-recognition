@@ -5,7 +5,6 @@ import os
 import re
 import sys
 import time
-import webbrowser
 
 import dash
 import dash_bootstrap_components as dbc
@@ -975,7 +974,7 @@ def configure_stream(n_clicks, key):
     if dash.callback_context.triggered[0]["prop_id"] == "button-stream-config.n_clicks":
         if key:
             config_url = f"https://app.platerecognizer.com/stream-config/{key}"
-            webbrowser.open(config_url)
+            helpers.launch_browser(config_url)
             return conf_button, ""
         else:
             return conf_button, "License key is required."
@@ -1200,7 +1199,7 @@ if __name__ == "__main__":
     if args.debug:
         app.run_server(debug=True, host="0.0.0.0")
     else:
-        webbrowser.open("http://127.0.0.1:8050/")
+        helpers.launch_browser("http://127.0.0.1:8050/")
 
         # Update log levels
         app.logger.setLevel(logging.ERROR)
