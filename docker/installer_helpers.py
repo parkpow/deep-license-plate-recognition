@@ -185,4 +185,4 @@ def launch_browser(url):
     else:
         raise Exception(f"Unrecognized OS platform: {os_platform}")
 
-    subprocess.call([opener, url], env=my_env, shell=False)
+    subprocess.call([opener, url], env=my_env, shell=True)
