@@ -2,8 +2,6 @@ name: Build Installers
 
 on:
   push:
-    branches:
-      - master
     # Run Action only when /docker is pushed to
     paths:
       - 'docker/**'
