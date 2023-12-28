@@ -9,7 +9,7 @@ import time
 import dash
 import dash_bootstrap_components as dbc
 import installer_helpers as helpers
-from dash import Input, Output, State, dcc, html
+from dash import Input, Output, State, clientside_callback, dcc, html
 from dash.exceptions import PreventUpdate
 
 SHARE_LINK = "https://guides.platerecognizer.com/docs/stream/manual-install#step-2"
@@ -962,23 +962,28 @@ def uninstall_button_snapshot(n_clicks, hardware):
         return [NONE]
 
 
-@app.callback(
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (n_clicks > 0) {
+        const key = document.getElementById("input-key-stream").value;
+        if (key) {
+            const url = "https://app.platerecognizer.com/stream-config/" + key;
+            window.open(url, "_blank");
+        } else {
+        const statusConfig = document.getElementById("p-status-config");
+        statusConfig.innerHTML = "License key is required.";
+        }
+        }
+    }
+    """,
     [Output("button-stream-config", "style"), Output("p-status-config", "children")],
     [
         Input("button-stream-config", "n_clicks"),
         State("input-key-stream", "value"),
     ],
+    prevent_initial_call=True,
 )
-def configure_stream(n_clicks, key):
-    conf_button = {"display": "block", "width": "100%"}
-    if dash.callback_context.triggered[0]["prop_id"] == "button-stream-config.n_clicks":
-        if key:
-            config_url = f"https://app.platerecognizer.com/stream-config/{key}"
-            helpers.launch_browser(config_url)
-            return conf_button, ""
-        else:
-            return conf_button, "License key is required."
-    return conf_button, ""
 
 
 @app.callback(
