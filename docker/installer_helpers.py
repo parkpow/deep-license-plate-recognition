@@ -190,8 +190,9 @@ def launch_browser(url):
     for (k, v) in my_env.items():
         if k != "PATH" and "tmp" in v:
             to_delete.append(k)
-
     for k in to_delete:
         my_env.pop(k, None)
-
-    subprocess.call([opener, url], env=my_env, shell=False)
+    try:
+        subprocess.call([opener, url], env=my_env, shell=False)
+    except FileNotFoundError:  # [Errno 2] No such file or directory: 'xdg-open': 'xdg-open'
+        print("Unable to launch browser: xdg-open command not found")
