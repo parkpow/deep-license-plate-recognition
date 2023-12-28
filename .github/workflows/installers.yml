@@ -3,10 +3,10 @@ name: Build Installers
 on:
   push:
     branches:
-      - fix-installer-broken
+      - master
     # Run Action only when /docker is pushed to
-#    paths:
-#      - 'docker/**'
+    paths:
+      - 'docker/**'
   workflow_dispatch:
 
 jobs:
