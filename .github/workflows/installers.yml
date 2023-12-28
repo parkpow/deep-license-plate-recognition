@@ -14,10 +14,10 @@ jobs:
     name: Windows
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Build Installer
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: Windows-Installer-unsigned
         path: docker/dist
@@ -26,10 +26,10 @@ jobs:
     name: Linux
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Build Installer
       run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: PlateRecognizer-Installer-Linux
         path: docker/dist/PlateRecognizer-Installer
@@ -61,8 +61,8 @@ jobs:
     runs-on: macos-latest
     name: MacOS
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: 3.7.12
     - name: Build Installer
@@ -71,7 +71,7 @@ jobs:
         pip install -r requirements.txt pyinstaller==4.9
         pyinstaller platerec_installer.spec -F
         chmod -R +x dist
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: PlateRecognizer-Installer-MacOS
         path: docker/dist/*
