@@ -175,13 +175,6 @@ def uninstall_docker_image(hardware):
 
 def launch_browser(url):
     my_env = dict(os.environ)
-    to_delete = []
-    for (k, v) in my_env.items():
-        if k != "PATH" and "tmp" in v:
-            to_delete.append(k)
-
-    for k in to_delete:
-        my_env.pop(k, None)
 
     os_platform = get_os()
     if os_platform == "Windows":
@@ -192,5 +185,13 @@ def launch_browser(url):
         opener = "xdg-open"
     else:
         raise Exception(f"Unrecognized OS platform: {os_platform}")
+    #  remove all environment variables that contain the 'tmp' directory.
+    to_delete = []
+    for (k, v) in my_env.items():
+        if k != "PATH" and "tmp" in v:
+            to_delete.append(k)
 
-    subprocess.call([opener, url], env=my_env, shell=True)
+    for k in to_delete:
+        my_env.pop(k, None)
+
+    subprocess.call([opener, url], env=my_env, shell=False)
