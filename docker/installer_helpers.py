@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import sys
+import webbrowser
 from pathlib import Path
 from ssl import SSLError
 
@@ -170,3 +171,26 @@ def uninstall_docker_image(hardware):
     cmd = "docker image prune -f"
     os.system(cmd)
     return [None, "Image successfully uninstalled."]
+
+
+def launch_browser(url):
+    os_platform = get_os()
+    if os_platform in ["Windows", "Darwin"]:
+        return webbrowser.open(url)
+    elif os_platform == "Linux":
+        opener = "xdg-open"
+        # remove all environment variables that contain the 'tmp' directory.
+        my_env = dict(os.environ)
+        to_delete = []
+        for (k, v) in my_env.items():
+            if k != "PATH" and "tmp" in v:
+                to_delete.append(k)
+        for k in to_delete:
+            my_env.pop(k, None)
+        try:
+            subprocess.call([opener, url], env=my_env, shell=False)
+        except FileNotFoundError:  # [Errno 2] No such file or directory: 'xdg-open': 'xdg-open'
+            print(f"Unable to launch browser: {opener} command not found")
+    else:
+        raise Exception(f"Unrecognized OS platform: {os_platform}")
+    
