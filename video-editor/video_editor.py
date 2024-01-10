@@ -185,12 +185,12 @@ def process_video(video, action):
         fps_cap = cv2.VideoCapture(video_path)
         # Calculate FPS manually by counting frames for 500ms
         while fps_cap.isOpened():
-            ret, _ = cap.read()
+            ret, _ = fps_cap.read()
             if not ret:
                 break
             frame_count += 1
             # Stop at half a second
-            if cap.get(cv2.CAP_PROP_POS_MSEC) >= 500:
+            if fps_cap.get(cv2.CAP_PROP_POS_MSEC) >= 500:
                 break
         fps_cap.release()
         fps = frame_count * 2
