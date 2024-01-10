@@ -42,8 +42,6 @@ jobs:
         with:
           name: Windows-Installer-unsigned
           path: dist
-      - run: |
-          tree /F D:\a\deep-license-plate-recognition\deep-license-plate-recognition\dist
       - name: Test local api
         run: |
           cmd /c "START /b D:\a\deep-license-plate-recognition\deep-license-plate-recognition\dist\PlateRecognizer-Installer.exe"
