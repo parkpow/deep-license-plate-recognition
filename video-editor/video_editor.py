@@ -179,21 +179,20 @@ def process_video(video, action):
     # Override FPS if provided
     try:
         fps = int(os.environ.get("FPS"))
-    except Exception:
+    except TypeError:
         # ffmpegcv cap.fps is not reliable
         frame_count = 0
         fps_cap = cv2.VideoCapture(video_path)
         # Calculate FPS manually by counting frames for 500ms
         while fps_cap.isOpened():
             ret, _ = fps_cap.read()
-            if not ret:
+            # Stop at half a second or no more frames
+            if not ret or fps_cap.get(cv2.CAP_PROP_POS_MSEC) >= 500:
                 break
             frame_count += 1
-            # Stop at half a second
-            if fps_cap.get(cv2.CAP_PROP_POS_MSEC) >= 500:
-                break
         fps_cap.release()
         fps = frame_count * 2
+        assert fps > 0, "Video too short or frames are not readable"
     lgr.debug(f"FPS: {fps}")
 
     if visualization_enabled:
