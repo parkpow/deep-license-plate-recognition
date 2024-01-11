@@ -32,6 +32,23 @@ jobs:
         name: PlateRecognizer-Installer-Linux
         path: docker/dist/PlateRecognizer-Installer
 
+  test-windows-installer:
+    runs-on: windows-latest
+    needs: windows-installer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Windows-Installer-unsigned
+          path: dist
+      - name: Test local api
+        run: |
+          cmd /c "START /b D:\a\deep-license-plate-recognition\deep-license-plate-recognition\dist\PlateRecognizer-Installer.exe"
+          ping 127.0.0.1 -n 6 > nul
+          netstat -o -n -a | findstr 8050
+          curl -X GET "http://localhost:8050"
+
   # sign-installer:
   #   name: Sign
   #   runs-on: windows-latest
