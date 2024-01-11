@@ -181,18 +181,21 @@ def process_video(video, action):
         fps = int(os.environ.get("FPS"))
     except TypeError:
         # ffmpegcv cap.fps is not reliable
-        frame_count = 0
-        fps_cap = cv2.VideoCapture(video_path)
         # Calculate FPS manually by counting frames for 500ms
+
+        fps_cap = cv2.VideoCapture(video_path)
+        frame_count = 0
+        last_frame_time = 0
         while fps_cap.isOpened():
             ret, _ = fps_cap.read()
+            last_frame_time = fps_cap.get(cv2.CAP_PROP_POS_MSEC)
             # Stop at half a second or no more frames
-            if not ret or fps_cap.get(cv2.CAP_PROP_POS_MSEC) >= 500:
+            if not ret or last_frame_time >= 500:
                 break
             frame_count += 1
         fps_cap.release()
-        fps = frame_count * 2
-        assert fps > 0, "Video too short or frames are not readable"
+        assert last_frame_time > 0, "Video too short or frames are not readable"
+        fps = frame_count * 1000 / last_frame_time
     lgr.debug(f"FPS: {fps}")
 
     if visualization_enabled:
