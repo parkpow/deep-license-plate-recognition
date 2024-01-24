@@ -1,0 +1,17 @@
+{
+  "name": "platerecognizer",
+  "version": "1.0.1",
+  "description": "Snapshot Integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --testTimeout 10000"
+  },
+  "dependencies": {
+    "zapier-platform-core": "15.5.1",
+    "form-data": "4.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.0",
+    "zapier-platform-cli": "^15.5.1"
+  }
+}
