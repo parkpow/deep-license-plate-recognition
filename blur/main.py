@@ -75,7 +75,13 @@ def process(args, path: Path, output: Path):
     Process An Image
     """
     lgr.debug(f"output path: {output}")
+    upload_files = {}
+    if args.logo:
+        with open(args.logo, "rb") as fp:
+            upload_files["logo"] = fp.read()
+
     with open(path, "rb") as fp:
+        upload_files["upload"] = fp.read()
         data = {
             "camera_id": args.camera_id,
             "config": args.config,
@@ -92,8 +98,19 @@ def process(args, path: Path, output: Path):
             "faces": args.faces,
             "plates": args.plates,
         }
+        if args.api_key:
+            headers = {
+                "Authorization": f"Token {args.api_key}",
+            }
+        else:
+            headers = None
+
         response = requests.post(
-            args.blur_url, files=dict(upload=fp), data=data, stream=True
+            args.blur_url,
+            headers=headers,
+            files=upload_files,
+            data=data,
+            stream=True,
         )
         lgr.debug(f"Response: {response}")
         if response.status_code < 200 or response.status_code > 300:
@@ -138,6 +155,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Blur plates and faces in a folder recursively"
     )
+    parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
     parser.add_argument(
         "-b",
         "--blur-url",
@@ -149,6 +167,12 @@ def main():
         type=Path,
         required=True,
         help="Folder containing images to process.",
+    )
+    parser.add_argument(
+        "--logo",
+        type=Path,
+        required=False,
+        help="Logo file path.",
     )
     parser.add_argument(
         "--plates", type=int, default="10", help="Plate blur intensity."
