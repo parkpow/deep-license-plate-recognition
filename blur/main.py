@@ -70,18 +70,12 @@ def get_output_path(output_dir, path, rename_file):
     return output
 
 
-def process(args, path: Path, output: Path):
+def process(args, path: Path, output: Path, logo=None):
     """
     Process An Image
     """
     lgr.debug(f"output path: {output}")
-    upload_files = {}
-    if args.logo:
-        with open(args.logo, "rb") as fp:
-            upload_files["logo"] = fp.read()
-
     with open(path, "rb") as fp:
-        upload_files["upload"] = fp.read()
         data = {
             "camera_id": args.camera_id,
             "config": args.config,
@@ -108,7 +102,7 @@ def process(args, path: Path, output: Path):
         response = requests.post(
             args.blur_url,
             headers=headers,
-            files=upload_files,
+            files={"logo": logo, "upload": fp},
             data=data,
             stream=True,
         )
@@ -138,17 +132,18 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
 
     :return:
     """
+    logo_bytes = None
+    if args.logo:
+        with open(args.logo, "rb") as fp:
+            logo_bytes = fp.read()
+
     for path in input_dir.glob("**/*"):
         if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
             output_path = get_output_path(output_dir, path, rename_file)
             if resume and output_path.is_file():
                 continue
-            process(
-                args,
-                path,
-                output_path,
-            )
+            process(args, path, output_path, logo_bytes)
 
 
 def main():
