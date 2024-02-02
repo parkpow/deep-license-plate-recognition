@@ -70,7 +70,7 @@ def get_output_path(output_dir, path, rename_file):
     return output
 
 
-def process(args, path: Path, output: Path):
+def process(args, path: Path, output: Path, logo=None):
     """
     Process An Image
     """
@@ -92,8 +92,19 @@ def process(args, path: Path, output: Path):
             "faces": args.faces,
             "plates": args.plates,
         }
+        if args.api_key:
+            headers = {
+                "Authorization": f"Token {args.api_key}",
+            }
+        else:
+            headers = None
+
         response = requests.post(
-            args.blur_url, files=dict(upload=fp), data=data, stream=True
+            args.blur_url,
+            headers=headers,
+            files={"logo": logo, "upload": fp},
+            data=data,
+            stream=True,
         )
         lgr.debug(f"Response: {response}")
         if response.status_code < 200 or response.status_code > 300:
@@ -121,23 +132,25 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
 
     :return:
     """
+    logo_bytes = None
+    if args.logo:
+        with open(args.logo, "rb") as fp:
+            logo_bytes = fp.read()
+
     for path in input_dir.glob("**/*"):
         if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
             output_path = get_output_path(output_dir, path, rename_file)
             if resume and output_path.is_file():
                 continue
-            process(
-                args,
-                path,
-                output_path,
-            )
+            process(args, path, output_path, logo_bytes)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Blur plates and faces in a folder recursively"
     )
+    parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
     parser.add_argument(
         "-b",
         "--blur-url",
@@ -149,6 +162,12 @@ def main():
         type=Path,
         required=True,
         help="Folder containing images to process.",
+    )
+    parser.add_argument(
+        "--logo",
+        type=Path,
+        required=False,
+        help="Logo file path.",
     )
     parser.add_argument(
         "--plates", type=int, default="10", help="Plate blur intensity."

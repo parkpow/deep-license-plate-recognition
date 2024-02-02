@@ -166,7 +166,6 @@ def process_video(video, action):
     video_path = os.path.join(temp_dir, video.filename)
     video.save(video_path)
 
-    # TODO: grayscale videos are not supported by ffmpegcv
     cap = ffmpegcv.VideoCapture(video_path)
 
     if not cap.isOpened():
