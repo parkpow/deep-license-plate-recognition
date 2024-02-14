@@ -23,6 +23,7 @@ logging.basicConfig(
 lgr = logging.getLogger("upload-csv")
 
 STREAM_DIR = Path("/user-data/")
+CAMERA_TOKEN = '$(camera)'
 
 
 class ParkPowApi:
@@ -54,31 +55,183 @@ class ParkPowApi:
                 res_json = response.json()
                 return res_json
 
-    def is_duplicate(self, timestamp, plate):
+    def is_duplicate(self, timestamp, plate, camera_id):
 
+        # https://app.parkpow.com/api/v1/visit-list/
+        lgr.debug(f'checking parkpow visits since {timestamp}')
+        try:
+            response = self.session.get(
+                "https://app.parkpow.com/api/v1/visit-list/",
+                params=dict(
+                    plate=plate, start=timestamp, camera=camera_id
+                ),
+
+            )
+
+            lgr.debug(response.text)
+            response = response.json()
+
+            if response['estimated_count'] > 0 and response['results']:
+                visit = response['results'][0]
+                start_data = visit['start_data']
+
+                # Assert Plate
+                assert visit['vehicle']['license_plate'] == plate
+                assert start_data['plate'] == plate
+
+                # Assert Regions
+                # assert start_data['region']['code'] == REGIONS[0]
+
+                # Assert CameraId
+                assert visit['start_cam']['code'] == camera_id
+
+                # Assert MMC
+                assert start_data['color'][0]['color'] == 'black'
+                # Warning: new MMC does not include this model.
+                # assert start_data['model_make'][0]['make'] == 'Riley'
+                # assert start_data['model_make'][0]['model'] == 'RMF'
+
+            return False
+
+
+        except Exception as e:
+            lgr.error(e)
+            exit(1)
         return False
 
 
 def parse_row_result(row: list):
+    x = {
+        "plate": {
+            "box": {
+                "xmin": 231,
+                "ymin": 238,
+                "ymax": 266,
+                "xmax": 305
+            },
+            "score": 0.592,
+            "type": "Plate",
+            "props": {
+                "plate": [
+                    {
+                        "value": "smm1439",
+                        "score": 0.905
+                    },
+                    {
+                        "value": "smh1439",
+                        "score": 0.743
+                    }
+                ],
+                "region": [
+                    {
+                        "value": "bg",
+                        "score": 0.795
+                    }
+                ]
+            }
+        },
+        "direction": 180,
+        "position_sec": 34.94,
+        "vehicle": {
+            "box": {
+                "xmin": 231,
+                "ymin": 131,
+                "ymax": 523,
+                "xmax": 1070
+            },
+            "score": 0.834,
+            "type": "Sedan",
+            "props": {
+                "color": [
+                    {
+                        "score": 0.877,
+                        "value": "silver"
+                    },
+                    {
+                        "score": 0.019,
+                        "value": "black"
+                    },
+                    {
+                        "score": 0.016,
+                        "value": "green"
+                    }
+                ],
+                "orientation": [
+                    {
+                        "score": 0.937,
+                        "value": "Front"
+                    },
+                    {
+                        "score": 0.032,
+                        "value": "Rear"
+                    },
+                    {
+                        "score": 0.031,
+                        "value": "Unknown"
+                    }
+                ],
+                "make_model": [
+                    {
+                        "make": "BMW",
+                        "score": 0.55,
+                        "model": "5 Series"
+                    },
+                    {
+                        "make": "BMW",
+                        "score": 0.153,
+                        "model": "E83"
+                    },
+                    {
+                        "make": "BMW",
+                        "score": 0.029,
+                        "model": "X5"
+                    }
+                ]
+            }
+        }
+    }
 
     if len(row) == 7:
         # mmc=true mode=vehicle
         # timestamp,file,source_url,position_sec,direction,plate,vehicle
         file = row[1]
         plate = None
+        position_sec = row[3]
+        direction = row[4]
+
     else:
-        # timestamp,plate,score,dscore,file,box,model_make,color,vehicle,region,orientation,candidates,source_url,position_sec,direction
+        # timestamp,plate,score,dscore,file,box,model_make,color,vehicle,region,orientation,
+        # candidates,source_url,position_sec,direction
         file = row[4]
         plate = row[1]
+        position_sec = row[13]
+        direction = row[14]
 
-    result = {"plate": {}, "direction": None, "position_sec": None, "vehicle": {}}
+    result = {
+        "plate": {
+            "score": 0.592,
+            "type": "Plate",
+            "props": {
+
+            }
+        },
+        "direction": direction,
+        "position_sec": position_sec,
+        "vehicle": {
+            "score": 0.834,
+            "type": "Sedan",
+            "props": {
+
+            }
+
+        }
+    }
     timestamp = row[0]
 
     return timestamp, file, plate, result
 
 
 def row_payload(result: dict, screenshot: Path, timestamp, camera_id):
-
     screenshot_path = STREAM_DIR / screenshot
     lgr.debug(f"screenshot Path: {screenshot_path}")
     if screenshot_path.exists():
@@ -134,6 +287,25 @@ def process_camera(config):
         camera_config["image_format"] = config["image_format"]
 
     return camera_config
+
+
+def format_path(camera, date_obj, s):
+    return date_obj.strftime(s.replace(CAMERA_TOKEN, camera))
+
+
+def select_camera_id(timestamp, camera_webhooks, path):
+    # Get camera ID from file or csv filename
+    datetime_obj = datetime.datetime.strptime(
+        timestamp, "%Y-%m-%d %H:%M:%S.%f%z"
+    )
+    lgr.debug(f"datetime_obj: {datetime_obj}")
+    for key, value in camera_webhooks.items():
+        csv_path = format_path(key, datetime_obj, value['csv_file'])
+        lgr.debug(f'Key: {key} csv_path: {csv_path}')
+
+        if STREAM_DIR / csv_path == path:
+            return key
+    raise Exception('Unable to select a camera ID')
 
 
 def main(args):
@@ -203,9 +375,18 @@ def main(args):
         lgr.error("No camera configured with a ParkPow webhook found in the config.ini")
         return
 
+    # Selecting camera ID from CSV requires it to have been used in output
+    for key, value in camera_webhooks.items():
+        if CAMERA_TOKEN not in value['csv_file'] and CAMERA_TOKEN not in cameras_image_format:
+            # TODO check camera image_format override
+            lgr.error(f"Will be unable to trace camera ID for {key}, Add $(camera) in image_format or csv_file config.")
+            return
+
     for path in STREAM_DIR.glob("**/*.csv"):
+        lgr.info(f'Processing CSV: {path}')
         with open(path, newline="") as csvfile:
             reader = csv.reader(csvfile)
+            selected_camera = None
             for row in reader:
                 lgr.debug(f"Row: {row}")
                 if row[0] == "timestamp":
@@ -214,27 +395,25 @@ def main(args):
 
                 timestamp, file, plate, result = parse_row_result(row)
                 lgr.info(f"Processing: {timestamp} - Plate: {plate} - File: {file}")
-                # Get camera ID from file or csv filename
-                datetime_obj = datetime.datetime.strptime(
-                    timestamp, "%Y-%m-%d %H:%M:%S.%f"
-                )
-                lgr.debug(f"datetime_obj: {datetime_obj}")
-                for _key, value in camera_webhooks.items():
 
-                    cameras_image_format
-                    value[""]
-                    pass
+                if selected_camera is None:
+                    selected_camera_id = select_camera_id(timestamp, camera_webhooks, path)
+                    selected_camera = camera_webhooks[selected_camera_id]
 
-                parkpow = ParkPowApi(args.token, args.api_url)
+                lgr.debug(f'selected_camera: {selected_camera}')
 
-                # if args.de_duplicate and parkpow.is_duplicate(timestamp, plate):
-                #     lgr.info(f'Skipped duplicate: {plate}')
-                #     continue
+                for webhook_id in selected_camera['webhooks']:
+                    parkpow_webhook = parkpow_webhooks[webhook_id]
+                    parkpow = ParkPowApi(parkpow_webhook['token'], parkpow_webhook['url'])
 
-                data = row_payload(result, file.lstrip("/"), timestamp, args.camera_id)
-                lgr.debug(f"data: {data}")
-                vehicle_log = parkpow.log_vehicle_api(data)
-                lgr.info(f"vehicle_log: {vehicle_log}")
+                    if args.de_duplicate and parkpow.is_duplicate(timestamp, plate):
+                        lgr.info(f'Skipped duplicate: {plate}')
+                        continue
+
+                    data = row_payload(result, file.lstrip("/"), timestamp, selected_camera_id)
+                    lgr.debug(f"data: {data}")
+                    vehicle_log = parkpow.log_vehicle_api(data)
+                    lgr.info(f"vehicle_log: {vehicle_log}")
 
 
 if __name__ == "__main__":
