@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-
+import json
 import requests
 from configobj import ConfigObj
 
@@ -92,8 +92,6 @@ class ParkPowApi:
                 # assert start_data['model_make'][0]['model'] == 'RMF'
 
             return False
-
-
         except Exception as e:
             lgr.error(e)
             exit(1)
@@ -195,29 +193,37 @@ def parse_row_result(row: list):
         # mmc=true mode=vehicle
         # timestamp,file,source_url,position_sec,direction,plate,vehicle
         file = row[1]
-        plate = None
+        plate = row[5]
         position_sec = row[3]
         direction = row[4]
+        vehicle = row[6]
 
     else:
         # timestamp,plate,score,dscore,file,box,model_make,color,vehicle,region,orientation,
         # candidates,source_url,position_sec,direction
         file = row[4]
-        plate = row[1]
+        plate_number = row[1]
         position_sec = row[13]
         direction = row[14]
-
-    result = {
-        "plate": {
-            "score": 0.592,
+        plate = {
+            "box": json.loads(row[5]),
+            "score": row[3],
             "type": "Plate",
             "props": {
+                'plate': [
+                    {
+                        'value': plate_number,
+                        'score' : row[2]
+                    }
+                ],
+                'region': [
 
+                ]
             }
-        },
-        "direction": direction,
-        "position_sec": position_sec,
-        "vehicle": {
+        }
+
+        vehicle = {
+            "box": json.loads(row[8]),
             "score": 0.834,
             "type": "Sedan",
             "props": {
@@ -225,6 +231,12 @@ def parse_row_result(row: list):
             }
 
         }
+
+    result = {
+        "plate": plate,
+        "direction": direction,
+        "position_sec": position_sec,
+        "vehicle": vehicle
     }
     timestamp = row[0]
 
