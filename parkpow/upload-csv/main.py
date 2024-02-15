@@ -409,9 +409,7 @@ def main(args):
                     selected_camera = camera_webhooks[selected_camera_id]
 
                 lgr.debug(f"selected_camera: {selected_camera}")
-
                 data = row_payload(result, file, timestamp, selected_camera_id)
-
                 upload_row_result(
                     selected_camera,
                     parkpow_webhooks,
