@@ -1,4 +1,5 @@
 import argparse
+import ast
 import base64
 import csv
 import datetime
@@ -7,7 +8,7 @@ import os
 import sys
 import time
 from pathlib import Path
-import json
+
 import requests
 from configobj import ConfigObj
 
@@ -22,8 +23,8 @@ logging.basicConfig(
 
 lgr = logging.getLogger("upload-csv")
 
-STREAM_DIR = Path("/user-data/")
-CAMERA_TOKEN = '$(camera)'
+STREAM_DIR = Path(os.environ.get("STREAM_DIR", "/user-data/"))
+CAMERA_TOKEN = "$(camera)"
 
 
 class ParkPowApi:
@@ -55,38 +56,46 @@ class ParkPowApi:
                 res_json = response.json()
                 return res_json
 
-    def is_duplicate(self, timestamp, plate, camera_id):
-
-        # https://app.parkpow.com/api/v1/visit-list/
-        lgr.debug(f'checking parkpow visits since {timestamp}')
+    def is_duplicate(self, ts_datetime: datetime.datetime, plate, camera_id):
+        """
+        Check parkpow visit within ts_datetime +1 minute
+        :param ts_datetime:
+        :param plate:
+        :param camera_id:
+        :return:
+        """
+        endpoint = "visit-list/"
+        pp_date_format = "%Y-%m-%dT%H:%M"
+        start = ts_datetime.strftime(pp_date_format)
+        end = (ts_datetime + datetime.timedelta(minutes=1)).strftime(pp_date_format)
+        params = dict(
+            plate=plate,
+            # camera=camera_id,
+            camera="1",
+            start=start,
+            end=end,
+        )
+        lgr.debug(f"Checking parkpow visits Params: {params}")
         try:
-            response = self.session.get(
-                "https://app.parkpow.com/api/v1/visit-list/",
-                params=dict(
-                    plate=plate, start=timestamp, camera=camera_id
-                ),
-
-            )
-
-            lgr.debug(response.text)
+            response = self.session.get(self.api_base + endpoint, params=params)
+            lgr.debug(f"Response : {response.text}")
             response = response.json()
-
-            if response['estimated_count'] > 0 and response['results']:
-                visit = response['results'][0]
-                start_data = visit['start_data']
+            if response["estimated_count"] > 0 and response["results"]:
+                visit = response["results"][0]
+                start_data = visit["start_data"]
 
                 # Assert Plate
-                assert visit['vehicle']['license_plate'] == plate
-                assert start_data['plate'] == plate
+                assert visit["vehicle"]["license_plate"] == plate
+                assert start_data["plate"] == plate
 
                 # Assert Regions
                 # assert start_data['region']['code'] == REGIONS[0]
 
                 # Assert CameraId
-                assert visit['start_cam']['code'] == camera_id
+                assert visit["start_cam"]["code"] == camera_id
 
                 # Assert MMC
-                assert start_data['color'][0]['color'] == 'black'
+                assert start_data["color"][0]["color"] == "black"
                 # Warning: new MMC does not include this model.
                 # assert start_data['model_make'][0]['make'] == 'Riley'
                 # assert start_data['model_make'][0]['model'] == 'RMF'
@@ -94,153 +103,58 @@ class ParkPowApi:
             return False
         except Exception as e:
             lgr.error(e)
-            exit(1)
+            raise
+
         return False
 
 
 def parse_row_result(row: list):
-    x = {
-        "plate": {
-            "box": {
-                "xmin": 231,
-                "ymin": 238,
-                "ymax": 266,
-                "xmax": 305
-            },
-            "score": 0.592,
-            "type": "Plate",
-            "props": {
-                "plate": [
-                    {
-                        "value": "smm1439",
-                        "score": 0.905
-                    },
-                    {
-                        "value": "smh1439",
-                        "score": 0.743
-                    }
-                ],
-                "region": [
-                    {
-                        "value": "bg",
-                        "score": 0.795
-                    }
-                ]
-            }
-        },
-        "direction": 180,
-        "position_sec": 34.94,
-        "vehicle": {
-            "box": {
-                "xmin": 231,
-                "ymin": 131,
-                "ymax": 523,
-                "xmax": 1070
-            },
-            "score": 0.834,
-            "type": "Sedan",
-            "props": {
-                "color": [
-                    {
-                        "score": 0.877,
-                        "value": "silver"
-                    },
-                    {
-                        "score": 0.019,
-                        "value": "black"
-                    },
-                    {
-                        "score": 0.016,
-                        "value": "green"
-                    }
-                ],
-                "orientation": [
-                    {
-                        "score": 0.937,
-                        "value": "Front"
-                    },
-                    {
-                        "score": 0.032,
-                        "value": "Rear"
-                    },
-                    {
-                        "score": 0.031,
-                        "value": "Unknown"
-                    }
-                ],
-                "make_model": [
-                    {
-                        "make": "BMW",
-                        "score": 0.55,
-                        "model": "5 Series"
-                    },
-                    {
-                        "make": "BMW",
-                        "score": 0.153,
-                        "model": "E83"
-                    },
-                    {
-                        "make": "BMW",
-                        "score": 0.029,
-                        "model": "X5"
-                    }
-                ]
-            }
-        }
-    }
 
     if len(row) == 7:
         # mmc=true mode=vehicle
         # timestamp,file,source_url,position_sec,direction,plate,vehicle
         file = row[1]
-        plate = row[5]
+        plate = ast.literal_eval(row[5])
         position_sec = row[3]
         direction = row[4]
-        vehicle = row[6]
+        vehicle = ast.literal_eval(row[6])
 
     else:
         # timestamp,plate,score,dscore,file,box,model_make,color,vehicle,region,orientation,
         # candidates,source_url,position_sec,direction
         file = row[4]
-        plate_number = row[1]
+
         position_sec = row[13]
         direction = row[14]
         plate = {
-            "box": json.loads(row[5]),
+            "box": ast.literal_eval(row[5]),
             "score": row[3],
             "type": "Plate",
             "props": {
-                'plate': [
-                    {
-                        'value': plate_number,
-                        'score' : row[2]
-                    }
-                ],
-                'region': [
-
-                ]
-            }
+                "plate": [{"value": row[1], "score": row[2]}],
+                "region": [ast.literal_eval(row[9])],
+            },
         }
 
-        vehicle = {
-            "box": json.loads(row[8]),
-            "score": 0.834,
-            "type": "Sedan",
-            "props": {
-
-            }
-
-        }
+        vehicle = ast.literal_eval(row[8])
+        vehicle["props"] = {}
+        if len(row[7]):
+            vehicle["props"]["color"] = ast.literal_eval(row[7])
+        if len(row[9]):
+            vehicle["props"]["orientation"] = ast.literal_eval(row[9])
+        if len(row[6]):
+            vehicle["props"]["make_model"] = ast.literal_eval(row[6])
 
     result = {
         "plate": plate,
         "direction": direction,
         "position_sec": position_sec,
-        "vehicle": vehicle
+        "vehicle": vehicle,
     }
     timestamp = row[0]
+    plate_number = plate["props"]["plate"][0]["value"]
 
-    return timestamp, file, plate, result
+    return timestamp, file, plate_number, result
 
 
 def row_payload(result: dict, screenshot: Path, timestamp, camera_id):
@@ -257,7 +171,7 @@ def row_payload(result: dict, screenshot: Path, timestamp, camera_id):
         "camera": camera_id,
         "image": encoded_image,
         "results": [result],
-        "time": timestamp,  # "2020-08-21T17:32"
+        "time": timestamp,
     }
 
     return d
@@ -305,19 +219,16 @@ def format_path(camera, date_obj, s):
     return date_obj.strftime(s.replace(CAMERA_TOKEN, camera))
 
 
-def select_camera_id(timestamp, camera_webhooks, path):
+def select_camera_id(ts_datetime, camera_webhooks, path):
     # Get camera ID from file or csv filename
-    datetime_obj = datetime.datetime.strptime(
-        timestamp, "%Y-%m-%d %H:%M:%S.%f%z"
-    )
-    lgr.debug(f"datetime_obj: {datetime_obj}")
+    lgr.debug(f"datetime_obj: {ts_datetime}")
     for key, value in camera_webhooks.items():
-        csv_path = format_path(key, datetime_obj, value['csv_file'])
-        lgr.debug(f'Key: {key} csv_path: {csv_path}')
+        csv_path = format_path(key, ts_datetime, value["csv_file"])
+        lgr.debug(f"Key: {key} csv_path: {csv_path}")
 
         if STREAM_DIR / csv_path == path:
             return key
-    raise Exception('Unable to select a camera ID')
+    raise Exception("Unable to select a camera ID")
 
 
 def main(args):
@@ -389,13 +300,17 @@ def main(args):
 
     # Selecting camera ID from CSV requires it to have been used in output
     for key, value in camera_webhooks.items():
-        if CAMERA_TOKEN not in value['csv_file'] and CAMERA_TOKEN not in cameras_image_format:
-            # TODO check camera image_format override
-            lgr.error(f"Will be unable to trace camera ID for {key}, Add $(camera) in image_format or csv_file config.")
+        if CAMERA_TOKEN not in value["csv_file"]:
+            # TODO fallback to image_format when csv filename has no camera token
+            #  i.e CAMERA_TOKEN not in cameras_image_format
+            #  also check camera image_format set per camera
+            lgr.error(
+                f"Will be unable to trace camera ID for {key}, Add $(camera) in image_format or csv_file config."
+            )
             return
 
     for path in STREAM_DIR.glob("**/*.csv"):
-        lgr.info(f'Processing CSV: {path}')
+        lgr.info(f"Processing CSV: {path}")
         with open(path, newline="") as csvfile:
             reader = csv.reader(csvfile)
             selected_camera = None
@@ -407,22 +322,35 @@ def main(args):
 
                 timestamp, file, plate, result = parse_row_result(row)
                 lgr.info(f"Processing: {timestamp} - Plate: {plate} - File: {file}")
+                lgr.debug(f"Result: {result}")
+                ts_datetime = datetime.datetime.strptime(
+                    timestamp, "%Y-%m-%d %H:%M:%S.%f%z"
+                )
 
                 if selected_camera is None:
-                    selected_camera_id = select_camera_id(timestamp, camera_webhooks, path)
+                    selected_camera_id = select_camera_id(
+                        ts_datetime, camera_webhooks, path
+                    )
                     selected_camera = camera_webhooks[selected_camera_id]
 
-                lgr.debug(f'selected_camera: {selected_camera}')
+                lgr.debug(f"selected_camera: {selected_camera}")
 
-                for webhook_id in selected_camera['webhooks']:
+                for webhook_id in selected_camera["webhooks"]:
+                    lgr.debug(f"Sending to ParkPow webhook: {webhook_id}")
                     parkpow_webhook = parkpow_webhooks[webhook_id]
-                    parkpow = ParkPowApi(parkpow_webhook['token'], parkpow_webhook['url'])
+                    parkpow = ParkPowApi(
+                        parkpow_webhook["token"], parkpow_webhook["url"]
+                    )
 
-                    if args.de_duplicate and parkpow.is_duplicate(timestamp, plate):
-                        lgr.info(f'Skipped duplicate: {plate}')
+                    if args.de_duplicate and parkpow.is_duplicate(
+                        ts_datetime, plate, selected_camera_id
+                    ):
+                        lgr.info(f"Skipped duplicate: {plate}")
                         continue
 
-                    data = row_payload(result, file.lstrip("/"), timestamp, selected_camera_id)
+                    data = row_payload(
+                        result, file.lstrip("/"), timestamp, selected_camera_id
+                    )
                     lgr.debug(f"data: {data}")
                     vehicle_log = parkpow.log_vehicle_api(data)
                     lgr.info(f"vehicle_log: {vehicle_log}")
