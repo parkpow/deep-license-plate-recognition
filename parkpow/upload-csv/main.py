@@ -42,61 +42,66 @@ class ParkPowApi:
         self.session.headers = {"Authorization": "Token " + token}
 
     def log_vehicle_api(self, data):
-
         endpoint = "log-vehicle/"
-        while True:
-            response = self.session.post(self.api_base + endpoint, json=data)
-            lgr.debug(f"response: {response}")
-            if response.status_code < 200 or response.status_code > 300:
-                if response.status_code == 429:
-                    time.sleep(1)
+        try:
+            while True:
+                response = self.session.post(self.api_base + endpoint, json=data)
+                lgr.debug(f"response: {response}")
+                if response.status_code < 200 or response.status_code > 300:
+                    if response.status_code == 429:
+                        time.sleep(1)
+                    else:
+                        logging.error(response.text)
+                        raise Exception("Error logging vehicle")
                 else:
-                    logging.error(response.text)
-                    raise Exception("Error logging vehicle")
-            else:
-                res_json = response.json()
-                return res_json
+                    res_json = response.json()
+                    return res_json
+        except requests.RequestException as e:
+            lgr.error("Error", exc_info=e)
 
     def is_duplicate(self, ts_datetime: datetime.datetime, plate, camera_id):
         """
-        Check parkpow visit within ts_datetime +1 minute
+        Check parkpow visit within ts_datetime +1 second
         :param ts_datetime:
         :param plate:
         :param camera_id:
         :return:
         """
         endpoint = "visit-list/"
-        pp_date_format = "%Y-%m-%dT%H:%M"
+        pp_date_format = "%Y-%m-%dT%H:%M:%S"
         start = ts_datetime.strftime(pp_date_format)
-        end = (ts_datetime + datetime.timedelta(minutes=1)).strftime(pp_date_format)
+        end = (ts_datetime + datetime.timedelta(seconds=1)).strftime(pp_date_format)
         params = dict(
             plate=plate,
-            # TODO camera=camera_id,
-            camera="1",
+            # camera=camera_id,
             start=start,
             end=end,
         )
         lgr.debug(f"Checking parkpow visits Params: {params}")
         try:
             response = self.session.get(self.api_base + endpoint, params=params)
-            lgr.debug(f"Response : {response.text}")
-            response = response.json()
-            if response["estimated_count"] > 0 and response["results"]:
-                visit = response["results"][0]
-                start_data = visit["start_data"]
-                if (
-                    visit["vehicle"]["license_plate"] == plate
-                    and start_data["plate"] == plate
-                    and visit["start_cam"]["code"] == camera_id
-                ):
-                    return True
+            lgr.debug(f"Response : {response}")
+            if response.status_code < 200 or response.status_code > 300:
+                if response.status_code == 429:
+                    time.sleep(1)
+                else:
+                    lgr.error(response.text)
+                    raise Exception(f"Error logging vehicle: {response}")
+            else:
+                response = response.json()
+                lgr.debug(f"Visits: {response}")
+                if response["estimated_count"] > 0 and response["results"]:
+                    for visit in response["results"]:
+                        lgr.debug(f"Visit: {json.dumps(visit)}")
+                        # start_data = visit["start_data"]
+                        vp = visit["vehicle"]["license_plate"]
+                        v_cam = visit["start_cam"]["code"]
+                        if vp == plate and v_cam == camera_id:
+                            return True
 
             return False
-        except Exception as e:
-            lgr.error(e)
-            # raise
-
-        return False
+        except requests.RequestException as e:
+            lgr.error("Error", exc_info=e)
 
 
 def parse_row_result(row: list):
@@ -107,8 +112,13 @@ def parse_row_result(row: list):
         file = row[1]
         plate = ast.literal_eval(row[5])
         position_sec = row[3]
-        direction = row[4]
+        if len(row[4]):
+            direction = row[4]
+        else:
+            direction = None
         vehicle = ast.literal_eval(row[6])
+
+        # if plate["props"] is None: # TODO how to handle such a case
 
     else:
         lgr.debug("mode=plate")
@@ -134,12 +144,22 @@ def parse_row_result(row: list):
         vehicle = ast.literal_eval(row[8])
         vehicle["props"] = {}
         if len(row[7]):
-            vehicle["props"]["color"] = ast.literal_eval(row[7])
+            colors = ast.literal_eval(row[7])
+            pp_colors = []
+            for color in colors:
+                pp_colors.append({"value": color["color"], "score": color["score"]})
+            vehicle["props"]["color"] = pp_colors
         else:
             vehicle["props"]["color"] = []
 
         if len(row[10]):
-            vehicle["props"]["orientation"] = [ast.literal_eval(row[10])]
+            orientations = ast.literal_eval(row[10])
+            pp_orientations = []
+            for orientation in orientations:
+                pp_orientations.append(
+                    {"value": orientation["orientation"], "score": orientation["score"]}
+                )
+            vehicle["props"]["orientation"] = pp_orientations
         else:
             vehicle["props"]["orientation"] = []
 
@@ -155,19 +175,18 @@ def parse_row_result(row: list):
         "vehicle": vehicle,
     }
     timestamp = row[0]
-    plate_number = plate["props"]["plate"][0]["value"]
-    return timestamp, file, plate_number, result
+    return timestamp, file, result
 
 
-def row_payload(result: dict, screenshot: Path, timestamp, camera_id):
+def row_payload(result: dict, screenshot, timestamp, camera_id):
+    screenshot = screenshot.lstrip("/")
     screenshot_path = STREAM_DIR / screenshot
     lgr.debug(f"screenshot Path: {screenshot_path}")
     if screenshot_path.exists():
         with open(screenshot_path, "rb") as image_file:
             encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
     else:
-        encoded_image = None
-        raise Exception("encoded_image = None")
+        raise Exception(f"Screenshot not found: {screenshot}")
 
     d = {
         "camera": camera_id,
@@ -179,19 +198,21 @@ def row_payload(result: dict, screenshot: Path, timestamp, camera_id):
     return d
 
 
-def process_camera(config):
+def parse_camera(config, camera_id):
     """
     Parse a camera config into:
     {
+        'id': '<camera-id>',
         'image_format': '',
         'csv_file': '',
         'webhooks': ['webhook1', 'webhook2' ]
     }
+    :param camera_id:
     :param config:
     :return:
     """
     lgr.debug(f"Config: {config}")
-    camera_config = {"webhooks": []}
+    camera_config = {"id": camera_id, "webhooks": []}
     if "webhook_targets" in config:
         webhook_targets = config["webhook_targets"]
         lgr.debug(f"webhook_targets: {webhook_targets}")
@@ -230,7 +251,104 @@ def select_camera_id(ts_datetime, camera_webhooks, path):
 
         if STREAM_DIR / csv_path == path:
             return key
-    raise Exception("Unable to select a camera ID")
+    raise Exception(f"Unable to select a camera ID from: {path}")
+
+
+def slice_image(data, n=20):
+    """
+    For logging purposes
+    :param n:
+    :param data:
+    :return:
+    """
+    dict2 = dict(data)
+    dict2["image"] = dict2["image"][:n]
+    return dict2
+
+
+def parse_parkpow_webhooks(config):
+    """
+    Get ParkPow webhooks from config
+    :param config:
+    :return:
+    """
+    parkpow_webhooks = {}
+    webhooks_config = config["webhooks"]
+    for webhook_id in webhooks_config.sections:
+        webhook_config = webhooks_config[webhook_id]
+        url = webhook_config["url"]
+        lgr.debug(f"Webhook URL: {url}")
+
+        parkpow_webhook_endpoint = "/api/v1/webhook-receiver"
+        if parkpow_webhook_endpoint in url:
+            url = url.split(parkpow_webhook_endpoint)[0]
+            header = webhook_config["header"]
+            lgr.debug(f"Header: {header}")
+            parkpow_webhooks[webhook_id] = {
+                "url": url,
+                "token": header.split("Token ")[1],
+            }
+    return parkpow_webhooks
+
+
+def parse_camera_webhooks(config, parkpow_webhooks):
+    """
+    Get cameras with ParkPow webhook
+    :param config:
+    :param parkpow_webhooks:
+    :return:
+    """
+    camera_webhooks = {}
+    cameras = config["cameras"]
+    # Fallback to image_format when csv filename has no camera token
+    #  i.e CAMERA_TOKEN not in cameras_image_format
+    #  also check camera image_format set per camera
+    # if "image_format" in cameras:
+    #     cameras_image_format = cameras["image_format"]
+    # else:
+    #     cameras_image_format = "$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg"
+    # lgr.info(f"cameras_image_format: {cameras_image_format}")
+
+    camera_ids = cameras.sections
+    for camera_id in camera_ids:
+        lgr.debug(f"camera ID: {camera_id}")
+        camera_config = cameras[camera_id]
+        config = parse_camera(camera_config, camera_id)
+        lgr.debug(f"config: {config}")
+        # Camera webhooks that are ParkPow webhooks
+        camera_parkpow_hooks = []
+        for cam_webhook in config["webhooks"]:
+            if cam_webhook in parkpow_webhooks:
+                camera_parkpow_hooks.append(cam_webhook)
+
+        if any(camera_parkpow_hooks):
+            camera_webhooks[camera_id] = config
+            camera_webhooks[camera_id]["webhooks"] = camera_parkpow_hooks
+        else:
+            lgr.debug(f"Camera {camera_id} does not have a parkpow webhook")
+    return camera_webhooks
+
+
+def upload_row_result(selected_camera, parkpow_webhooks, data, de_duplicate, dt):
+    for webhook_id in selected_camera["webhooks"]:
+        lgr.debug(f"Sending to ParkPow webhook: {webhook_id}")
+        parkpow_webhook = parkpow_webhooks[webhook_id]
+        parkpow = ParkPowApi(parkpow_webhook["token"], parkpow_webhook["url"])
+        plate = data["results"][0]["plate"]
+        if plate["props"] is None:
+            plate_number = "NONE"  # TODO how to handle such a case
+        else:
+            plate_number = plate["props"]["plate"][0]["value"]
+
+        if de_duplicate and parkpow.is_duplicate(
+            dt, plate_number, selected_camera["id"]
+        ):
+            lgr.info("Skipped duplicate")
+            continue
+
+        lgr.debug(f"data: {slice_image(data)}")
+        vehicle_log = parkpow.log_vehicle_api(data)
+        lgr.info(f"vehicle_log: {vehicle_log}")
 
 
 def main(args):
@@ -247,53 +365,12 @@ def main(args):
 
     with open(config_file) as config_file_p:
         config = ConfigObj(config_file_p)
-    parkpow_webhooks = {}
 
-    webhooks_config = config["webhooks"]
-    for webhook_id in webhooks_config.sections:
-        webhook_config = webhooks_config[webhook_id]
-        url = webhook_config["url"]
-        lgr.debug(f"Webhook URL: {url}")
-
-        parkpow_webhook_endpoint = "/api/v1/webhook-receiver"
-        if parkpow_webhook_endpoint in url:
-            url = url.split(parkpow_webhook_endpoint)[0]
-            header = webhook_config["header"]
-            lgr.debug(f"Header: {header}")
-            parkpow_webhooks[webhook_id] = {
-                "url": url,
-                "token": header.split("Token ")[1],
-            }
+    parkpow_webhooks = parse_parkpow_webhooks(config)
     lgr.debug(f"ParkPow WebHooks: {parkpow_webhooks}")
 
-    camera_webhooks = {}
-
-    cameras = config["cameras"]
-    if "image_format" in cameras:
-        cameras_image_format = cameras["image_format"]
-    else:
-        cameras_image_format = "$(camera)_screenshots/%y-%m-%d/%H-%M-%S.%f.jpg"
-
-    camera_ids = cameras.sections
-    for camera_id in camera_ids:
-        lgr.debug(f"camera ID: {camera_id}")
-        camera_config = cameras[camera_id]
-        config = process_camera(camera_config)
-        lgr.debug(f"config: {config}")
-        # Camera webhooks that are ParkPow webhooks
-        camera_parkpow_hooks = []
-        for cam_webhook in config["webhooks"]:
-            if cam_webhook in parkpow_webhooks:
-                camera_parkpow_hooks.append(cam_webhook)
-
-        if any(camera_parkpow_hooks):
-            camera_webhooks[camera_id] = config
-            camera_webhooks[camera_id]["webhooks"] = camera_parkpow_hooks
-        else:
-            lgr.debug(f"Camera {camera_id} does not have a parkpow webhook")
-
+    camera_webhooks = parse_camera_webhooks(config, parkpow_webhooks)
     lgr.info(f"camera_webhooks: {camera_webhooks}")
-    lgr.info(f"cameras_image_format: {cameras_image_format}")
 
     if not camera_webhooks:
         lgr.error("No camera configured with a ParkPow webhook found in the config.ini")
@@ -302,11 +379,8 @@ def main(args):
     # Selecting camera ID from CSV requires it to have been used in output
     for key, value in camera_webhooks.items():
         if CAMERA_TOKEN not in value["csv_file"]:
-            # TODO fallback to image_format when csv filename has no camera token
-            #  i.e CAMERA_TOKEN not in cameras_image_format
-            #  also check camera image_format set per camera
             lgr.error(
-                f"Will be unable to trace camera ID for {key}, Add $(camera) in image_format or csv_file config."
+                f"Will be unable to trace camera ID for {key}, Add $(camera) in csv_file config."
             )
             return
 
@@ -321,8 +395,8 @@ def main(args):
                     lgr.debug("Skipped header row")
                     continue
 
-                timestamp, file, plate, result = parse_row_result(row)
-                lgr.info(f"Processing: {timestamp} - Plate: {plate} - File: {file}")
+                timestamp, file, result = parse_row_result(row)
+                lgr.info(f"Processing: {timestamp} - File: {file}")
                 lgr.debug(f"Result: {json.dumps(result)}")
                 ts_datetime = datetime.datetime.strptime(
                     timestamp, "%Y-%m-%d %H:%M:%S.%f%z"
@@ -336,25 +410,15 @@ def main(args):
 
                 lgr.debug(f"selected_camera: {selected_camera}")
 
-                for webhook_id in selected_camera["webhooks"]:
-                    lgr.debug(f"Sending to ParkPow webhook: {webhook_id}")
-                    parkpow_webhook = parkpow_webhooks[webhook_id]
-                    parkpow = ParkPowApi(
-                        parkpow_webhook["token"], parkpow_webhook["url"]
-                    )
+                data = row_payload(result, file, timestamp, selected_camera_id)
 
-                    if args.de_duplicate and parkpow.is_duplicate(
-                        ts_datetime, plate, selected_camera_id
-                    ):
-                        lgr.info(f"Skipped duplicate: {plate}")
-                        continue
-
-                    data = row_payload(
-                        result, file.lstrip("/"), timestamp, selected_camera_id
-                    )
-                    lgr.debug(f"data: {data}")
-                    vehicle_log = parkpow.log_vehicle_api(data)
-                    lgr.info(f"vehicle_log: {vehicle_log}")
+                upload_row_result(
+                    selected_camera,
+                    parkpow_webhooks,
+                    data,
+                    args.de_duplicate,
+                    ts_datetime,
+                )
 
 
 if __name__ == "__main__":
@@ -363,20 +427,6 @@ if __name__ == "__main__":
         epilog="",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    # parser.epilog = (
-    #     "Examples:\n"
-    #     "Upload CSV rows and images to ParkPow Cloud: "
-    #     "./upload_csv.py --token <YOUR_API_TOKEN> --max-age 30 --api-url https://app.parkpow.com/api/v1/"
-    #     "Upload CSV rows and images to ParkPow OnPremise: "
-    #     "./upload_csv.py --token <YOUR_API_TOKEN> --max-age 30 --api-url http://local-or-public-IP:8000/api/v1/"
-    # )
-    # parser.add_argument(
-    #     "-t",
-    #     "--token",
-    #     help="ParkPow API Token, refer to https://app.parkpow.com/account/token/",
-    #     required=False,
-    # )
-    #
     parser.add_argument(
         "-d",
         "--de-duplicate",
@@ -385,27 +435,5 @@ if __name__ == "__main__":
         default=True,
         required=False,
     )
-    #
-    # parser.add_argument(
-    #     "-a",
-    #     "--api-url",
-    #     help="ParkPow API server URL. Example: http://local-or-public-IP:8000",
-    #     required=False,
-    # )
 
-    # TODO parser.add_argument(
-    #     "-c",
-    #     "--camera-id",
-    #     help="Camera ID",
-    #     required=False,
-    # )
-
-    # parser.add_argument(
-    #     "stream_dir",
-    #     type=Path,
-    #     help="Path to Stream directory",
-    #     default=Path(''),
-    #     required=False
-    #
-    # )
     main(parser.parse_args())
