@@ -70,7 +70,7 @@ class ParkPowApi:
         end = (ts_datetime + datetime.timedelta(minutes=1)).strftime(pp_date_format)
         params = dict(
             plate=plate,
-            # camera=camera_id,
+            # TODO camera=camera_id,
             camera="1",
             start=start,
             end=end,
@@ -279,11 +279,10 @@ def main(args):
         config = process_camera(camera_config)
         lgr.debug(f"config: {config}")
         # Camera webhooks that are ParkPow webhooks
-        camera_parkpow_hooks = [
-            cam_webhook
-            for cam_webhook in config["webhooks"]
-            if cam_webhook in parkpow_webhooks
-        ]
+        camera_parkpow_hooks = []
+        for cam_webhook in config["webhooks"]:
+            if cam_webhook in parkpow_webhooks:
+                camera_parkpow_hooks.append(cam_webhook)
 
         if any(camera_parkpow_hooks):
             camera_webhooks[camera_id] = config
