@@ -414,7 +414,7 @@ def main(args):
                     selected_camera,
                     parkpow_webhooks,
                     data,
-                    args.de_duplicate,
+                    not args.ignore_duplicates,
                     ts_datetime,
                 )
 
@@ -426,11 +426,11 @@ if __name__ == "__main__":
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "-d",
-        "--de-duplicate",
-        help="Skip duplicates by comparing plate and timestamp.",
+        "-i",
+        "--ignore-duplicates",
+        help="Ignore duplicates by comparing plate and timestamp and reduce processing time.",
         type=bool,
-        default=True,
+        default=False,
         required=False,
     )
 
