@@ -3,6 +3,7 @@ import ast
 import base64
 import csv
 import datetime
+import json
 import logging
 import os
 import sys
@@ -83,34 +84,24 @@ class ParkPowApi:
             if response["estimated_count"] > 0 and response["results"]:
                 visit = response["results"][0]
                 start_data = visit["start_data"]
-
-                # Assert Plate
-                assert visit["vehicle"]["license_plate"] == plate
-                assert start_data["plate"] == plate
-
-                # Assert Regions
-                # assert start_data['region']['code'] == REGIONS[0]
-
-                # Assert CameraId
-                assert visit["start_cam"]["code"] == camera_id
-
-                # Assert MMC
-                assert start_data["color"][0]["color"] == "black"
-                # Warning: new MMC does not include this model.
-                # assert start_data['model_make'][0]['make'] == 'Riley'
-                # assert start_data['model_make'][0]['model'] == 'RMF'
+                if (
+                    visit["vehicle"]["license_plate"] == plate
+                    and start_data["plate"] == plate
+                    and visit["start_cam"]["code"] == camera_id
+                ):
+                    return True
 
             return False
         except Exception as e:
             lgr.error(e)
-            raise
+            # raise
 
         return False
 
 
 def parse_row_result(row: list):
-
     if len(row) == 7:
+        lgr.debug("mode=vehicle")
         # mmc=true mode=vehicle
         # timestamp,file,source_url,position_sec,direction,plate,vehicle
         file = row[1]
@@ -120,19 +111,23 @@ def parse_row_result(row: list):
         vehicle = ast.literal_eval(row[6])
 
     else:
+        lgr.debug("mode=plate")
         # timestamp,plate,score,dscore,file,box,model_make,color,vehicle,region,orientation,
         # candidates,source_url,position_sec,direction
         file = row[4]
-
         position_sec = row[13]
-        direction = row[14]
+        if len(row[14]):
+            direction = row[14]
+        else:
+            direction = None
+        region = ast.literal_eval(row[9])
         plate = {
             "box": ast.literal_eval(row[5]),
             "score": row[3],
             "type": "Plate",
             "props": {
                 "plate": [{"value": row[1], "score": row[2]}],
-                "region": [ast.literal_eval(row[9])],
+                "region": [{"value": region["code"], "score": region["score"]}],
             },
         }
 
@@ -140,10 +135,18 @@ def parse_row_result(row: list):
         vehicle["props"] = {}
         if len(row[7]):
             vehicle["props"]["color"] = ast.literal_eval(row[7])
-        if len(row[9]):
-            vehicle["props"]["orientation"] = ast.literal_eval(row[9])
+        else:
+            vehicle["props"]["color"] = []
+
+        if len(row[10]):
+            vehicle["props"]["orientation"] = [ast.literal_eval(row[10])]
+        else:
+            vehicle["props"]["orientation"] = []
+
         if len(row[6]):
             vehicle["props"]["make_model"] = ast.literal_eval(row[6])
+        else:
+            vehicle["props"]["make_model"] = []
 
     result = {
         "plate": plate,
@@ -153,7 +156,6 @@ def parse_row_result(row: list):
     }
     timestamp = row[0]
     plate_number = plate["props"]["plate"][0]["value"]
-
     return timestamp, file, plate_number, result
 
 
@@ -321,7 +323,7 @@ def main(args):
 
                 timestamp, file, plate, result = parse_row_result(row)
                 lgr.info(f"Processing: {timestamp} - Plate: {plate} - File: {file}")
-                lgr.debug(f"Result: {result}")
+                lgr.debug(f"Result: {json.dumps(result)}")
                 ts_datetime = datetime.datetime.strptime(
                     timestamp, "%Y-%m-%d %H:%M:%S.%f%z"
                 )
