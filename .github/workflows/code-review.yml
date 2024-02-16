@@ -4,22 +4,17 @@ name: Code Review GPT
 #     pull_request:
 #       branches: [master]
   
-on: [pull_request]
-# on: [push]
+on: 
+  pull_request:
+    types: [opened, reopened, review_requested, ready_for_review]
+
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # env:
-    #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   GITHUB_SHA: ${{ github.sha }}
-    #   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
     - uses: actions/checkout@v3
-      # with:
-      #   fetch-depth: 0
-
 
     - name: Run Code Review GPT
       shell: bash
@@ -30,12 +25,6 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
-        GITHUB_SHA: ${{ github.sha }}
+        # GITHUB_SHA: ${{ github.sha }}
 
-    # - name: Code Review GPT
-    #   uses: mattzcarey/code-review-gpt
-    #   with:
-    #       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-    #       MODEL: 'gpt-3.5-turbo'
-    #       GITHUB_TOKEN: ${{ github.token }}
           
