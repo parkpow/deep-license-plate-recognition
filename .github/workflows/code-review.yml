@@ -5,7 +5,7 @@ name: Code Review GPT
 #       branches: [master]
   
 on: 
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, review_requested, ready_for_review]
 
 
