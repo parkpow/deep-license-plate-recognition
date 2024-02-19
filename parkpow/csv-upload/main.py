@@ -251,7 +251,6 @@ def select_camera_id(ts_datetime, camera_webhooks, path):
 
         if STREAM_DIR / csv_path == path:
             return key
-    raise Exception(f"Unable to select a camera ID from: {path}")
 
 
 def slice_image(data, n=20):
@@ -406,6 +405,17 @@ def main(args):
                     selected_camera_id = select_camera_id(
                         ts_datetime, camera_webhooks, path
                     )
+
+                    if selected_camera_id is None:
+                        error_nsg = (
+                            f"Error: Unable to select a Camera ID from: {path} \n The CSV file is from a "
+                            f"camera that no longer exists in config or has no ParkPow webhook. Please add or "
+                            f"update the camera ID in the config with a ParkPow webhook and csv-file format "
+                            f"and try again. "
+                        )
+                        lgr.error(error_nsg)
+                        exit(1)
+
                     selected_camera = camera_webhooks[selected_camera_id]
 
                 lgr.debug(f"selected_camera: {selected_camera}")
