@@ -28,4 +28,4 @@ jobs:
       run: |
         export GITHUB_SHA=${{ github.event.pull_request.head.sha }}
         export BASE_SHA=${{ github.event.pull_request.base.sha }}
-        npx code-review-gpt review --ci=github --debug --model=gpt-4
+        npx code-review-gpt2 review --ci=github --debug --model=gpt-4-1106-preview
