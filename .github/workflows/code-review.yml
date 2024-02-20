@@ -1,0 +1,31 @@
+name: Code Review GPT
+
+on:
+  pull_request:
+    types: [opened, reopened, review_requested, ready_for_review, synchronize]
+    branches: [master]
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{github.event.pull_request.head.ref}}
+        fetch-depth: 0
+
+    - name: check diff
+      shell: bash
+      run: git diff --name-only --diff-filter=AMRT ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+
+    - name: Run Code Review GPT
+      shell: bash
+      run: |
+        export GITHUB_SHA=${{ github.event.pull_request.head.sha }}
+        export BASE_SHA=${{ github.event.pull_request.base.sha }}
+        npx code-review-gpt review --ci=github --debug --model=gpt-4
