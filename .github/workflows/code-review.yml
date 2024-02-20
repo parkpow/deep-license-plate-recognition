@@ -19,10 +19,6 @@ jobs:
         ref: ${{github.event.pull_request.head.ref}}
         fetch-depth: 0
 
-    - name: check diff
-      shell: bash
-      run: git diff --name-only --diff-filter=AMRT ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
-
     - name: Run Code Review GPT
       shell: bash
       run: |
