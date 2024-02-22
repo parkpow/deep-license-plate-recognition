@@ -41,7 +41,6 @@ class SalientCompleteView(Destination):
                     ]
                 },
                 auth=HTTPBasicAuth(self.username, self.password),
-                verify=False,
             )
             res.raise_for_status()
         except requests.exceptions.HTTPError as errh:
