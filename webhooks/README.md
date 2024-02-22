@@ -15,7 +15,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [Start Stream](#start-stream)
   - [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
     - [Required Parameters](#required-parameters)
-    - [Command Excecution Format](#command-excecution-format)
+    - [Command Execution Format](#command-execution-format)
     - [Stream Webhook Configuration](#stream-webhook-configuration)
     - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
   - [Forward Stream Webhook Events to Synology API](#forward-stream-webhook-events-to-synology-api)
@@ -140,7 +140,7 @@ After modifying the config.ini, restart the Stream container.
 - `--user` (service authentication user name)
 - `--service-key` (service authentication user key)
 
-### Command Excecution Format
+### Command Execution Format
 
 ```
 python3 /path/to/script/middleware_webhook_soap.py \
@@ -179,7 +179,7 @@ timezone = UTC
       image_type = vehicle, plate
       request_timeout = 30
   ```
-  
+
 ## Forward Stream Webhook Events to Synology API
 
 [This example](Synology/) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
@@ -196,10 +196,10 @@ docker run --rm -t \
     -p 8002:8002 \
     -e REST_SERVICE_URL=[SVS_webhook_URL]?token=[API_TOKEN] \
     platerecognizer/stream-svs-notifier
-    
-    
+
+
 # Example
-docker run --rm -t \ 
+docker run --rm -t \
     -p 8002:8002 \
     -e REST_SERVICE_URL=http://220.123.123.123:31000/webapi/SurveillanceStation/Webhook/Incoming/v1?token=aaa \
     platerecognizer/stream-svs-notifier
@@ -216,7 +216,7 @@ docker run --rm -t \
 [This webhook middleware example](webhooks/webhook_crop_plate_and_forward) receives a webhook request from [Snapshot SDK](https://guides.platerecognizer.com/docs/snapshot/api-reference#example-of-post-payload) and [Stream](https://guides.platerecognizer.com/docs/stream/results#receiving-webhook-data), uses the original or vehicle image incoming in the request, and crops the plate based on `box` object that contains the bounding box coordinates in such incoming images.
 
 Note that Stream has a built-in solution to send license plate image, it must be configured, see: https://guides.platerecognizer.com/docs/stream/configuration#image_type
-  
+
 ### Using Snapshot? Register this middleware url as a Webhook receiver in PaterRecognizer platform
 
 Follow the steps shown [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to register this middleware URL.
@@ -232,13 +232,13 @@ Format:
 
 `python3 webhook_crop_image_middleware.py --webhook-url https://your-webhook-url.com/endpoint`
 
-Example: 
+Example:
 
 `python3 webhook_crop_image_middleware.py --webhook-url https://your-webhook-url.com/endpoint](https://webhook.site/f510622a-07e9-4d9f-bc0c-4a57c4196039`
 
-## Stream to Nx Witness, Wisenet Wave or DW Spectrum 
+## Stream to Nx Witness, Wisenet Wave or DW Spectrum
 
-[This project](Webhook_nx/README.md) uses Stream webhooks to send license plate data to your NX-based VMS. 
+[This project](Webhook_nx/README.md) uses Stream webhooks to send license plate data to your NX-based VMS.
 You can also use the `mail.py` file as a foundation for integrating other information into the VMS Bookmark, such as GPS data.
 
 ## Webhook via AWS Lambda
