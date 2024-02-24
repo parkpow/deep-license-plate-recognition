@@ -2,7 +2,7 @@
 
 import io
 import argparse
-import collections
+import sys
 import csv
 import json
 import math
@@ -13,6 +13,11 @@ from pathlib import Path
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
+
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    from collections.abc import MutableMapping
+else:
+    from collections import MutableMapping
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -122,7 +127,7 @@ def flatten_dict(d, parent_key="", sep="_"):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.MutableMapping):
+        if isinstance(v, MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:
             if isinstance(v, list):
@@ -137,12 +142,12 @@ def flatten(result):
     del result["results"]
     if "usage" in result:
         del result["usage"]
-    if not plates:
-        return result
+    flattened_data = []  # Accumulate flattened data for each plate
     for plate in plates:
         data = result.copy()
         data.update(flatten_dict(plate))
-    return data
+        flattened_data.append(data)
+    return flattened_data
 
 
 def save_cropped(api_res, path, args):
@@ -179,14 +184,17 @@ def save_results(results, args):
     elif args.format == "csv":
         fieldnames = []
         for result in results[:10]:
-            candidate = flatten(result.copy()).keys()
-            if len(fieldnames) < len(candidate):
-                fieldnames = candidate
+            candidates = flatten(result.copy())
+            for candidate in candidates:
+                if len(fieldnames) < len(candidate):
+                    fieldnames = candidate.keys()
         with open(path, "w") as fp:
             writer = csv.DictWriter(fp, fieldnames=fieldnames)
             writer.writeheader()
             for result in results:
-                writer.writerow(flatten(result))
+                flattened_results = flatten(result)  # Get flattened data for each plate
+                for flattened_result in flattened_results:
+                    writer.writerow(flattened_result)
 
 
 def custom_args(parser):
