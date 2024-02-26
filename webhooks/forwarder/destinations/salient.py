@@ -49,7 +49,7 @@ class SalientCompleteView(Destination):
         except requests.exceptions.Timeout as errt:
             lgr.error("Timeout Error:", errt)
         except requests.exceptions.RequestException as err:
-            lgr.error("OOps: Something Else", err)
+            lgr.error("Oops: Something Else", err)
 
     @staticmethod
     def add_cli_arguments(sub_parsers):
