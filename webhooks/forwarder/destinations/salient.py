@@ -36,7 +36,6 @@ class SalientCompleteView(Destination):
                             "eventDescription": f"Plate Detection [{description}]",
                             "user": f"Platerecognizer({source})",
                             "deviceGuid": self.camera,
-                            # "streamId": 0
                         }
                     ]
                 },
