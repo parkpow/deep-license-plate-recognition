@@ -244,3 +244,6 @@ You can also use the `mail.py` file as a foundation for integrating other inform
 ## Webhook via AWS Lambda
 [This guide](webhook_lambda/) aims to provide you with a minimum sample to receive webhook data from Snapshot/Stream on your AWS Lambda instance.
 
+## Webhook Salient CompleteView
+[This project](webhook_salient/README.md) uses Stream webhooks to send license plate data to your CompleteView VMS.
+
