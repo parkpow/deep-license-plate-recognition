@@ -1,4 +1,5 @@
 import argparse
+import base64
 import logging
 import os
 import sys
@@ -110,20 +111,18 @@ def process(args, path: Path, output: Path, logo=None):
         if response.status_code < 200 or response.status_code > 300:
             logging.error(response.text)
             raise Exception(f"Error performing blur: {response.text}")
-        response_content_type = response.headers["Content-Type"]
-        lgr.debug(f"response_content_type: {response_content_type}")
-        if response_content_type == "application/json":
-            # Print the JSON response.
-            lgr.info(response.json())
-        elif response_content_type.startswith("image/"):
-            # Save the image file.
-            with open(output, "wb") as f:
-                f.write(response.content)
-        else:
-            # Print the raw response.
+
+        blur_data = response.json()["blur"]
+        if blur_data is None:
             raise Exception(
-                f"Unexpected Response Content Type: {response_content_type}"
+                "Error - ensure blurring on server is enabled - "
+                "https://guides.platerecognizer.com/docs/blur/api-reference#post-parameters"
             )
+        else:
+            base64_encoded_data = blur_data["base64"]
+            decoded_bytes = base64.b64decode(base64_encoded_data)
+            with open(output, "wb") as f:
+                f.write(decoded_bytes)
 
 
 def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
