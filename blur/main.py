@@ -112,7 +112,7 @@ def process(args, path: Path, output: Path, logo=None):
             logging.error(response.text)
             raise Exception(f"Error performing blur: {response.text}")
 
-        blur_data = response.json()["blur"]
+        blur_data = response.json().get("blur")
         if blur_data is None:
             raise Exception(
                 "Error - ensure blurring on server is enabled - "
