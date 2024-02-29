@@ -46,7 +46,6 @@ def notify_salient(
                         "eventDescription": f"Plate Detection [{description}]",
                         "user": f"Platerecognizer({source})",
                         "deviceGuid": camera_uid,
-                        # "streamId": 0
                     }
                 ]
             },
