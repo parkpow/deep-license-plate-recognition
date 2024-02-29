@@ -28,7 +28,7 @@ Forward Stream Webhook Events to [Salient CompleteView](https://www.salientsys.c
        platerecognizer/stream-salient-notifier \
        --username=admin \
        --password=39393jdhhdiisu2 \
-       --vms='http://192.168.100.6:4502' \
+       --vms_api_url='http://192.168.100.6:4502' \
        --camera="9ee7046b-0ab3-49cd-908f-eb293fdc1e3f"
 
     ```
