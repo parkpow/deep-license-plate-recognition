@@ -16,4 +16,4 @@ RUN pip install -r requirements.txt
 # Copy source code
 COPY . /app/
 
-ENTRYPOINT ["python3", "nx_on_premise.py"]
+ENTRYPOINT ["python3", "main.py"]

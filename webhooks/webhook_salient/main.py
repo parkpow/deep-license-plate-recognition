@@ -10,7 +10,7 @@ from json.decoder import JSONDecodeError
 
 import requests
 import urllib3
-from requests.auth import HTTPDigestAuth
+from requests.auth import HTTPBasicAuth
 
 urllib3.disable_warnings()
 
@@ -27,23 +27,29 @@ logging.basicConfig(
 lgr = logging.getLogger(__name__)
 
 
-def notify_nx(username, password, vms_api, camera_uid, source, description, timestamp):
+def notify_salient(
+    username, password, vms_api, camera_uid, source, description, timestamp
+):
     lgr.debug(
-        f"Notify NX Source: {source}, Description: {description}, timestamp: {timestamp}"
+        f"Notify CompleteView Source: {source}, Description: {description}, timestamp: {timestamp}"
     )
-    endpoint = "/api/createEvent"
+    endpoint = "/v2.0/events"
 
     try:
-        res = requests.get(
+        res = requests.post(
             vms_api + endpoint,
-            params={
-                "timestamp": timestamp,
-                "source": source,
-                "caption": "New Plate Detection",
-                "metadata": '{"cameraRefs":["' + camera_uid + '"]}',
-                "description": description,
+            json={
+                "events": [
+                    {
+                        "entityType": 1,
+                        "eventType": 58,
+                        "eventDescription": f"Plate Detection [{description}]",
+                        "user": f"Platerecognizer({source})",
+                        "deviceGuid": camera_uid,
+                    }
+                ]
             },
-            auth=HTTPDigestAuth(username, password),
+            auth=HTTPBasicAuth(username, password),
             verify=False,
         )
         res.raise_for_status()
@@ -54,7 +60,7 @@ def notify_nx(username, password, vms_api, camera_uid, source, description, time
     except requests.exceptions.Timeout as errt:
         lgr.error("Timeout Error:", errt)
     except requests.exceptions.RequestException as err:
-        lgr.error("OOps: Something Else", err)
+        lgr.error("Oops: Something Else", err)
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -107,7 +113,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             break
 
         if plate is not None:
-            notify_nx(
+            notify_salient(
                 self.username,
                 self.password,
                 self.vms,
@@ -122,19 +128,21 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Forward Stream Webhook Events to NX VMS as Alerts."
+        description="Forward Stream Webhook Events to CompleteView VMS as Events."
     )
-    parser.add_argument("--username", help="NX VMS Username.", required=True)
-    parser.add_argument("--password", help="NX VMS Password.", required=True)
-    parser.add_argument("--vms", help="VMS API Endpoint.", required=True)
+    parser.add_argument("--username", help="Salient VMS Username.", required=True)
+    parser.add_argument("--password", help="Salient VMS Password.", required=True)
     parser.add_argument(
-        "--camera", help="UID of Camera used as Source of Alerts.", required=True
+        "--vms_api_url", "-v", help="Salient VMS API Endpoint.", required=True
+    )
+    parser.add_argument(
+        "--camera", help="UID of Camera used as Source of Events.", required=True
     )
 
     args = parser.parse_args()
 
     handler = partial(
-        RequestHandler, args.username, args.password, args.vms, args.camera
+        RequestHandler, args.username, args.password, args.vms_api_url, args.camera
     )
     server = HTTPServer(("", 8001), handler)
     lgr.info("Starting Webhook Receiver Server, use <Ctrl-C> to stop")
