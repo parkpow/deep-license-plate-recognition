@@ -17,7 +17,7 @@ Forward Stream Webhook Events to [Salient CompleteView](https://www.salientsys.c
        platerecognizer/stream-salient-notifier \
        --username=user \  # Recording server username
        --password=pass \  # Recording server password
-       --vms='http://localhost:4502' \  # Recording server API Endpoint
+       --vms_api_url='http://localhost:4502' \  # Recording server API Endpoint
        --camera="9ee7046b-0ab3-49cd-908f-eb293fdc1e3f" # GUID for camera to used as source of events
 
 
