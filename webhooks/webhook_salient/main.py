@@ -132,7 +132,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--username", help="Salient VMS Username.", required=True)
     parser.add_argument("--password", help="Salient VMS Password.", required=True)
-    parser.add_argument("--vms_api_url", "-v" help="Salient VMS API Endpoint.", required=True)
+    parser.add_argument(
+        "--vms_api_url", "-v", help="Salient VMS API Endpoint.", required=True
+    )
     parser.add_argument(
         "--camera", help="UID of Camera used as Source of Events.", required=True
     )
@@ -140,7 +142,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     handler = partial(
-        RequestHandler, args.username, args.password, args.vms, args.camera
+        RequestHandler, args.username, args.password, args.vms_api_url, args.camera
     )
     server = HTTPServer(("", 8001), handler)
     lgr.info("Starting Webhook Receiver Server, use <Ctrl-C> to stop")
