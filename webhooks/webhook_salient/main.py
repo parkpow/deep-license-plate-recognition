@@ -130,9 +130,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Forward Stream Webhook Events to CompleteView VMS as Events."
     )
-    parser.add_argument("--username", help="Recording Server Username.", required=True)
-    parser.add_argument("--password", help="Recording Server Password.", required=True)
-    parser.add_argument("--vms", help="Recording Server API Endpoint.", required=True)
+    parser.add_argument("--username", help="Salient VMS Username.", required=True)
+    parser.add_argument("--password", help="Salient VMS Password.", required=True)
+    parser.add_argument("--vms_api_url", "-v" help="Salient VMS API Endpoint.", required=True)
     parser.add_argument(
         "--camera", help="UID of Camera used as Source of Events.", required=True
     )
