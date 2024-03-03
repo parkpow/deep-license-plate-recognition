@@ -5,7 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
-
+import imghdr
 import requests
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
@@ -111,7 +111,11 @@ def process(args, path: Path, output: Path, logo=None):
         lgr.debug(f"Response: {response}")
         if response.status_code < 200 or response.status_code > 300:
             logging.error(response.text)
-            raise Exception(f"Error performing blur: {response.text}")
+            if response.status_code == 400:
+                msg = response.json().get("error")
+            else:
+                msg = response.text
+            raise Exception(f"Error performing blur: {msg}")
 
         blur_data = response.json().get("blur")
         if blur_data is None:
@@ -140,6 +144,11 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
     for path in input_dir.glob("**/*"):
         if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
+            # Skip files that are not images
+            if imghdr.what(path) is None:
+                lgr.debug(f'Skipped not an image: {path}')
+                continue
+
             output_path = get_output_path(output_dir, path, rename_file)
             if resume and output_path.is_file():
                 continue
