@@ -92,7 +92,8 @@ def process(args, path: Path, output: Path, logo=None):
             "overlap": args.overlap,
             "faces": args.faces,
             "plates": args.plates,
-            "copy_exif": args.copy_exif
+            "copy_exif": args.copy_exif,
+            "copy_xmp": args.copy_xmp,
         }
         if args.api_key:
             headers = {
@@ -235,6 +236,12 @@ def main():
         "--copy-exif",
         action="store_true",
         help="Copy original Exif info into blurred images.",
+        default=False,
+    )
+    parser.add_argument(
+        "--copy-xmp",
+        action="store_true",
+        help="Copy original XMP info into blurred images.",
         default=False,
     )
     args = parser.parse_args()
