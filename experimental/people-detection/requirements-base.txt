@@ -1,3 +1,0 @@
-requests==2.31.0
-opencv-python>=4.1.2
-numpy>=1.18.5
