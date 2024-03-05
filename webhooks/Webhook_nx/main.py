@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
 
     if server_host is None or args.password is None or args.login is None:
-        logging.error("Variables server_host, password and usarname are required.")
+        logging.error("Variables server_host, password and login are required.")
         sys.exit(1)
 
     if args.debug:
