@@ -159,9 +159,8 @@ if __name__ == "__main__":
     args.tag = os.getenv("TAG", args.tag)
     args.parkpow_token = os.getenv("PARKPOW_TOKEN", args.parkpow_token)
 
-
     if server_host is None or args.password is None or args.login is None:
-        logging.error("Variables server_host, password and login are required.")
+        logging.error("Missing required configuration: server_host, password, and login must be set.")
         sys.exit(1)
 
     if args.debug:
