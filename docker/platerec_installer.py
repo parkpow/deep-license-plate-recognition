@@ -493,9 +493,7 @@ def get_success_card(product):
                 className="card-title mt-3 mb-0",
                 style={"display": "inline-block"},
             ),
-            html.Code(
-                ' curl -F "upload=@my_file.jpg" http://localhost:8080/v1/plate-reader/'
-            ),
+            html.Code(id="curl-snapshot"),
         ]
     return dbc.CardBody(
         [
@@ -1124,6 +1122,7 @@ def submit_stream(
         Output("p-status-snapshot", "children"),
         Output("card-snapshot", "style"),
         Output("command-snapshot", "children"),
+        Output("curl-snapshot", "children"),
         Output("loading-submit-snapshot", "children"),
     ],
     [
@@ -1144,7 +1143,7 @@ def submit_snapshot(n_clicks, token, key, boot, port, hardware):
         if is_valid:
             autoboot = "--restart unless-stopped" if boot else "--rm"
             if not helpers.is_valid_port(port):
-                return "Wrong port", NONE, "", None
+                return "Wrong port", NONE, "", None, None
             if not helpers.get_image(hardware):
                 helpers.pull_docker(hardware)
             gpus = "--gpus all" if "gpu" in hardware else ""
@@ -1157,11 +1156,12 @@ def submit_snapshot(n_clicks, token, key, boot, port, hardware):
                 f"-e TOKEN={token} "
                 f"{hardware}"
             )
-            return "", DISPLAY_CARD, command, None
+            curl = f' curl -F "upload=@my_file.jpg" http://localhost:{port}/v1/plate-reader/'
+            return "", DISPLAY_CARD, command, curl, None
         else:
-            return error, NONE, "", None
+            return error, NONE, "", None, None
     else:
-        return "", NONE, "", None
+        return "", NONE, "", None, None
 
 
 @app.callback(
