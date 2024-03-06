@@ -30,7 +30,7 @@ def convert_to_timestamp_milliseconds(time_string):
 def session_create(args):
     url = f"{server_host}/rest/v2/login/sessions"
     payload = {
-        "username": args.username,
+        "username": args.login,
         "password": args.password,
         "setCookie": True
     }
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000, help="The port number to bind the server to. (Optional - Default = 5000)")
     parser.add_argument("--debug", action="store_true", help="Turn on Flask debug mode. (Optional)")
     parser.add_argument("--server_host", type=str, help="Server host")
-    parser.add_argument("--username", type=str, help="username")
+    parser.add_argument("--login", type=str, help="login (user name)")
     parser.add_argument("--password", type=str, help="password")
     parser.add_argument("--ssl", type=bool, default=False, help="Enable ssl verification (boolean)")
     parser.add_argument("--parkpow_token", type=str, help="Token Parkpow")
@@ -152,16 +152,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     server_host = os.getenv("SERVER_HOST", args.server_host)
-    args.username = os.getenv("USERNAME", args.username)
+    args.login = os.getenv("LOGIN", args.login)
     args.password = os.getenv("PASSWORD", args.password)
     args.ssl = os.getenv("SSL", args.ssl)
     args.debug = os.getenv("DEBUG", args.debug)
     args.tag = os.getenv("TAG", args.tag)
     args.parkpow_token = os.getenv("PARKPOW_TOKEN", args.parkpow_token)
 
-
-    if server_host is None or args.password is None or args.username is None:
-        logging.error("Variables server_host, password and usarname are required.")
+    if server_host is None or args.password is None or args.login is None:
+        logging.error("Missing required configuration: server_host, password, and login must be set.")
         sys.exit(1)
 
     if args.debug:

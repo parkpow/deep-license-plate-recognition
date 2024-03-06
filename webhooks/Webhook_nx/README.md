@@ -30,7 +30,7 @@ Start the server
 python3 main.py <parameter>
 
 example:
-python3 main.py --server_host "https://192.168.5.10:7001" --port 5001 --username admin --password admin123
+python3 main.py --server_host "https://192.168.5.10:7001" --port 5001 --login admin --password admin123
 
 ```
 
@@ -42,7 +42,7 @@ Optional parameters:
 
 Required parameters:
 
-- --username
+- --login
 - --password
 
 For external access
@@ -92,7 +92,7 @@ To run the script in a docker container, use the procedure below:
    ```bash
     example:
 
-    docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 platerecognizer/webhook-vms
+    docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e LOGIN=admin -e PASSWORD=admin123 platerecognizer/webhook-vms
     
    ```
 
@@ -112,6 +112,6 @@ Required parameters:
 ```bash
 example:
 
-docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e USERNAME=admin -e PASSWORD=admin123 -e TAG=Authorized -e PARKPOW_TOKEN=YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  platerecognizer/webhook-vms
+docker run --rm -t -p 5000:5000 --SERVER_HOST "https://192.168.5.10:7001" -e LOGIN=admin -e PASSWORD=admin123 -e TAG=Authorized -e PARKPOW_TOKEN=YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  platerecognizer/webhook-vms
 
 ```
