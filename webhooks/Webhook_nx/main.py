@@ -143,7 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000, help="The port number to bind the server to. (Optional - Default = 5000)")
     parser.add_argument("--debug", action="store_true", help="Turn on Flask debug mode. (Optional)")
     parser.add_argument("--server_host", type=str, help="Server host")
-    parser.add_argument("--login", type=str, help="login")
+    parser.add_argument("--login", type=str, help="login (user name)")
     parser.add_argument("--password", type=str, help="password")
     parser.add_argument("--ssl", type=bool, default=False, help="Enable ssl verification (boolean)")
     parser.add_argument("--parkpow_token", type=str, help="Token Parkpow")
