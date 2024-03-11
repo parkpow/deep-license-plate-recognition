@@ -1,11 +1,12 @@
 import argparse
 import base64
+import imghdr
 import logging
 import os
 import sys
 import time
 from pathlib import Path
-import imghdr
+
 import requests
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
@@ -92,8 +93,7 @@ def process(args, path: Path, output: Path, logo=None):
             "overlap": args.overlap,
             "faces": args.faces,
             "plates": args.plates,
-            "copy_exif": args.copy_exif,
-            "copy_xmp": args.copy_xmp,
+            "copy_metadata": args.copy_metadata,
         }
         if args.api_key:
             headers = {
@@ -147,7 +147,7 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
             lgr.info(f"Processing file: {path}")
             # Skip files that are not images
             if imghdr.what(path) is None:
-                lgr.debug(f'Skipped not an image: {path}')
+                lgr.debug(f"Skipped not an image: {path}")
                 continue
 
             output_path = get_output_path(output_dir, path, rename_file)
@@ -233,20 +233,16 @@ def main():
         default=False,
     )
     parser.add_argument(
-        "--copy-exif",
-        action="store_true",
-        help="Copy original Exif info into blurred images.",
-        default=False,
-    )
-    parser.add_argument(
-        "--copy-xmp",
+        "--copy-metadata",
         action="store_true",
         help="Copy original XMP info into blurred images.",
         default=False,
     )
     args = parser.parse_args()
     if not args.images.is_dir():
-        sys.exit(f"Images directory is missing or invalid. Ensure path exists: {args.images}")
+        sys.exit(
+            f"Images directory is missing or invalid. Ensure path exists: {args.images}"
+        )
 
     if args.output is not None:
         if args.output.is_dir():
