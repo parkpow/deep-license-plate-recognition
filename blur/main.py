@@ -21,6 +21,10 @@ logging.basicConfig(
 lgr = logging.getLogger("blur")
 
 
+class BlurError(Exception):
+    pass
+
+
 def merge_paths(path1: Path, path2: Path):
     """
     This is path computation, No filesystem access
@@ -116,11 +120,11 @@ def process(args, path: Path, output: Path, logo=None):
                 msg = response.json().get("error")
             else:
                 msg = response.text
-            raise Exception(f"Error performing blur: {msg}")
+            raise BlurError(f"Error performing blur: {msg}")
 
         blur_data = response.json().get("blur")
         if blur_data is None:
-            raise Exception(
+            raise BlurError(
                 "Error - ensure blurring on server is enabled - "
                 "https://guides.platerecognizer.com/docs/blur/api-reference#post-parameters"
             )
@@ -235,12 +239,12 @@ def main():
     parser.add_argument(
         "--copy-metadata",
         action="store_true",
-        help="Copy original XMP info into blurred images.",
+        help="Copy original image metadata(EXIF and XMP) into blurred images.",
         default=False,
     )
     args = parser.parse_args()
     if not args.images.is_dir():
-        sys.exit(
+        raise BlurError(
             f"Images directory is missing or invalid. Ensure path exists: {args.images}"
         )
 
@@ -253,7 +257,7 @@ def main():
                 )
             rename_file = False
         else:
-            sys.exit(
+            raise BlurError(
                 f"Output directory is missing or invalid. Ensure path exists: {args.output}"
             )
     else:
@@ -268,4 +272,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BlurError as e:
+        lgr.error(str(e))
