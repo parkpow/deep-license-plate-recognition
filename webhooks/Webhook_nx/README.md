@@ -1,4 +1,4 @@
-# Connect Stream to you VMS (based on NX Witness)
+# Connect Stream to your VMS (based on NX Witness)
 
 With our integration, you can send **Stream** detection events to your VMS server via a webhook. This way, bookmarks with detection information are saved on the timeline. Later, you can search for the detections and locate the timeline where the detection occurred, view, or download the detection video.
 
