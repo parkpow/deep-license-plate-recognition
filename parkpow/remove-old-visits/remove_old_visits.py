@@ -2,10 +2,9 @@
 import asyncio
 import http.client
 import argparse
-import requests
 import datetime
 import json
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urlparse, parse_qs
 
 async def api_request(http_function, end_point, api_key, params=None, payload={}):
     """_summary_
@@ -75,18 +74,23 @@ async def list_visits(api_key, max_age, hostname, page=None):
     response_and_connection = await api_request(
         http_function="GET", end_point=end_point, api_key=api_key, params=params
     )
-
-    if response_and_connection["response"].status == 200:
-        response_data = await asyncio.get_event_loop().run_in_executor(
-            None, response_and_connection["response"].read
-        )
-        data = json.loads(response_data.decode())
-        response_and_connection["connection"].close()
-        return data
-    else:
-        raise Exception(
-            f"Check parameters and try again.\x0aReason: {response_and_connection['response'].reason}"
-        )
+    try:
+        if 200 <= response_and_connection['response'].status < 300:
+            response_data = await asyncio.get_event_loop().run_in_executor(
+                None, response_and_connection['response'].read
+            )
+            data = json.loads(response_data.decode())
+            response_and_connection['connection'].close()
+            return data
+        else:
+            raise Exception(
+                f"Check parameters and try again.\x0aReason: {response_and_connection['response'].reason}"
+            )
+    except Exception as e:
+        print('Error:', e)
+        raise
+    finally:
+        response_and_connection['connection'].close()
 
 
 async def remove_visit(hostname, api_key, visit_id):
@@ -110,13 +114,18 @@ async def remove_visit(hostname, api_key, visit_id):
     response_and_connection = await api_request(
         http_function="POST", end_point=end_point, api_key=api_key, payload=payload
     )
-
-    if response_and_connection["response"].status == 200:
-        print(f"Visit {visit_id} successfully removed!")
-    else:
-        raise Exception(
-            f"Error on deleting visit.\x0aReason: {response_and_connection['response'].reason}"
-        )
+    try:
+        if 200 <= response_and_connection['response'].status < 300:
+            print(f"Visit {visit_id} successfully removed!")
+        else:
+            raise Exception(
+                f"Error on deleting visit.\x0aReason: {response_and_connection['response'].reason}"
+            )
+    except Exception as e:
+        print('Error:', e)
+        raise
+    finally:
+        response_and_connection['connection'].close()
 
     response_data = await asyncio.get_event_loop().run_in_executor(
         None, response_and_connection["response"].read
