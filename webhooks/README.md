@@ -180,6 +180,10 @@ timezone = UTC
       request_timeout = 30
   ```
 
+### Snapshot Webhook Configuration
+
+Follow the instructions [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to configure the webhook middleware URL as the target in Plate Recognizer [webhooks settings](https://app.platerecognizer.com/webhooks/cloud/) (e.g.: `http://192.168.0.180:8002`).
+
 ## Forward Stream Webhook Events to Synology API
 
 [This example](Synology/) is based on a Dockerized middleware webhook forwarder to Synology Surveillance Station API. Make sure to clone the entire folder.
