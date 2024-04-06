@@ -39,71 +39,47 @@ class WebhookQueue:
     def enqueue(self, message):
         self.queue.put(message)
 
-    def log_vehicle(self, image, license_plate_number, confidence):
+    def log_vehicle(self, image, license_plate_number, confidence, camera, time):
         try:
             res = requests.post(
                 "https://app.parkpow.com/api/v1/log-vehicle/",
-                headers={
-                    "Authorization": "Token 8003dfa697f08f07d108c10de6f7cf17d86707a5"
-                },
+                headers={"Authorization": f"Token {self.token}"},
                 json={
-                    "camera": "entrance_1",
-                    # "image": None,
+                    "camera": camera,
+                    "image": image,
                     "results": [
                         {
                             "plate": {
                                 "box": {
-                                    "xmin": 231,
-                                    "ymin": 238,
-                                    "ymax": 266,
-                                    "xmax": 305,
+                                    "xmin": None,
+                                    "ymin": None,
+                                    "ymax": None,
+                                    "xmax": None,
                                 },
-                                "score": 0.592,
-                                "type": "Plate",
-                                "props": {
-                                    "plate": [
-                                        {"value": "smm1439", "score": 0.905},
-                                        {"value": "smh1439", "score": 0.743},
-                                    ],
-                                    "region": [{"value": "bg", "score": 0.795}],
-                                },
+                                "score": confidence,
+                                "type": license_plate_number,
+                                "props": None,
                             },
-                            "direction": 180,
-                            "position_sec": 34.94,
+                            "direction": None,
+                            "position_sec": None,
                             "vehicle": {
                                 "box": {
-                                    "xmin": 231,
-                                    "ymin": 131,
-                                    "ymax": 523,
-                                    "xmax": 1070,
+                                    "xmin": None,
+                                    "ymin": None,
+                                    "ymax": None,
+                                    "xmax": None,
                                 },
-                                "score": 0.834,
+                                "score": 0.0,
                                 "type": "Sedan",
                                 "props": {
-                                    "color": [
-                                        {"score": 0.877, "value": "silver"},
-                                        {"score": 0.019, "value": "black"},
-                                        {"score": 0.016, "value": "green"},
-                                    ],
-                                    "orientation": [
-                                        {"score": 0.937, "value": "Front"},
-                                        {"score": 0.032, "value": "Rear"},
-                                        {"score": 0.031, "value": "Unknown"},
-                                    ],
-                                    "make_model": [
-                                        {
-                                            "make": "BMW",
-                                            "score": 0.55,
-                                            "model": "5 Series",
-                                        },
-                                        {"make": "BMW", "score": 0.153, "model": "E83"},
-                                        {"make": "BMW", "score": 0.029, "model": "X5"},
-                                    ],
+                                    "color": None,
+                                    "orientation": None,
+                                    "make_model": None,
                                 },
                             },
                         }
                     ],
-                    "time": "2020-08-21T17:32",
+                    "time": time,
                 },
             )
             lgr.debug(f"res: {res}")
