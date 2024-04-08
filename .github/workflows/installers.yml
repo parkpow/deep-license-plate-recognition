@@ -2,9 +2,9 @@ name: Build Installers
 
 on:
   push:
-    # Run Action only when /docker is pushed to
+    # Run Action only when /docker/platerec_installer is pushed to
     paths:
-      - 'docker/**'
+      - 'docker/platerec_installer/**'
   workflow_dispatch:
 
 jobs:
@@ -14,11 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build Installer
-      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
+      run: docker run -v $GITHUB_WORKSPACE/docker/platerec_installer:/src/ danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v4
       with:
         name: Windows-Installer-unsigned
-        path: docker/dist
+        path: docker/platerec_installer/dist
 
   linux-installer:
     name: Linux
@@ -26,11 +26,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build Installer
-      run: docker run -v $GITHUB_WORKSPACE/docker:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
+      run: docker run -v $GITHUB_WORKSPACE/docker/platerec_installer:/src/ cdrx/pyinstaller-linux "pyinstaller platerec_installer.spec -F"
     - uses: actions/upload-artifact@v4
       with:
         name: PlateRecognizer-Installer-Linux
-        path: docker/dist/PlateRecognizer-Installer
+        path: docker/platerec_installer/dist/PlateRecognizer-Installer
 
   test-windows-installer:
     runs-on: windows-latest
@@ -49,29 +49,6 @@ jobs:
           netstat -o -n -a | findstr 8050
           curl -X GET "http://localhost:8050"
 
-  # sign-installer:
-  #   name: Sign
-  #   runs-on: windows-latest
-  #   needs: windows-installer
-  #   steps:
-  #     - uses: actions/download-artifact@v2
-  #       with:
-  #         name: Windows-Installer-unsigned
-  #         path: dist
-
-  #     - uses: DanaBear/code-sign-action@98c79121b376beab8d6a9484f445089db4461bca
-  #       with:
-  #         certificate: '${{ secrets.CERTIFICATE }}'
-  #         password: '${{ secrets.PASSWORD }}'
-  #         certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
-  #         timestampUrl: '${{ secrets.TIMESTAMP_URL }}'
-  #         folder: dist
-  #         recursive: true
-  #     - uses: actions/upload-artifact@v2
-  #       with:
-  #         name: PlateRecognizer-Installer-Windows
-  #         path: dist
-
   mac-installer:
     runs-on: macos-latest
     name: MacOS
@@ -82,12 +59,12 @@ jobs:
         python-version: 3.7.12
     - name: Build Installer
       run: |
-        cd docker
+        cd docker/platerec_installer
         pip install -r requirements.txt pyinstaller==4.9
         pyinstaller platerec_installer.spec -F
         chmod -R +x dist
     - uses: actions/upload-artifact@v4
       with:
         name: PlateRecognizer-Installer-MacOS
-        path: docker/dist/*
+        path: docker/platerec_installer/dist/*
 
