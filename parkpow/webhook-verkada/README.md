@@ -19,9 +19,9 @@ Forward Verkada Webhook Events to ParkPow
        --token=pass \
        --pp-url='http://localhost:8000'
     ```
-    api-key: Verkada API Key
-    token: ParkPow token
-    pp-url: ParkPow URL, Optional for ParkPow cloud.
+    **api-key**: Verkada API Key
+    **token**: ParkPow token
+    **pp-url**: ParkPow URL, Optional for ParkPow cloud.
 
 3. Add internet accessible URL to the container to your Verkada Webhooks settings](https://command.verkada.com/admin/org-settings/verkada-api)
 
