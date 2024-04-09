@@ -13,31 +13,16 @@ Forward Verkada Webhook Events to ParkPow
 
     docker run --rm -t \
        --net=host \
-       -e LOGGING=DEBUG \  # Turn on debug logging
-       platerecognizer/stream-salient-notifier \
-       --username=user \  # Recording server username
-       --password=pass \  # Recording server password
-       --vms_api_url='http://localhost:4502' \  # Recording server API Endpoint
-       --camera="9ee7046b-0ab3-49cd-908f-eb293fdc1e3f" # GUID for camera to used as source of events
-
-
-    # Example
-    docker run --rm -t \
-       --net=host \
        -e LOGGING=DEBUG \
-       platerecognizer/stream-salient-notifier \
-       --username=admin \
-       --password=39393jdhhdiisu2 \
-       --vms_api_url='http://192.168.100.6:4502' \
-       --camera="9ee7046b-0ab3-49cd-908f-eb293fdc1e3f"
-
+       platerecognizer/verkada-parkpow \
+       --api-key=user \
+       --token=pass \
+       --pp-url='http://localhost:8000'
     ```
+    api-key: Verkada API Key
+    token: ParkPow token
+    pp-url: ParkPow URL, Optional for ParkPow cloud.
 
-3. Configure Stream Webhook Targets:
-    ```text
+3. Add internet accessible URL to the container to your Verkada Webhooks settings](https://command.verkada.com/admin/org-settings/verkada-api)
 
-        webhook_targets = http://localhost:8001
 
-    ```
-    > Restart Stream after config changes,
-    You might need to run Stream with `--net=host` too for the Webhook target to be reachable
