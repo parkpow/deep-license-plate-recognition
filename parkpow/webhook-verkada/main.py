@@ -15,7 +15,6 @@ from queue import Queue
 
 import requests
 import urllib3
-from requests.exceptions import JSONDecodeError
 
 urllib3.disable_warnings()
 
@@ -32,55 +31,55 @@ lgr = logging.getLogger(__name__)
 
 
 class VerkadaApi:
-    HIGH_RES_IMAGE = "hi-res"
-    LOW_RES_IMAGE = "low-res"
-
     def __init__(
         self,
         api_key,
     ):
         self.api_key = api_key
 
-    def get_thumbnail_image(self, camera_id, timestamp, resolution=HIGH_RES_IMAGE):
+    @staticmethod
+    def download_image(url):
         """
-        Download thumbnails from cameras, thumbnail's associated timestamp will be as close
-        as possible to the user-specified timestamp but may differ by up to 10 seconds
-        (when no motion has been detected).
-        Falls back to low res image if now high res
-        :param camera_id: The unique identifier of the camera.
-        :param timestamp: The approximate timestamp of the requested thumbnail.
-                Formatted as a Unix timestamp in seconds.
-                Defaults to the current time.
-        :param resolution: `low-res` or `hi-res`
-        :return: returns the base64 encoded data of a JPEG image
+        Download Plate Image from URL
         """
-        url = "https://api.verkada.com/cameras/v1/footage/thumbnails"
-        params = {
-            "camera_id": camera_id,
-            "resolution": resolution,
-            "timestamp": timestamp,
-        }
-
-        headers = {"x-api-key": self.api_key}
         try:
-            res = requests.get(url, headers=headers, params=params)
-            lgr.debug(f"get_thumbnail_image res: {res}")
+            res = requests.get(url)
             if res.status_code == 200:
                 return base64.b64encode(res.content).decode("utf-8")
             else:
-                try:
-                    error = res.json()
+                lgr.debug(f"download_image res: {res}")
+        except Exception as e:
+            lgr.error("error", exc_info=e)
+
+    def get_seen_license_plate_image(self, camera_id, timestamp, plate):
+        """
+        Returns the timestamps, detected license plate numbers, and images of all license plates seen by a camera.
+        :param camera_id:
+        :param timestamp:
+        :param plate:
+        :return:
+        """
+        params = {
+            "page_size": 5,
+            "camera_id": camera_id,
+            "license_plate": plate,
+            "start_time": timestamp - 1,
+            "end_time": timestamp + 1,
+        }
+        url = "https://api.verkada.com/cameras/v1/analytics/lpr/images"
+        headers = {"accept": "application/json", "x-api-key": self.api_key}
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                for detection in data["detections"]:
                     if (
-                        "message" in error
-                        and error["message"]
-                        == "No hi-res thumbnail found for camera at timestamp"
+                        detection["timestamp"] == timestamp
+                        and detection["license_plate"] == plate
                     ):
-                        return self.get_thumbnail_image(
-                            camera_id, timestamp, VerkadaApi.LOW_RES_IMAGE
-                        )
-                    lgr.error(f"{res.text}")
-                except JSONDecodeError:
-                    return None
+                        return VerkadaApi.download_image(detection["image_url"])
+            else:
+                lgr.error(f"{response.text}")
         except Exception as e:
             lgr.error("error", exc_info=e)
 
@@ -153,7 +152,9 @@ class WebhookQueue:
             confidence = data["confidence"]
             license_plate_number = data["license_plate_number"]
 
-            image = self.verkada.get_thumbnail_image(camera_id, created_at)
+            image = self.verkada.get_seen_license_plate_image(
+                camera_id, created_at, license_plate_number
+            )
             if image is not None:
                 self.parkpow.log_vehicle(
                     image, license_plate_number, confidence, camera_id, created_at
@@ -208,24 +209,19 @@ def server_worker(wq):
     server.serve_forever()
 
 
-def test(api_key, camera_id, timestamp, plate, confidence):
+def test(ns):
     """
     Test API calls without webhook server
-    :param api_key:
-    :param camera_id:
-    :param timestamp:
-    :param plate:
-    :param confidence:
+    :param ns:
     :return:
     """
-    v = VerkadaApi(api_key)
-    img = v.get_thumbnail_image(
-        camera_id,
-        timestamp,
-    )
+    camera_id, timestamp, plate, confidence = ns.test.split(",")
+    ts = int(timestamp)
+    v = VerkadaApi(ns.api_key)
+    img = v.get_seen_license_plate_image(camera_id, ts, plate)
     if img is not None:
-        pp = ParkPowApi(args.token, args.pp_url)
-        pp.log_vehicle(img, plate, confidence, camera_id, timestamp)
+        pp = ParkPowApi(ns.token, ns.pp_url)
+        pp.log_vehicle(img, plate, confidence, camera_id, ts)
 
 
 if __name__ == "__main__":
@@ -235,10 +231,18 @@ if __name__ == "__main__":
     parser.add_argument("--api-key", help="Verkada API Key.", required=True)
     parser.add_argument("--token", help="ParkPow Token.", required=True)
     parser.add_argument("--pp-url", help="ParkPow Server URL.", required=False)
+    parser.add_argument(
+        "--test",
+        help="Sample Comma separated Camera ID, Timestamp, Plate and Confidence.",
+        required=False,
+    )
 
     args = parser.parse_args()
-    webhook_queue = WebhookQueue(args.api_key, args.token, args.pp_url)
-    monitor = threading.Thread(target=webhook_queue.process, args=())
-    server_thread = threading.Thread(target=server_worker, args=(webhook_queue,))
-    monitor.start()
-    server_thread.start()
+    if args.test:
+        test(args)
+    else:
+        webhook_queue = WebhookQueue(args.api_key, args.token, args.pp_url)
+        monitor = threading.Thread(target=webhook_queue.process, args=())
+        server_thread = threading.Thread(target=server_worker, args=(webhook_queue,))
+        monitor.start()
+        server_thread.start()
