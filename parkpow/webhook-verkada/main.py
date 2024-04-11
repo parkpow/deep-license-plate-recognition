@@ -161,6 +161,10 @@ class WebhookQueue:
                 self.parkpow.log_vehicle(
                     image, license_plate_number, confidence, camera_id, created_at
                 )
+            else:
+                lgr.error(
+                    f"Skip webhook - [{license_plate_number}] at {created_at} - Missing image"
+                )
 
 
 class RequestHandler(BaseHTTPRequestHandler):
