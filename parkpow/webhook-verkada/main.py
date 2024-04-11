@@ -48,7 +48,7 @@ class VerkadaApi:
                 return base64.b64encode(res.content).decode("utf-8")
             else:
                 lgr.debug(f"download_image res: {res}")
-        except Exception as e:
+        except requests.RequestException as e:
             lgr.error("error", exc_info=e)
 
     def get_seen_license_plate_image(self, camera_id, timestamp, plate):
@@ -80,7 +80,7 @@ class VerkadaApi:
                         return VerkadaApi.download_image(detection["image_url"])
             else:
                 lgr.error(f"{response.text}")
-        except Exception as e:
+        except requests.RequestException as e:
             lgr.error("error", exc_info=e)
 
 
@@ -115,11 +115,13 @@ class ParkPowApi:
             "time": p_time,
         }
         try:
-            while True:
+            tries = 0
+            while tries < 5:
                 response = self.session.post(self.api_base + endpoint, json=data)
                 lgr.debug(f"response: {response}")
                 if response.status_code < 200 or response.status_code > 300:
                     if response.status_code == 429:
+                        tries += 1
                         time.sleep(1)
                     else:
                         lgr.error(response.text)
