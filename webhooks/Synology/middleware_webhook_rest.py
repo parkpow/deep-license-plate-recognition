@@ -6,8 +6,12 @@ from urllib.parse import parse_qs
 from urllib import parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import os
 import dateutil.parser as dp
+
+# Ignore InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class GetHandler(BaseHTTPRequestHandler):
     def forward_to_rest_service(self, json_data, image_base64):
@@ -38,7 +42,7 @@ class GetHandler(BaseHTTPRequestHandler):
         data = parse.urlencode(request_data)
 
         # Send the request
-        response = requests.post(url=url, headers=HEADERS, data=data)
+        response = requests.post(url=url, headers=HEADERS, data=data, verify=False)
 
         if response.status_code == 200:
             print("rest request successful.")
