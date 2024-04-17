@@ -34,36 +34,40 @@ class ParkPowApi {
       ],
       time: pTime,
     };
-    try {
-      let tries = 0;
-      const maxTries = 5;
-      while (tries < maxTries) {
-        const init = {
-          body: JSON.stringify(data),
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            Authorization: "Token " + this.token,
-          },
-        };
-        const response = await fetch(this.apiBase + endpoint, init);
+
+    let tries = 0;
+    const maxTries = 5;
+    const init = {
+      body: JSON.stringify(data),
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: "Token " + this.token,
+      },
+    };
+    while (tries < maxTries) {
+      var response;
+      try {
+        response = await fetch(this.apiBase + endpoint, init);
         console.debug("Response: " + response.status);
         if (response.ok) {
           console.info("Logged Vehicle");
-          return;
+          break;
         } else if (response.status === 429) {
           tries++;
           setTimeout(() => {}, 1000);
         } else {
-          throw new Error("Error logging vehicle");
+          console.error("Error logging vehicle");
         }
+      } catch (error) {
+        console.error("Error", error);
+        tries++;
+        setTimeout(() => {}, 1000);
+        continue;
       }
-    } catch (error) {
-      console.error("Error", error);
     }
   }
 }
-
 class VerkadaApi {
   constructor(apiKey) {
     this.apiKey = apiKey;
