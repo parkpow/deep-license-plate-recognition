@@ -1,3 +1,47 @@
+class Error429 extends Error {
+  constructor({ message, response }) {
+    super(message);
+    this.name = "429Error";
+    this.data = response;
+  }
+}
+
+class Error5xx extends Error {
+  constructor({ message, response }) {
+    super(message);
+    this.name = "5xxError";
+    this.data = response;
+  }
+}
+
+const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
+
+const fetchWithRetry = (url, init, tries = 2) =>
+  fetch(url, init)
+    .then((response) => {
+      if (response.ok) {
+        return response;
+      } else {
+        // 1. throw a new exception
+        if (response.status === 429)
+          throw new Error429("Rate Limited", response);
+        if (response.status >= 500 && response.status <= 599)
+          throw new Error5xx(`Server Error`, response);
+        // 2. reject instead of throw, peferred
+        return Promise.reject(response);
+      }
+    })
+    .catch((error) => {
+      console.error(`fetchWithRetry error: ${error}`);
+      if (error instanceof Error429 || error instanceof Error5xx || tries < 1) {
+        throw error;
+      } else {
+        //Retry network error or 5xx errors
+        const delay = 1000;
+        return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
+      }
+    });
+
 class ParkPowApi {
   constructor(token, sdkUrl = null) {
     if (token === null) {
@@ -21,7 +65,7 @@ class ParkPowApi {
     timestamp,
   ) {
     const endpoint = "log-vehicle/";
-    const pTime = new Date(timestamp).toISOString();
+    const pTime = new Date(timestamp * 1000).toISOString();
     const data = {
       camera: camera,
       image: encodedImage,
@@ -34,38 +78,16 @@ class ParkPowApi {
       ],
       time: pTime,
     };
-
-    let tries = 0;
-    const maxTries = 5;
-    const init = {
+    let init = {
       body: JSON.stringify(data),
       method: "POST",
       headers: {
-        "content-type": "application/json",
+        "Content-type": "application/json",
         Authorization: "Token " + this.token,
       },
     };
-    while (tries < maxTries) {
-      var response;
-      try {
-        response = await fetch(this.apiBase + endpoint, init);
-        console.debug("Response: " + response.status);
-        if (response.ok) {
-          console.info(`Logged Vehicle: ${licensePlateNumber}`);
-          break;
-        } else if (response.status === 429) {
-          tries++;
-          setTimeout(() => {}, 1000);
-        } else {
-          console.error("Error logging vehicle");
-        }
-      } catch (error) {
-        console.error("Error", error);
-        tries++;
-        setTimeout(() => {}, 1000);
-        continue;
-      }
-    }
+    const url = this.apiBase + endpoint;
+    return fetchWithRetry(url, init, 5).then((response) => response.json());
   }
 }
 class VerkadaApi {
@@ -74,23 +96,10 @@ class VerkadaApi {
   }
 
   static async downloadImage(url) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        return new Promise((resolve) => {
-          reader.onloadend = function () {
-            resolve(reader.result.split(",")[1]);
-          };
-        });
-      } else {
-        console.debug("downloadImage res:", res);
-      }
-    } catch (error) {
-      console.error("error", error);
-    }
+    return fetchWithRetry(url, {}).then(async (res) => {
+      const buffer = await res.arrayBuffer();
+      return Buffer.from(buffer).toString("base64");
+    });
   }
 
   async getSeenLicensePlateImage(cameraId, timestamp, plate) {
@@ -101,32 +110,62 @@ class VerkadaApi {
       start_time: timestamp - 1,
       end_time: timestamp + 1,
     };
-    const url = "https://api.verkada.com/cameras/v1/analytics/lpr/images";
-    const headers = {
-      accept: "application/json",
-      "x-api-key": this.apiKey,
+    const endpoint = "https://api.verkada.com/cameras/v1/analytics/lpr/images";
+    let init = {
+      headers: {
+        accept: "application/json",
+        "x-api-key": this.apiKey,
+      },
     };
-    try {
-      const response = await fetch(`${url}?${new URLSearchParams(params)}`, {
-        headers,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        for (const detection of data.detections) {
-          if (
-            detection.timestamp === timestamp &&
-            detection.license_plate === plate
-          ) {
-            return await VerkadaApi.downloadImage(detection.image_url);
-          }
+    const url = `${endpoint}?${new URLSearchParams(params)}`;
+    console.log(`LPR Images url : ${url}`);
+    return fetchWithRetry(url, init).then(async (res) => {
+      const data = await res.json();
+      console.log(`Data: ${JSON.stringify(data)}`);
+      for (const detection of data["detections"]) {
+        if (
+          detection["timestamp"] === timestamp &&
+          detection["license_plate"] === plate
+        ) {
+          return detection["image_url"];
         }
-      } else {
-        console.error(response.statusText);
       }
-    } catch (error) {
-      console.error("error", error);
-    }
+      return Promise.reject("Detection not found");
+    });
   }
+}
+
+function processWebhook(data, verkada, parkpow) {
+  let cameraId = data["camera_id"];
+  let createdAt = data["created"];
+  let confidence = data["confidence"];
+  let licensePlateNumber = data["license_plate_number"];
+
+  verkada
+    .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
+    .then((imageUrl) => {
+      console.debug("Download Image from URL: " + imageUrl);
+      return VerkadaApi.downloadImage(imageUrl);
+    })
+    .then((imageBase64) => {
+      console.debug("Log vehicle");
+      return parkpow.logVehicle(
+        imageBase64,
+        licensePlateNumber,
+        confidence,
+        cameraId,
+        createdAt,
+      );
+    })
+    .then((result) => {
+      console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
+    })
+    .catch((error) => {
+      console.error(
+        `Skip webhook - [${licensePlateNumber}] at ${createdAt}`,
+        error,
+      );
+    });
 }
 
 export default {
@@ -168,29 +207,7 @@ export default {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
-      let cameraId = data["camera_id"];
-      let createdAt = data["created"];
-      let confidence = data["confidence"];
-      let licensePlateNumber = data["license_plate_number"];
-
-      let image = verkada.getSeenLicensePlateImage(
-        cameraId,
-        createdAt,
-        licensePlateNumber,
-      );
-      if (image) {
-        await parkpow.logVehicle(
-          image,
-          licensePlateNumber,
-          confidence,
-          cameraId,
-          createdAt,
-        );
-      } else {
-        console.error(
-          `Skip webhook - [${licensePlateNumber}] at ${createdAt} - Missing image`,
-        );
-      }
+      processWebhook(data, verkada, parkpow);
     }
   },
 };
