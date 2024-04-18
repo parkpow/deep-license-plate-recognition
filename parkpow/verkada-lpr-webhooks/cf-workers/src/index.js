@@ -166,6 +166,7 @@ export default {
     // write to R2 object storage, query a D1 Database, and much more.
     for (let message of batch.messages) {
       // Process each message (we'll just log these)
+      console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
       let cameraId = data["camera_id"];
       let createdAt = data["created"];
