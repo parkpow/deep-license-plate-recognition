@@ -24,9 +24,9 @@ npm run deploy
 ```shell
 # Verkada API Key
 VERKADA_API_KEY=
-# ParkPow Token
+# ParkPow Token - Find it here https://app.platerecognizer.com/products/parkpow/
 PARKPOW_TOKEN=
-# ParkPow Server URL
+# ParkPow Server URL - Optional (You don't need to define it if you use ParkPow Cloud; otherwise, declare it with the ParkPow On-Premise URL).
 PARKPOW_URL=
 
 ```
