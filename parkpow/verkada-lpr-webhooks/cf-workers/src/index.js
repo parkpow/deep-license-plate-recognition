@@ -144,11 +144,11 @@ function processWebhook(data, verkada, parkpow) {
   verkada
     .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
     .then((imageUrl) => {
-      console.debug("Download Image from URL: " + imageUrl);
+      console.log("Download Image from URL: " + imageUrl);
       return VerkadaApi.downloadImage(imageUrl);
     })
     .then((imageBase64) => {
-      console.debug("Log vehicle");
+      console.log("Log vehicle");
       return parkpow.logVehicle(
         imageBase64,
         licensePlateNumber,
