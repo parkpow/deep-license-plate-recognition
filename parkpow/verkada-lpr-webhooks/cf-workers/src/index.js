@@ -143,7 +143,7 @@ async function processWebhook(data, verkada, parkpow) {
   let confidence = data["confidence"];
   let licensePlateNumber = data["license_plate_number"];
 
-  await verkada
+  return verkada
     .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
     .then((imageUrl) => {
       console.log("Download Image from URL: " + imageUrl);
@@ -157,15 +157,6 @@ async function processWebhook(data, verkada, parkpow) {
         confidence,
         cameraId,
         createdAt,
-      );
-    })
-    .then((result) => {
-      console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
-    })
-    .catch((error) => {
-      console.error(
-        `Skip webhook - [${licensePlateNumber}] at ${createdAt}`,
-        error,
       );
     });
 }
@@ -205,11 +196,14 @@ export default {
 
     // A queue consumer can make requests to other endpoints on the Internet,
     // write to R2 object storage, query a D1 Database, and much more.
-    for (let message of batch.messages) {
+    for (const message of batch.messages) {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
-      await processWebhook(data, verkada, parkpow);
+      const result = await processWebhook(data, verkada, parkpow);
+      console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
+      // Explicitly acknowledge the message as delivered
+      message.ack();
     }
   },
 };
