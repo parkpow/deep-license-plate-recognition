@@ -140,15 +140,19 @@ export default {
         const data = await request.json();
         const webhookType = data["webhook_type"];
         if (webhookType !== "lpr") {
-          return new Response(`Unexpected webhook type: ${webhookType}`);
+          return new Response(`Unexpected webhook type: ${webhookType}`, {
+            status: 400,
+          });
         }
         await env.LPR_WEBHOOKS.send(data);
         return new Response("OK!");
       } else {
-        return new Response("Error - Required application/json ");
+        return new Response("Error - Required application/json ", {
+          status: 400,
+        });
       }
     } else {
-      return new Response("Error - Required POST");
+      return new Response("Error - Required POST", { status: 400 });
     }
   },
 
