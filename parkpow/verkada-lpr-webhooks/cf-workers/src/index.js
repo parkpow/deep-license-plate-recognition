@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+
 class Error429 extends Error {
   constructor({ message, response }) {
     super(message);
