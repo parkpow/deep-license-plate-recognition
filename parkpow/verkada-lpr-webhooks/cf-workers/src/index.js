@@ -51,7 +51,7 @@ class ParkPowApi {
         response = await fetch(this.apiBase + endpoint, init);
         console.debug("Response: " + response.status);
         if (response.ok) {
-          console.info("Logged Vehicle");
+          console.info(`Logged Vehicle: ${licensePlateNumber}`);
           break;
         } else if (response.status === 429) {
           tries++;
