@@ -109,7 +109,6 @@ class ParkPowApi:
                 {
                     "plate": license_plate_number,
                     "score": confidence,
-                    "box": {"xmin": 0, "ymin": 0, "ymax": 0, "xmax": 0},
                 }
             ],
             "time": p_time,
@@ -227,7 +226,8 @@ def test(ns):
     img = v.get_seen_license_plate_image(camera_id, ts, plate)
     if img is not None:
         pp = ParkPowApi(ns.token, ns.pp_url)
-        pp.log_vehicle(img, plate, confidence, camera_id, ts)
+        res = pp.log_vehicle(img, plate, confidence, camera_id, ts)
+        print(res)
 
 
 if __name__ == "__main__":

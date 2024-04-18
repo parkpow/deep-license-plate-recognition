@@ -75,7 +75,7 @@ class ParkPowApi {
         {
           plate: licensePlateNumber,
           score: confidence,
-          box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
+          // box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
         },
       ],
       time: pTime,
