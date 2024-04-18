@@ -135,13 +135,13 @@ class VerkadaApi {
   }
 }
 
-function processWebhook(data, verkada, parkpow) {
+async function processWebhook(data, verkada, parkpow) {
   let cameraId = data["camera_id"];
   let createdAt = data["created"];
   let confidence = data["confidence"];
   let licensePlateNumber = data["license_plate_number"];
 
-  verkada
+  await verkada
     .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
     .then((imageUrl) => {
       console.log("Download Image from URL: " + imageUrl);
@@ -207,7 +207,7 @@ export default {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
-      processWebhook(data, verkada, parkpow);
+      await processWebhook(data, verkada, parkpow);
     }
   },
 };
