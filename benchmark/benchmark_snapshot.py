@@ -1,6 +1,5 @@
 import argparse
 import math
-import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from timeit import default_timer
@@ -11,8 +10,6 @@ from PIL import Image
 from psutil import cpu_percent, process_iter
 
 from plate_recognition import recognition_api
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
 def parse_arguments():
@@ -25,7 +22,7 @@ def parse_arguments():
     parser.add_argument(
         "--threads", help="Use thread to parallelize API calls", default=4, type=int
     )
-    parser.add_argument("--image", default=f"{BASE_DIR}/assets/car-4k.jpg")
+    parser.add_argument("--image", default="assets/car-4k.jpg")
     parser.add_argument("--mmc", action="store_true")
     parser.add_argument("--iterations", default=50, type=int)
     parser.add_argument("--blur", action="store_true")
