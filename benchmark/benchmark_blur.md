@@ -18,13 +18,13 @@ python3 -m benchmark.benchmark_snapshot --blur --sdk-url http://localhost:8001
 - All numbers are in **milliseconds**.
 
 ## AWS Instance Type - t2-large 2-vCPU(2 core) 8 GiB Memory
-Processor: Intel Xeon CPU E5-2686 v4 @ 2.30GHz
-NumSockets: 1
-Manufacturer: GenuineIntel
-NumCores: 2
-NumLogicals: 2
-CPUFrequency: 2300
-Passmark: 2420.9990
+Processor: Intel Xeon CPU E5-2686 v4 @ 2.30GHz  
+NumSockets: 1  
+Manufacturer: GenuineIntel  
+NumCores: 2  
+NumLogicals: 2  
+CPUFrequency: 2300  
+Passmark: 2420.9990  
 
 ### WORKERS DEFAULT
 CPU Usage: 85.2%
@@ -47,13 +47,13 @@ CPU Usage: 97.8%
 | regular | 2560x1440  | 2695.7 | 5176.0 | 19023.1 |
 
 ## AWS Instance Type - t3-xlarge 4-vCPU(2 core) 16 GiB Memory
-Processor: Intel Xeon Platinum 8259CL CPU @ 2.50GHz
-NumSockets: 1
-Manufacturer: GenuineIntel
-NumCores: 2
-NumLogicals: 4
-CPUFrequency: 2499
-Passmark: 4039.57
+Processor: Intel Xeon Platinum 8259CL CPU @ 2.50GHz  
+NumSockets: 1  
+Manufacturer: GenuineIntel  
+NumCores: 2  
+NumLogicals: 4  
+CPUFrequency: 2499  
+Passmark: 4039.57  
 
 ### WORKERS DEFAULT
 CPU Usage: 71.0%
