@@ -45,14 +45,11 @@ def print_table(results):
         )
 
 
-def blur_api(url, fp, config):
+def blur_api(url, fp):
     """
     Upload an Image to url for burring
     """
-    data = {
-        "config": config,
-    }
-    response = requests.post(url, files={"upload": fp}, data=data)
+    response = requests.post(url, files={"upload": fp})
     if response.status_code < 200 or response.status_code > 300:
         if response.status_code == 400:
             msg = response.json().get("error")
@@ -73,7 +70,7 @@ def call_duration(path, sdk_url, config, mmc, blur):
     now = default_timer()
     with open(path, "rb") as fp:
         if blur:
-            blur_api(sdk_url, fp, config)
+            blur_api(sdk_url, fp)
         else:
             recognition_api(
                 fp,
