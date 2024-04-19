@@ -1,7 +1,6 @@
 import argparse
 import math
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from timeit import default_timer
@@ -11,10 +10,9 @@ import requests
 from PIL import Image
 from psutil import cpu_percent, process_iter
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(BASE_DIR)
+from plate_recognition import recognition_api
 
-from plate_recognition import recognition_api  # noqa E402
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
 def parse_arguments():
