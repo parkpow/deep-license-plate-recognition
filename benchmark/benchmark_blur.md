@@ -49,7 +49,6 @@ CPU Usage: 97.8%
 | fast    | 2560x1440  | 2674.9 | 5086.1 | 19267.1 |
 
 
-
 ## AWS Instance Type - t3-xlarge 4-vCPU(4 core) 16 GiB Memory
 
 ## WORKERS DEFAULT
