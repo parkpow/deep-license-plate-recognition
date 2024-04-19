@@ -17,7 +17,8 @@ from PIL import Image, ImageDraw, ImageFont
 if sys.version_info.major == 3 and sys.version_info.minor >= 10:
     from collections.abc import MutableMapping
 else:
-    from collections.abc import MutableMapping  # type: ignore[attr-defined]
+    # ruff: noqa
+    from collections import MutableMapping  # type: ignore[attr-defined]
 
 
 def parse_arguments(args_hook=lambda _: _):
