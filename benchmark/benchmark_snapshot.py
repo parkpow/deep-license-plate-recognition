@@ -82,7 +82,12 @@ def benchmark(args, executor):
     image = Image.open(args.image)
     for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440)]:
         image.resize(resolution).save("/tmp/platerec-benchmark.jpg")
-        for config in [{}, dict(mode="fast")]:
+        if args.blur:
+            configs = [{}]
+        else:
+            configs = [{}, dict(mode="fast")]
+
+        for config in configs:
             now = default_timer()
             stats = list(
                 executor.map(
