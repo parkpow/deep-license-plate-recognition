@@ -10,6 +10,10 @@ from PIL import Image
 from psutil import cpu_percent, process_iter
 
 from plate_recognition import recognition_api
+from .container_stats import StatMonitor
+import docker
+
+client = docker.from_env()
 
 
 def parse_arguments():
@@ -81,6 +85,12 @@ def call_duration(path, sdk_url, config, mmc, blur):
 def benchmark(args, executor):
     image = Image.open(args.image)
     for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440)]:
+        monitors = []
+        for container in client.containers.list():
+            ram_monitor = StatMonitor(container)
+            ram_monitor.start_monitoring()
+            monitors.append(ram_monitor)
+
         image.resize(resolution).save("/tmp/platerec-benchmark.jpg")
         if args.blur:
             configs = [{}]
@@ -109,6 +119,10 @@ def benchmark(args, executor):
                 max=max(stats),
                 avg=duration / args.iterations,
             )
+
+        for monitor in monitors:
+            ram_usage = monitor.stop_monitoring()
+            # print(f'Container: {monitor.container.name} RES: {resolution} - RAM USAGE: {ram_usage}')
 
 
 def mem_usage():
