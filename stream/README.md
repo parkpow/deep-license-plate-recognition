@@ -59,7 +59,11 @@ This script runs nightly to remove images that are over xx hours in Stream folde
 
 Make sure to have this remove_images.py script inside the Stream folder.
 
-_Note: Don't forget to update the --threshold (time duration in hours) to remove images older than xx hours._
+_Notes:_
+
+_1. Don't forget to update the `--threshold` (time duration in hours) to remove images older than xx hours._
+
+_2. `--threshold` should be an integer between `1` and `23 `(hours)._
 
 ### Schedule running of script
 
@@ -72,6 +76,13 @@ sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> -
 
 # Example: This runs the script daily at midnight and removes images older than 23 hours.
 sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23" >> /etc/crontab'
+
+# Incase you would want to log script errors to a file.
+sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --threshold 23 >> <path_to_log_file> 2>&1" >> /etc/crontab'
+
+# Example: This logs the script errors to /home/user/stream/remove_images.log.
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23 >> /home/user/stream/remove_images.log 2>&1" >> /etc/crontab'
+
 ```
 
 For Windows:

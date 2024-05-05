@@ -1,20 +1,7 @@
 import argparse
 import os
-import platform
 from datetime import datetime, timedelta
-
-
-def valid_threshold(value):
-    try:
-        ivalue = int(value)
-        if ivalue < 1 or ivalue > 23:
-            raise ValueError
-        return ivalue
-    except ValueError:
-        raise argparse.ArgumentTypeError(
-            "%s is not a valid threshold. Threshold must be an integer between 1 and 23."
-            % value
-        )
+from pathlib import Path
 
 
 def parse_arguments():
@@ -23,8 +10,10 @@ def parse_arguments():
     )
     parser.add_argument(
         "--threshold",
+        choices=range(1, 24),
+        metavar="[1-23]",
         help="Time duration (in hours) to remove images older than xx hours",
-        type=valid_threshold,
+        type=int,
         required=True,
     )
     return parser.parse_args()
@@ -35,32 +24,31 @@ def delete_images(directory, threshold_minutes):
     now = datetime.now()
     threshold_time = now - timedelta(minutes=threshold_minutes)
 
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.lower().endswith((".jpg", ".jpeg", ".png")):
-                file_path = os.path.join(root, file)
-                modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
-                if modified_time < threshold_time:
-                    os.remove(file_path)
+    for file_path in Path(directory).rglob("*.jpg"):
+        modified_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+        if modified_time < threshold_time:
+            try:
+                file_path.unlink()
+            except OSError as e:
+                print(f"Error deleting images: {e.filename} - {e.strerror}")
 
 
 # Function to delete empty directories
 def delete_empty_directories(directory):
-    for root, dirs, files in os.walk(directory, topdown=False):
-        for dir in dirs:
-            dir_path = os.path.join(root, dir)
-            if not os.listdir(dir_path):
-                os.rmdir(dir_path)
+    for dir_path in reversed(list(Path(directory).rglob("*"))):
+        if dir_path.exists() and dir_path.is_dir():
+            try:
+                if not list(dir_path.iterdir()):
+                    dir_path.rmdir()
+            except OSError as e:
+                print(f"Error deleting empty directories: {e.filename} - {e.strerror}")
 
 
 def main():
     args = parse_arguments()
 
     threshold_minutes = args.threshold * 60
-    stream_directory = os.getcwd()
-
-    if platform.system() == "Windows":
-        stream_directory = os.path.abspath(stream_directory)
+    stream_directory = os.path.abspath(os.path.dirname(__file__))
 
     delete_images(stream_directory, threshold_minutes)
     delete_empty_directories(stream_directory)
