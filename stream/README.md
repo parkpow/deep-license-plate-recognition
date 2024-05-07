@@ -57,16 +57,61 @@ In another terminal, you can query Stream status.
 
 This script runs nightly to remove images that are over xx hours in Stream folder. However, if you wouldn't want to save images locally at all, you may refer to this [guide](https://guides.platerecognizer.com/docs/stream/faq#how-do-i-not-save-vehicle-or-plates-images-in-my-localstreamfolder-when-forwarding-webhook-data).
 
-Make sure to enter this command inside the Stream folder.
+Make sure to have this remove_images.py script inside the Stream folder.
 
-_Note: This script must be run as a root user._
+_Notes:_
 
-### Installation
+_1. Don't forget to update the `--threshold` (time duration in hours) to remove images older than xx hours._
+
+_2. `--threshold` should be an integer between `1` and `23 `(hours)._
+
+### Schedule running of script
+
+For Linux: 
+
+_Note: Make sure cron is installed._
 
 ```bash
- wget -q 'https://raw.githubusercontent.com/parkpow/deep-license-plate-recognition/master/stream/remove-images.sh' && chmod +x remove-images.sh && ./remove-images.sh
+sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --threshold 23" >> /etc/crontab'
+
+# Example: This runs the script daily at midnight and removes images older than 23 hours.
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23" >> /etc/crontab'
+
+# Incase you would want to log script errors to a file.
+sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --threshold 23 >> <path_to_log_file> 2>&1" >> /etc/crontab'
+
+# Example: This logs the script errors to /home/user/stream/remove_images.log.
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23 >> /home/user/stream/remove_images.log 2>&1" >> /etc/crontab'
+
 ```
+
+For Windows:
+
+1. Run this in a command promt or powershell to add the script to Windows Task Scheduler.
+
+```ps
+schtasks /create /sc <frequency> /tn RemoveStreamImages /tr "<path_to_python_interpreter> <path_to_script> --threshold 10" /st <start_time>
+
+# Example: This runs the script daily at midnight and removes images older than 10 hours.
+schtasks /create /sc daily /tn RemoveStreamImages /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\remove_images.py --threshold 10" /st 00:00
+
+```
+
+2. Lastly, to make sure this runs on the Stream directory. Open Task Scheduler, click on the newly created scheduler task, then choose Properties. Go to the Actions tab, then click on Edit. Set the Start in (optional) to be the path of your Stream Directory then click Ok. 
+
 
 ### Uninstall
 
-To uninstall the service, just rerun the script and confirm the uninstallation.
+To uninstall the service, just remove the script from the Stream directory. 
+
+To remove the scheduled running of the script, 
+
+For Linux, run this in the terminal:
+```bash
+sudo sed -i '/remove_images/d' /etc/crontab
+```
+
+For Windows, run this in command promt or powershell:
+```ps
+schtasks /delete /tn RemoveStreamImages /f
+```
