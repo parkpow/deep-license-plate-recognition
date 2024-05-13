@@ -24,7 +24,7 @@ dotnet run
 dotnet run --token=4805bee122### --file=../../assets/demo.jpg 
 
 # Upload the image as Base64
-dotnet run --token=4805bee122### --file=../../assets/demo.jpg --base63
+dotnet run --token=4805bee122### --file=../../assets/demo.jpg --base64
 ```
 
 ### Quick build and run using dotnet cli 
