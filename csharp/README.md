@@ -1,24 +1,36 @@
-# PlateRecognizer CSharp Client
+# PlateRecognizer CSharp Example
 
-Plate Recognizer .Net client as a console application.
+Plate Recognizer .Net example as a console application.
 
 This project does not use any external dependencies.
 
 ## Prerequisites
-
- - Microsoft Visual studio 2017
- - .Net Framework 4.6.1
+ - .Net SDK 9.0
+> Easiest way to edit is to use Github codespaces
 
 ## Usage
-- C# Method:
+
+### Upload Method signature:
 ```csharp
-PlateReader.Read("Web Api Url", "File path", "Regions", "Token");
+makeRequest(String url, String token, String filePath, String regions, String cameraId, bool uploadBase64)
 ```
-- Command Line:
-```
-PlateRecognizer.exe /F:/tmp/car.jpg /T:MY_TOKEN /R:fr,it
-PlateRecognizer.exe /T:MY_TOKEN /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg"
+
+### Command Line:
+```shell
+# Get help
+dotnet run
+
+# Uplod to cloud API
+dotnet run --token=4805bee122### --file=../../assets/demo.jpg 
 
 # Upload the image as Base64
-PlateRecognizer.exe /T:MY_TOKEN /F:"S:\DEV\PR\PlateRecognizer\PlateRecognizer\car.jpg" /B:1
+dotnet run --token=4805bee122### --file=../../assets/demo.jpg --base63
 ```
+
+### Quick build and run using dotnet cli 
+```
+dotnet run --token=4805bee122### --file=../../assets/demo.jpg --camera=camera46363
+
+```
+
+
