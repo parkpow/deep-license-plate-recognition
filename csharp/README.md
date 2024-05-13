@@ -21,15 +21,15 @@ makeRequest(String url, String token, String filePath, String regions, String ca
 dotnet run
 
 # Uplod to cloud API
-dotnet run --token=4805bee122### --file=../../assets/demo.jpg 
+dotnet run --token=4805bee122### --file=../assets/demo.jpg 
 
 # Upload the image as Base64
-dotnet run --token=4805bee122### --file=../../assets/demo.jpg --base64
+dotnet run --token=4805bee122### --file=../assets/demo.jpg --base64
 ```
 
 ### Quick build and run using dotnet cli 
 ```
-dotnet run --token=4805bee122### --file=../../assets/demo.jpg --camera=camera46363
+dotnet run --token=4805bee122### --file=../assets/demo.jpg --camera=camera46363
 
 ```
 
