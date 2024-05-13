@@ -98,6 +98,7 @@ def process(args, path: Path, output: Path, logo=None):
             "faces": args.faces,
             "plates": args.plates,
             "copy_metadata": args.copy_metadata,
+            "regions": args.regions,
         }
         if args.api_key:
             headers = {
@@ -162,7 +163,13 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Blur plates and faces in a folder recursively"
+        description="Blur plates and faces in a folder recursively",
+        epilog="""Examples:
+Process images from a folder:
+  python main.py -b=http://localhost:8001 --images=/path/to/images
+Specify engine config and/or two regions:
+  python main.py -b=http://localhost:8001 --config='{"region":"strict"}' -r us-ca -r th-37 --images=/path/to/images""",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
     parser.add_argument(
@@ -241,6 +248,13 @@ def main():
         action="store_true",
         help="Copy original image metadata(EXIF and XMP) into blurred images.",
         default=False,
+    )
+    parser.add_argument(
+        "-r",
+        "--regions",
+        help="Match the license plate pattern of a specific region",
+        required=False,
+        action="append",
     )
     args = parser.parse_args()
     if not args.images.is_dir():
