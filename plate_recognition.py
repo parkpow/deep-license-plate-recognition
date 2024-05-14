@@ -241,6 +241,16 @@ Enable Make Model and Color prediction:
         action="store_true",
         help="Do extra lookups on parts of the image. Useful on high resolution images.",
     )
+    parser.add_argument(
+        "--grid_size_x", 
+        type=int, 
+        default=2, 
+        help="Grid size on the x-axis")
+    parser.add_argument(
+        "--grid_size_y", 
+        type=int, 
+        default=1, 
+        help="Grid size on the y-axis")
 
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
@@ -371,18 +381,29 @@ def output_image(args, path, results):
 
 
 def process_split_image(path, args, engine_config):
+    grid_size = (args.grid_size_x, args.grid_size_y)
+
     # Predictions
     fp = Image.open(path)
     if fp.mode != "RGB":
         fp = fp.convert("RGB")
     images = [((0, 0), fp)]  # Entire image
 
-    # Top left and top right crops
-    y = 0
-    win_size = 0.55
-    width, height = fp.width * win_size, fp.height * win_size
-    for x in [0, int((1 - win_size) * fp.width)]:
-        images.append(((x, y), fp.crop((x, y, x + width, y + height))))
+    # Determine grid cell size
+    grid_width = fp.width // grid_size[0]
+    grid_height = fp.height // grid_size[1]
+
+    # Generate grid coordinates
+    grid_coords = []
+    for i in range(grid_size[1]):
+        for j in range(grid_size[0]):
+            x = j * grid_width
+            y = i * grid_height
+            grid_coords.append((x, y))
+
+    # Create images for each grid cell
+    for x, y in grid_coords:
+        images.append(((x, y), fp.crop((x, y, x + grid_width, y + grid_height))))
 
     # Inference
     api_results = {}
