@@ -242,6 +242,17 @@ Enable Make Model and Color prediction:
         help="Do extra lookups on parts of the image. Useful on high resolution images.",
     )
 
+    parser.add_argument("--split-x", type=int, default=0, help="Splits on the x-axis")
+
+    parser.add_argument("--split-y", type=int, default=0, help="Splits on the y-axis")
+
+    parser.add_argument(
+        "--split-overlap",
+        type=int,
+        default=10,
+        help="Percentage of window overlap when splitting",
+    )
+
 
 def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
     draw = ImageDraw.Draw(im)
@@ -265,7 +276,7 @@ def draw_bb(im, data, new_size=(1920, 1050), text_func=None):
         )
         if text_func:
             text = text_func(result)
-            text_width, text_height = font.getsize(text)
+            (text_width, text_height) = font.font.getsize(text)[0]
             margin = math.ceil(0.05 * text_height)
             draw.rectangle(
                 [
@@ -371,18 +382,54 @@ def output_image(args, path, results):
 
 
 def process_split_image(path, args, engine_config):
+    if args.split_x == 0 or args.split_y == 0:
+        raise ValueError("Please specify --split-x or --split-y")
+
     # Predictions
     fp = Image.open(path)
     if fp.mode != "RGB":
         fp = fp.convert("RGB")
     images = [((0, 0), fp)]  # Entire image
 
-    # Top left and top right crops
-    y = 0
-    win_size = 0.55
-    width, height = fp.width * win_size, fp.height * win_size
-    for x in [0, int((1 - win_size) * fp.width)]:
-        images.append(((x, y), fp.crop((x, y, x + width, y + height))))
+    overlap_pct = args.split_overlap
+
+    window_width = fp.width / (args.split_x + 1)
+    window_height = fp.height / (args.split_y + 1)
+
+    overlap_width = int(window_width * overlap_pct / 100)
+    overlap_height = int(window_height * overlap_pct / 100)
+
+    draw = ImageDraw.Draw(fp)
+
+    for i in range(args.split_x + 1):
+        for j in range(args.split_y + 1):
+            ymin = j * window_height
+            ymax = ymin + window_height
+
+            xmin = i * window_width
+            xmax = xmin + window_width
+
+            # Add x-axis Overlap
+            if i == 0:  # Overlap `end` of first Window only
+                xmax = xmax + overlap_width
+            elif i == args.split_x:  # Overlap `start` of last Window only
+                xmin = xmin - overlap_width
+            else:  # Overlap both `start` and `end` of middle Windows
+                xmin = xmin - overlap_width
+                xmax = xmax + overlap_width
+
+            # Add y-axis Overlap
+            if j == 0:  # Overlap `bottom` of first Window only
+                ymax = ymax + overlap_height
+                pass
+            elif j == args.split_y:  # Overlap `top` of last Window only
+                ymin = ymin - overlap_height
+                pass
+            else:  # Overlap both `top` and `bottom` of middle Windows
+                ymin = ymin - overlap_height
+                ymax = ymax + overlap_height
+
+            images.append(((xmin, ymin), fp.crop((xmin, ymin, xmax, ymax))))
 
     # Inference
     api_results = {}
@@ -405,7 +452,8 @@ def process_split_image(path, args, engine_config):
             mmc=args.mmc,
         )
         results.append(dict(prediction=api_res, x=x, y=y))
-        usage.append(api_res["usage"])
+        if "usage" in api_res:
+            usage.append(api_res["usage"])
         camera_ids.append(api_res["camera_id"])
         timestamps.append(api_res["timestamp"])
         processing_times.append(api_res["processing_time"])
@@ -415,7 +463,8 @@ def process_split_image(path, args, engine_config):
     api_results["camera_id"] = camera_ids[len(camera_ids) - 1]
     results = post_processing(merge_results(results))
     results = OrderedDict(list(api_results.items()) + list(results.items()))
-    results["usage"] = usage[len(usage) - 1]
+    if len(usage):
+        results["usage"] = usage[len(usage) - 1]
     results["processing_time"] = round(sum(processing_times), 3)
 
     # Set bounding box padding
