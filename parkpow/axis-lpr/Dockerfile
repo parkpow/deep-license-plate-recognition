@@ -11,9 +11,9 @@ RUN apt-get update\
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
-
+EXPOSE 5000
 # Copy source code
 COPY . /app/
 
-CMD [ "flask", "run" ]
+CMD [ "flask", "run", "--host", "0.0.0.0" ]
 
