@@ -35,7 +35,7 @@ def upload_event(event, image):
     license_plate_number = event["plateUTF8"]
     confidence = event["plateConfidence"]
     camera_id = event["camera_info"]["SerialNumber"]
-    capture_timestamp = event["capture_timestamp"]
+    capture_timestamp = int(event["capture_timestamp"]) / 1000
     plate_coordinates = event["plateCoordinates"]
 
     parkpow.log_vehicle(

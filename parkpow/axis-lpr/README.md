@@ -9,3 +9,10 @@ Forward LPR data from Axis camera to ParkPow
     ```bash
      docker run --rm -t -p 5000:5000 -e PP_URL=https://myparkpow.com -e TOKEN=1234 parkpow-axis-lpr
     ```
+3. Running Tests
+   ```bash
+   export PP_URL=https://myparkpow.com
+   export TOKEN=1234
+   python -m pytest
+
+   ```
