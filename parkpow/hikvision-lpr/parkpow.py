@@ -64,3 +64,4 @@ class ParkPowApi:
                     return res_json
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
+            raise

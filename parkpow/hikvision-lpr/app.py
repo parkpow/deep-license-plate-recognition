@@ -76,7 +76,7 @@ def upload_event(xml_data, image):
     parkpow.log_vehicle(
         image,
         license_plate_number,
-        confidence,
+        int(confidence) / 100,
         camera_id,
         datetime.strptime(date_time, "%Y-%m-%dT%H:%M:%S%z"),
         plate_coordinates,
@@ -87,9 +87,6 @@ def upload_event(xml_data, image):
 def process_files():
     """
     Process uploaded event and image files
-    Sample Events:
-    https://stackoverflow.com/a/77843753/3320006
-    https://stackoverflow.com/q/75887663/3320006
     """
 
     # Check if event file exists
