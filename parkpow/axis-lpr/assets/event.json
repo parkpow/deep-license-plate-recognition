@@ -1,0 +1,39 @@
+{
+  "packetCounter":"11890300",
+  "capture_timestamp":"1623405938252",
+  "frame_timestamp":"0",
+  "capture_ts":"1623405938252000000",
+  "datetime":"20210611 130538252",
+  "plateText":"\u0052\u004c\u0045\u0031\u0031\u0036\u0038\u0034",
+  "plateUnicode":"\u0052\u004c\u0045\u0031\u0031\u0036\u0038\u0034",
+  "plateUTF8":"RLE11684",
+  "plateASCII":"RLE11684",
+  "plateCountry":"POL",
+  "plateConfidence":"0.719034",
+  "carState":"lost",
+  "roiID":"2",
+  "geotag":{
+    "lat": 50.418114,
+    "lon": 30.476213
+  },
+  "imageType": "plate",
+  "plateImageType": "jpg",
+  "plateImageSize": "0",
+  "carMoveDirection":"in",
+  "timeProcessing":"0",
+  "plateCoordinates":[1185, 532, 140, 28],
+  "plateCoordinatesRelative":[1030, 196, 140, 28],
+  "carID":"1144696",
+  "GEOtarget":"Camera",
+  "imagesURI":[
+    "/local/fflprapp/tools.cgi?action=getImage&name=45/20210611130538_785523lp_RLE11684_11890182.jpg",
+    "/local/fflprapp/tools.cgi?action=getImage&name=44/20210611130538_547764roi_RLE11684_11890181.jpg"
+  ],
+  "imageFile":"/var/spool/storage/SD_DISK/fflprapp/images/44/20210611130538_547764roi_RLE11684_11890181.jpg",
+  "camera_info":{
+    "SerialNumber":"ACCC8ED3290D",
+    "ProdShortName":"AXIS P1445-LE-3",
+    "MACAddress":"AC:CC:8E:D3:29:0D"
+  },
+  "sensorProviderID":"defaultID_176"
+}
