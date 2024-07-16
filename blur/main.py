@@ -97,9 +97,11 @@ def process(args, path: Path, output: Path, logo=None):
             "overlap": args.overlap,
             "faces": args.faces,
             "plates": args.plates,
-            "copy_metadata": args.copy_metadata,
             "regions": args.regions,
         }
+        if args.copy_metadata:
+            data["copy_metadata"] = "true"
+
         if args.api_key:
             headers = {
                 "Authorization": f"Token {args.api_key}",
