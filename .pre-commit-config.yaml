@@ -21,7 +21,7 @@ repos:
         - --allow-untyped-globals
         - --ignore-missing-imports
         additional_dependencies:
-        - types-all
+        - types-requests
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:

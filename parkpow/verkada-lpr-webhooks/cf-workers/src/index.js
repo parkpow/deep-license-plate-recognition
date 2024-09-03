@@ -34,14 +34,18 @@ const fetchWithRetry = (url, init, tries = 3) =>
       }
     })
     .catch((error) => {
-      console.error(`fetchWithRetry error: ${error.name} - ${error.data}`);
-      if (error instanceof Error429 || error instanceof Error5xx || tries < 1) {
-        throw error;
-      } else {
-        //Retry network error or 5xx errors
+      // Retry network error or 5xx errors
+      if (
+        (error instanceof Error429 || error instanceof Error5xx) &&
+        tries > 0
+      ) {
+        console.error(`Retry Response status: ${error.data.status}`);
         // if the rate limit is reached or exceeded, the system will have to obey to a 5 second cooldown period before attempting the API requests again.
         const delay = 5100;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
+      } else {
+        console.error(`fetchWithRetry error: ${error.name}`);
+        throw error;
       }
     });
 
