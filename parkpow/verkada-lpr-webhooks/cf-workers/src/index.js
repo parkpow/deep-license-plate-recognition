@@ -18,7 +18,7 @@ class Error5xx extends Error {
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
-const fetchWithRetry = (url, init, tries = 2) =>
+const fetchWithRetry = (url, init, tries = 3) =>
   fetch(url, init)
     .then((response) => {
       if (response.ok) {
@@ -34,12 +34,13 @@ const fetchWithRetry = (url, init, tries = 2) =>
       }
     })
     .catch((error) => {
-      console.error(`fetchWithRetry error: ${error}`);
+      console.error(`fetchWithRetry error: ${error.name} - ${error.data}`);
       if (error instanceof Error429 || error instanceof Error5xx || tries < 1) {
         throw error;
       } else {
         //Retry network error or 5xx errors
-        const delay = 1000;
+        // if the rate limit is reached or exceeded, the system will have to obey to a 5 second cooldown period before attempting the API requests again.
+        const delay = 5100;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
       }
     });
