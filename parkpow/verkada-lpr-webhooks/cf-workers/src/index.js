@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import Rollbar from "@triptech/cloudflare-worker-rollbar";
 
 class Error429 extends Error {
   constructor({ message, response }) {
@@ -44,8 +45,8 @@ const fetchWithRetry = (url, init, tries = 3) =>
         const delay = 5100;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
       } else {
-        console.error(`fetchWithRetry error: ${error.name}`);
-        throw error;
+        console.error(`fetchWithRetry error:`, error);
+        throw new Error(error);
       }
     });
 
@@ -142,7 +143,7 @@ class VerkadaApi {
   }
 }
 
-async function processWebhook(data, verkada, parkpow) {
+async function processWebhook(data, verkada, parkpow, rollbar) {
   let cameraId = data["camera_id"];
   let createdAt = data["created"];
   let confidence = data["confidence"];
@@ -163,6 +164,9 @@ async function processWebhook(data, verkada, parkpow) {
         cameraId,
         createdAt,
       );
+    })
+    .catch(async (error) => {
+      await rollbar.error(error, "Verkada-lpr-webhooks");
     });
 }
 
@@ -198,6 +202,7 @@ export default {
   async queue(batch, env) {
     const verkada = new VerkadaApi(env.VERKADA_API_KEY);
     const parkpow = new ParkPowApi(env.PARKPOW_TOKEN, env.PARKPOW_URL);
+    const rollbar = new Rollbar(env.ROLLBAR_TOKEN, "production");
 
     // A queue consumer can make requests to other endpoints on the Internet,
     // write to R2 object storage, query a D1 Database, and much more.
@@ -205,7 +210,7 @@ export default {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
-      const result = await processWebhook(data, verkada, parkpow);
+      const result = await processWebhook(data, verkada, parkpow, rollbar);
       console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
       // Explicitly acknowledge the message as delivered
       message.ack();

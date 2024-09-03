@@ -8,6 +8,9 @@
     "start": "wrangler dev",
     "logs": "wrangler tail"
   },
+  "dependencies": {
+    "@triptech/cloudflare-worker-rollbar": "1.0.1"
+  },
   "devDependencies": {
     "wrangler": "^3.0.0"
   }

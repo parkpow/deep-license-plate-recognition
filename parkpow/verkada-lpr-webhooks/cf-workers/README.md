@@ -28,7 +28,8 @@ VERKADA_API_KEY=
 PARKPOW_TOKEN=
 # ParkPow Server URL - Optional (You don't need to define it if you use ParkPow Cloud; otherwise, declare it with the ParkPow On-Premise URL).
 PARKPOW_URL=
-
+# Rollbar Token
+ROLLBAR_TOKEN=
 ```
 4. Run below command to get realtime logs
 ```shell
@@ -39,4 +40,7 @@ npm run logs
 - Create a `.dev.vars` with the env variables required
 - Run `npm run dev` in your terminal to start a development server
 - Open a browser tab at http://localhost:8787/ to see your worker in action
-
+- Test with curl
+    ```shell
+    curl -H 'Content-Type: application/json' -d '{"webhook_type":"lpr","data":{"camera_id":"camera1"}}' -X POST http://localhost:8787/  
+    ```
