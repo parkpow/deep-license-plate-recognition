@@ -29,9 +29,10 @@ const fetchWithRetry = (url, init, tries = 3) =>
         if (response.status === 429)
           throw new Error429("Rate Limited", response);
         if (response.status >= 500 && response.status <= 599)
-          throw new Error5xx(`Server Error`, response);
-        // 2. reject instead of throw, peferred
-        return Promise.reject(response);
+          throw new Error5xx(`Server Error - ${response.status}`, response);
+        // 2. reject instead of throw, preferred
+        const errorMessage = `Unexpected Response: ${response.status} from ${url}`;
+        return Promise.reject(new Error(errorMessage));
       }
     })
     .catch((error) => {
@@ -40,13 +41,13 @@ const fetchWithRetry = (url, init, tries = 3) =>
         (error instanceof Error429 || error instanceof Error5xx) &&
         tries > 0
       ) {
-        console.error(`Retry Response status: ${error.data.status}`);
+        console.error(`Retry Response status: ${error.message}`);
         // if the rate limit is reached or exceeded, the system will have to obey to a 5 second cooldown period before attempting the API requests again.
         const delay = 5100;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
       } else {
-        console.error(`fetchWithRetry error:`, error);
-        throw new Error(error);
+        console.error(error);
+        throw error;
       }
     });
 
@@ -166,7 +167,9 @@ async function processWebhook(data, verkada, parkpow, rollbar) {
       );
     })
     .catch(async (error) => {
+      // Log exceptions and re-throw
       await rollbar.error(error, "Verkada-lpr-webhooks");
+      throw error;
     });
 }
 
