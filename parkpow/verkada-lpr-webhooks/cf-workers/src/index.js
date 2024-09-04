@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import Rollbar from "@triptech/cloudflare-worker-rollbar";
 
 class Error429 extends Error {
   constructor({ message, response }) {
@@ -18,7 +19,7 @@ class Error5xx extends Error {
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
-const fetchWithRetry = (url, init, tries = 2) =>
+const fetchWithRetry = (url, init, tries = 3) =>
   fetch(url, init)
     .then((response) => {
       if (response.ok) {
@@ -28,19 +29,25 @@ const fetchWithRetry = (url, init, tries = 2) =>
         if (response.status === 429)
           throw new Error429("Rate Limited", response);
         if (response.status >= 500 && response.status <= 599)
-          throw new Error5xx(`Server Error`, response);
-        // 2. reject instead of throw, peferred
-        return Promise.reject(response);
+          throw new Error5xx(`Server Error - ${response.status}`, response);
+        // 2. reject instead of throw, preferred
+        const errorMessage = `Unexpected Response: ${response.status} from ${url}`;
+        return Promise.reject(new Error(errorMessage));
       }
     })
     .catch((error) => {
-      console.error(`fetchWithRetry error: ${error}`);
-      if (error instanceof Error429 || error instanceof Error5xx || tries < 1) {
-        throw error;
-      } else {
-        //Retry network error or 5xx errors
-        const delay = 1000;
+      // Retry network error or 5xx errors
+      if (
+        (error instanceof Error429 || error instanceof Error5xx) &&
+        tries > 0
+      ) {
+        console.error(`Retry Response status: ${error.message}`);
+        // if the rate limit is reached or exceeded, the system will have to obey to a 5 second cooldown period before attempting the API requests again.
+        const delay = 5100;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
+      } else {
+        console.error(error);
+        throw error;
       }
     });
 
@@ -137,7 +144,7 @@ class VerkadaApi {
   }
 }
 
-async function processWebhook(data, verkada, parkpow) {
+async function processWebhook(data, verkada, parkpow, rollbar) {
   let cameraId = data["camera_id"];
   let createdAt = data["created"];
   let confidence = data["confidence"];
@@ -158,6 +165,11 @@ async function processWebhook(data, verkada, parkpow) {
         cameraId,
         createdAt,
       );
+    })
+    .catch(async (error) => {
+      // Log exceptions and re-throw
+      await rollbar.error(error, "Verkada-lpr-webhooks");
+      throw error;
     });
 }
 
@@ -193,6 +205,7 @@ export default {
   async queue(batch, env) {
     const verkada = new VerkadaApi(env.VERKADA_API_KEY);
     const parkpow = new ParkPowApi(env.PARKPOW_TOKEN, env.PARKPOW_URL);
+    const rollbar = new Rollbar(env.ROLLBAR_TOKEN, "production");
 
     // A queue consumer can make requests to other endpoints on the Internet,
     // write to R2 object storage, query a D1 Database, and much more.
@@ -200,7 +213,7 @@ export default {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
       const data = message.body["data"];
-      const result = await processWebhook(data, verkada, parkpow);
+      const result = await processWebhook(data, verkada, parkpow, rollbar);
       console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
       // Explicitly acknowledge the message as delivered
       message.ack();
