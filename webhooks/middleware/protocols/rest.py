@@ -1,12 +1,13 @@
 import os
+from typing import Any
 from urllib import parse
 
 import dateutil.parser as dp
 import requests
 
 
-def process_request(json_data, upload_file=None):
-    url = os.getenv("REST_SERVICE_URL")
+def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+    url = os.getenv("REST_SERVICE_URL", "")
 
     timestamp = json_data["data"]["timestamp_local"]
     plate = json_data["data"]["results"][0]["plate"]

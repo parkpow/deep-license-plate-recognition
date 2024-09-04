@@ -1,6 +1,7 @@
 import base64
 import os
 from datetime import datetime
+from typing import Any
 
 from zeep import Client, Transport
 
@@ -44,7 +45,7 @@ def forward_to_SOAP_service(json_data, image):
         return "SOAP request failed."
 
 
-def process_request(json_data, upload_file=None):
+def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
     image_base64 = None
     if upload_file:
         image_base64 = base64.b64encode(upload_file).decode("utf-8")

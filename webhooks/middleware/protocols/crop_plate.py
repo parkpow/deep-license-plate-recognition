@@ -1,6 +1,7 @@
 import json
 import os
 from io import BytesIO
+from typing import Any
 
 import requests
 from PIL import Image
@@ -14,7 +15,7 @@ def crop_image(image_data, crop_box):
     return cropped_image_buffer.getvalue()
 
 
-def process_request(json_data, upload_file=None):
+def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
     if not upload_file:
         return "No file uploaded."
 
@@ -33,7 +34,7 @@ def process_request(json_data, upload_file=None):
     }
     data = {"json": json.dumps(json_data)}
 
-    response = requests.post(os.getenv("WEBHOOK_URL"), data=data, files=files)
+    response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
 
     if response.status_code == 200:
         return "Webhook request sent successfully."

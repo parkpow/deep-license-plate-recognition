@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -43,7 +44,7 @@ def notify_salient(
         lgr.error("Oops: Something Else", err)
 
 
-def process_request(json_data, upload_file=None):
+def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
     username = os.getenv("VMS_USERNAME")
     password = os.getenv("VMS_PASSWORD")
     vms_api_url = os.getenv("VMS_API_URL")

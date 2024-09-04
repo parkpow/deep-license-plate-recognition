@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 from threading import Timer
+from typing import Any
 
 import requests
 
@@ -92,7 +93,7 @@ def parkpow_check_license(license_plate):
         return False
 
 
-def process_request(json_data, upload_file=None):
+def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
     server_host = os.getenv("SERVER_HOST")
     login = os.getenv("LOGIN")
     password = os.getenv("PASSWORD")
@@ -105,7 +106,7 @@ def process_request(json_data, upload_file=None):
         logging.error(
             "Missing required configuration: server_host, password, and login must be set."
         )
-        return "Missing required configuration", 500
+        return "Missing required configuration"
 
     session_create(login, password, server_host, ssl)
     server_id = server_info(server_host, ssl)
@@ -115,7 +116,9 @@ def process_request(json_data, upload_file=None):
     payload = {
         "serverId": server_id,
         "name": license_plate,
-        "description": tag.upper() if parkpow_check_license(license_plate) else "",
+        "description": tag.upper()
+        if parkpow_check_license(license_plate) and tag
+        else "",
         "startTimeMs": convert_to_timestamp_milliseconds(
             json_data["data"]["timestamp_local"]
         ),
@@ -130,7 +133,7 @@ def process_request(json_data, upload_file=None):
         response = session.post(url, json=payload, headers=headers, verify=ssl)
         response.raise_for_status()
         logging.info("Request was successful.")
-        return "Request was successful", response.status_code
+        return "Request was successful"
     except requests.exceptions.RequestException as err:
         logging.error(f"Error processing the request: {err}")
-        return f"Failed to process the request: {err}", 500
+        return f"Failed to process the request: {err}"
