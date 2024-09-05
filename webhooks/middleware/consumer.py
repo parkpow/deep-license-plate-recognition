@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from flask import Flask, jsonify, request
+from waitress import serve
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -78,4 +79,4 @@ if __name__ == "__main__":
         logging.error("Failed to load middleware. Exiting..")
         exit(1)
 
-    app.run(host="0.0.0.0", port=8002)
+    serve(app, host="0.0.0.0", port=8002)
