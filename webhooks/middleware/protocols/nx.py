@@ -93,7 +93,9 @@ def parkpow_check_license(license_plate):
         return False
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     server_host = os.getenv("SERVER_HOST")
     login = os.getenv("LOGIN")
     password = os.getenv("PASSWORD")
@@ -106,7 +108,7 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
         logging.error(
             "Missing required configuration: server_host, password, and login must be set."
         )
-        return "Missing required configuration"
+        return "Missing required configuration", 500
 
     session_create(login, password, server_host, ssl)
     server_id = server_info(server_host, ssl)
@@ -133,7 +135,7 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
         response = session.post(url, json=payload, headers=headers, verify=ssl)
         response.raise_for_status()
         logging.info("Request was successful.")
-        return "Request was successful"
+        return "Request was successful", 200
     except requests.exceptions.RequestException as err:
         logging.error(f"Error processing the request: {err}")
-        return f"Failed to process the request: {err}"
+        return f"Failed to process the request: {err}", 400

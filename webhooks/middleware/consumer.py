@@ -64,8 +64,8 @@ def handle_webhook():
             return jsonify({"error": "Invalid JSON format"}), 400
 
     try:
-        response = middleware.process_request(json_data, upload_file)
-        return jsonify({"message": response}), 200
+        response, status_code = middleware.process_request(json_data, upload_file)
+        return jsonify({"message": response}), status_code
     except Exception as e:
         logging.error(f"Error processing the request: {e}")
         return jsonify({"error": "Error processing the request"}), 500

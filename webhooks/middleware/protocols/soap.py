@@ -40,12 +40,14 @@ def forward_to_SOAP_service(json_data, image):
     response = client.service.PostImage(**request_data)
 
     if response:
-        return "SOAP request successful."
+        return "SOAP request successful.", 200
     else:
-        return "SOAP request failed."
+        return "SOAP request failed.", 400
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     image_base64 = None
     if upload_file:
         image_base64 = base64.b64encode(upload_file).decode("utf-8")

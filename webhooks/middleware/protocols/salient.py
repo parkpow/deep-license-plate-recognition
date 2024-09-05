@@ -44,7 +44,9 @@ def notify_salient(
         lgr.error("Oops: Something Else", err)
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     username = os.getenv("VMS_USERNAME")
     password = os.getenv("VMS_PASSWORD")
     vms_api_url = os.getenv("VMS_API_URL")
@@ -60,8 +62,11 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
         break
 
     if plate:
-        notify_salient(
-            username, password, vms_api_url, camera_uid, camera_id, plate, timestamp
-        )
+        try:
+            notify_salient(
+                username, password, vms_api_url, camera_uid, camera_id, plate, timestamp
+            )
+        except Exception as e:
+            return f"Failed to notify Salient: {e}", 400
 
-    return "OK"
+    return "OK", 200

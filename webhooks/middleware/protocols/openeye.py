@@ -12,7 +12,9 @@ def convert_to_timestamp_microseconds(time_string):
     return timestamp_microseconds
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     # Prepare the payload for the API request
     payload = json.dumps(
         {
@@ -59,7 +61,7 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
     try:
         response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
-        return "Request sent successfully."
+        return "Request sent successfully.", response.status_code
     except requests.exceptions.HTTPError as err:
         print(err)
-        return f"Failed to send request: {err}"
+        return f"Failed to send request: {err}", 400

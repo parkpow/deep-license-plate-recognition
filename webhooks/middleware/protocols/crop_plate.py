@@ -15,9 +15,11 @@ def crop_image(image_data, crop_box):
     return cropped_image_buffer.getvalue()
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     if not upload_file:
-        return "No file uploaded."
+        return "No file uploaded.", 400
 
     plate_bounding_box = json_data["data"]["results"][0]["box"]
     crop_box = (
@@ -37,6 +39,6 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
     response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
 
     if response.status_code == 200:
-        return "Webhook request sent successfully."
+        return "Webhook request sent successfully.", response.status_code
     else:
-        return "Webhook request failed."
+        return "Webhook request failed.", response.status_code

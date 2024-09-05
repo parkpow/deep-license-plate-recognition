@@ -6,7 +6,9 @@ import dateutil.parser as dp
 import requests
 
 
-def process_request(json_data: dict[str, Any], upload_file: bytes | None = None) -> str:
+def process_request(
+    json_data: dict[str, Any], upload_file: bytes | None = None
+) -> tuple[str, int]:
     url = os.getenv("REST_SERVICE_URL", "")
 
     timestamp = json_data["data"]["timestamp_local"]
@@ -16,7 +18,7 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
         parsed_date_time = dp.parse(timestamp)
         timestamp = str(int(parsed_date_time.timestamp()))
     except ValueError:
-        return "Invalid timestamp format."
+        return "Invalid timestamp format.", 400
 
     request_data = {
         "time": timestamp,
@@ -29,6 +31,9 @@ def process_request(json_data: dict[str, Any], upload_file: bytes | None = None)
     response = requests.post(url=url, headers=HEADERS, data=data, verify=False)
 
     if response.status_code == 200:
-        return "rest request successful."
+        return "REST request successful.", response.status_code
     else:
-        return f"rest request failed. Response code: {response.status_code}"
+        return (
+            f"REST request failed. Response code: {response.status_code}",
+            response.status_code,
+        )
