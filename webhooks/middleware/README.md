@@ -6,7 +6,7 @@
 **Description**: Forwards webhook data to a REST service.
 
 **Required Environment Variables**:
-- `MIDDLEWARE_NAME=rest`
+- `MIDDLEWARE_NAME=synology_rest`
 - `REST_SERVICE_URL`: The URL of the REST service.
 
 ### Crop Plate and Forward Middleware
