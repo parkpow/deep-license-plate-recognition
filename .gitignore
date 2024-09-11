@@ -11,3 +11,5 @@ env.txt
 
 .DS_Store
 output/
+
+.env
