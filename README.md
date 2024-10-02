@@ -118,6 +118,33 @@ python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-bl
 
 <br><br><br>
 
+### Plate Background Color
+
+This script `plate_background_color.py` processes vehicle images, crop its license plates to appropriate aspect ratio and sends them to the API for background color prediction. It utilizes Blur for getting plate polygon data and Plate Background Color for color classification.
+
+Install dependencies by running this command `pip install requests==2.32.3 pillow==10.4.0 numpy==2.1.0`
+
+| Arguments              | Description                                                                                 |
+|------------------------|---------------------------------------------------------------------------------------------|
+| --api-key             | Your Blur API key (optional if --sdk-url is provided).                                                                           |
+| --sdk-url             | The URL of the Blur SDK (optional if --api-key is provided).                                                                           |
+| --images             | The directory containing the images to be processed (required).                                                                          |
+| --crop-percentage            | The percentage of the image to crop (between 0.0 and 1.0, required).                                                                          |
+| --output-file            | The file path where results will be saved (required).                                                                          |
+
+```shell
+python plate_background_color.py --help
+
+python plate_background_color.py --api-key YOUR_API_KEY --images /path/to/images --crop-percentage 0.30 --output-file prediction.csv
+
+python plate_background_color.py --sdk-url http://localhost:8001 --images images --crop-percentage 0.40 --output-file prediction.csv
+```
+
+**Important:** If you are using the Blur SDK, please ensure that it is running alongside the Plate Background Color service in the background before executing this script.
+
+
+<br><br><br>
+
 ### Process images from an FTP or SFTP server
 
 You can send images directly to our FTP. See our [FTP integration](https://app.platerecognizer.com/start/camera-software) for details.
