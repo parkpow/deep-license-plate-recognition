@@ -21,7 +21,9 @@ def process_request(
     if not upload_file:
         return "No file uploaded.", 400
 
-    plate_bounding_box = json_data["data"]["results"][0]["box"]
+    data = json_data["data"]["results"][0]
+
+    plate_bounding_box = data.get("box") or data["vehicle"]["box"]
     crop_box = (
         plate_bounding_box["xmin"],
         plate_bounding_box["ymin"],
