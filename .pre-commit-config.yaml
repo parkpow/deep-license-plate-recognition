@@ -22,6 +22,7 @@ repos:
         - --ignore-missing-imports
         additional_dependencies:
         - types-requests
+        - types-python-dateutil
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:

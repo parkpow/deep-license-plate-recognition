@@ -16,6 +16,9 @@ def process_request(
     json_data: dict[str, Any], upload_file: bytes | None = None
 ) -> tuple[str, int]:
     # Prepare the payload for the API request
+    plate = json_data["data"]["results"][0]["plate"]
+    if plate and type(plate) != str:
+        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
     payload = json.dumps(
         {
             "requestDateMicros": convert_to_timestamp_microseconds(
@@ -39,7 +42,7 @@ def process_request(
                         "props": [
                             {
                                 "name": "licensePlate",
-                                "value": json_data["data"]["results"][0]["plate"],
+                                "value": plate,
                             }
                         ],
                     },

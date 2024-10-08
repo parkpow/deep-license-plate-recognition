@@ -16,6 +16,9 @@ def forward_to_SOAP_service(json_data, image):
     timestamp = json_data["data"]["timestamp_local"]
     plate = json_data["data"]["results"][0]["plate"]
     score = json_data["data"]["results"][0]["score"]
+    if plate and type(plate) != str:
+        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
+        score = json_data["data"]["results"][0]["props"]["plate"][0]["score"]
 
     # Format timestamp and filename
     parsed_timestamp = datetime.strptime(timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")

@@ -111,6 +111,10 @@ def process_request(
     ssl = os.getenv("SSL", "False").lower() in ("true", "1", "t")
     tag = os.getenv("TAG")
 
+    plate = json_data["data"]["results"][0]["plate"]
+    if plate and type(plate) != str:
+        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
+
     # Ensure the necessary environment variables are set
     if not server_host or not login or not password:
         logging.error(
@@ -121,7 +125,7 @@ def process_request(
     session_create(login, password, server_host, ssl)
     server_id = server_info(server_host, ssl)
 
-    license_plate = json_data["data"]["results"][0]["plate"].upper()
+    license_plate = plate.upper()
     url = f"{server_host}/rest/v2/devices/{json_data['data']['camera_id']}/bookmarks"
     payload = {
         "serverId": server_id,
