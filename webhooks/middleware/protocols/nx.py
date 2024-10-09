@@ -113,7 +113,7 @@ def process_request(
 
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
-        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
+        plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
     # Ensure the necessary environment variables are set
     if not server_host or not login or not password:

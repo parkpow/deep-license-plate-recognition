@@ -14,7 +14,7 @@ def process_request(
     timestamp = json_data["data"]["timestamp_local"]
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
-        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
+        plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
     try:
         parsed_date_time = dp.parse(timestamp)

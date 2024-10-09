@@ -18,7 +18,7 @@ def process_request(
     # Prepare the payload for the API request
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
-        plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
+        plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
     payload = json.dumps(
         {
             "requestDateMicros": convert_to_timestamp_microseconds(
