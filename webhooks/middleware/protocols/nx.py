@@ -111,7 +111,7 @@ def process_request(
     ssl = os.getenv("SSL", "False").lower() in ("true", "1", "t")
     tag = os.getenv("TAG")
 
-    plate = json_data["data"]["results"][0]["plate"]
+    plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
 

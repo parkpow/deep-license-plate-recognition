@@ -14,8 +14,8 @@ def forward_to_SOAP_service(json_data, image):
     service_key = os.getenv("SOAP_SERVICE_KEY")
 
     timestamp = json_data["data"]["timestamp_local"]
-    plate = json_data["data"]["results"][0]["plate"]
-    score = json_data["data"]["results"][0]["score"]
+    plate = json_data["data"]["results"][0].get("plate")
+    score = json_data["data"]["results"][0].get("score")
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
         score = json_data["data"]["results"][0]["props"]["plate"][0]["score"]

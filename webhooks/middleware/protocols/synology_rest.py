@@ -12,7 +12,7 @@ def process_request(
     url = os.getenv("REST_SERVICE_URL", "")
 
     timestamp = json_data["data"]["timestamp_local"]
-    plate = json_data["data"]["results"][0]["plate"]
+    plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["props"]["plate"][0]["value"]
 
