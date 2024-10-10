@@ -59,6 +59,8 @@ def process_request(
     plate = None
     for result in data.get("results", []):
         plate = result.get("plate")
+        if plate and type(plate) != str:
+            plate = result["plate"]["props"]["plate"][0]["value"]
         break
 
     if plate:
