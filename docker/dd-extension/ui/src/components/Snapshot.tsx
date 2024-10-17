@@ -154,7 +154,7 @@ export default function Snapshot() {
       <Form.Group as={Row} className="mb-3" controlId="snapshotLicense">
         <Form.Label column sm={4}>
           Please enter your{" "}
-          <a href="https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=dd-extension&utm_medium=app" onClick={handleLinkClick}>
+          <a href="https://app.platerecognizer.com/service/snapshot-sdk/" onClick={handleLinkClick}>
             Snapshot License Key
           </a>
           :
