@@ -13,9 +13,7 @@ def verify_token(token, license_key, is_stream=True):
     path = "stream/license" if is_stream else "sdk-webhooks"
     try:
         req = Request(
-            "https://api.platerecognizer.com/v1/{}/{}/".format(
-                path, license_key.strip()
-            )
+            f"https://api.platerecognizer.com/v1/{path}/{license_key.strip()}/"
         )
         req.add_header("Authorization", f"Token {token.strip()}")
         urlopen(req).read()
