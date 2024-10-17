@@ -89,7 +89,7 @@ export default function Stream() {
         <Form.Label column sm={4}>
           Please enter your Plate Recognizer{" "}
           <a
-            href="https://app.platerecognizer.com/accounts/plan/#sdk/?utm_source=dd-extension&utm_medium=app"
+            href="https://app.platerecognizer.com/service/stream/"
             onClick={handleLinkClick}
           >
             API Token
