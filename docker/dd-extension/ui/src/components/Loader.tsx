@@ -1,8 +1,8 @@
 import Spinner from "react-bootstrap/Spinner";
+import React  from 'react';
 
 interface LoaderProps {
   isLoading: boolean;
-
 }
 
 export default function Loader({ isLoading }: LoaderProps) {

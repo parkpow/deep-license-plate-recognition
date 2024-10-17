@@ -1,7 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-// import CssBaseline from "@mui/material/CssBaseline";
-// import { DockerMuiThemeProvider } from "@docker/docker-mui-theme";
 
 import { App } from './App';
 import 'bootstrap/dist/css/bootstrap.min.css';
