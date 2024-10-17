@@ -1,17 +1,11 @@
 import {
-  Container,
   Row,
   Col,
-  Card,
   Button,
-  Alert,
-  Navbar,
-  Nav,
 } from "react-bootstrap";
 
 import Form from "react-bootstrap/Form";
 
-// import { verifyToken } from "./helpers";
 import React, { useState } from "react";
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Loader from "./Loader";
@@ -71,7 +65,7 @@ export default function Snapshot() {
 
   const handleImageChange = (e: any) => {
     setTokenValidated(false);
-    let image: string = e.target.value;
+    const image: string = e.target.value;
     setImage(image);
     const snapshotImageOption: any = snapshotImageOptions.find((element) => {
       return element.value === image;

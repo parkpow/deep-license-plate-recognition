@@ -2,14 +2,8 @@ import React, { useState } from "react";
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Form from "react-bootstrap/Form";
 import {
-  Container,
   Row,
-  Col,
-  Card,
   Button,
-  Alert,
-  Navbar,
-  Nav,
 } from "react-bootstrap";
 
 import Loader from "./Loader";
