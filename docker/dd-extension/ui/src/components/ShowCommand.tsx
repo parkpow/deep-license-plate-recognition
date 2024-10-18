@@ -51,7 +51,7 @@ export default function ShowCommand({
         <div className="mt-3 card" style={{ display: "block" }}>
           <div className="card-body">
             <p className="card-title">
-              You can now start {curlPort?'Snapshot':'Stream'}. Open a terminal and type the command
+              You can now start {curlPort ? 'Snapshot' : 'Stream'}. Open a terminal and type the command
               below. You can save this command for future use.
             </p>
             <code className="card-text d-block">{command}</code>

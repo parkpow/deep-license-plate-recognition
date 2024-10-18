@@ -12,33 +12,33 @@ import Loader from "./Loader";
 import Uninstall from "./Uninstall";
 import Update from "./Update";
 import ShowCommand from "./ShowCommand";
-import {openBrowserUrl} from '../helpers'
+import { openBrowserUrl } from '../helpers'
 
 const countryOptions = [
-    { value: '', label: 'Select country' },
-    { value: 'Global', label: 'Global' },
-    { value: 'egypt', label: 'Egypt' },
-    { value: 'germany', label: 'Germany' },
-    { value: 'japan', label: 'Japan' },
-    { value: 'korea', label: 'Korea' },
-    { value: 'thailand', label: 'Thailand' },
-    { value: 'uae', label: 'United Arab Emirates' },
+  { value: '', label: 'Select country' },
+  { value: 'Global', label: 'Global' },
+  { value: 'egypt', label: 'Egypt' },
+  { value: 'germany', label: 'Germany' },
+  { value: 'japan', label: 'Japan' },
+  { value: 'korea', label: 'Korea' },
+  { value: 'thailand', label: 'Thailand' },
+  { value: 'uae', label: 'United Arab Emirates' },
 ];
 
 const architectureOptionsSnapshot = [
-    { value: 'alpr', label: 'Intel x86 or amd64(x64)' },
-    { value: 'alpr-no-avx', label: 'Intel x86 or amd64(x64) no-avx' },
-    { value: 'alpr-gpu', label: 'Intel x86 or amd64(x64) with Nvidia GPU' },
-    { value: 'alpr-arm', label: 'ARM based CPUs, Raspberry Pi or Apple M1' },
-    { value: 'alpr-jetson', label: 'Nvidia Jetson (with GPU) for Jetpack 4.6 (r32)' },
-    { value: 'alpr-jetson:r35', label: 'Nvidia Jetson (with GPU) for Jetpack 5.x (r35)' },
-    { value: 'alpr-zcu104', label: 'ZCU' },
+  { value: 'alpr', label: 'Intel x86 or amd64(x64)' },
+  { value: 'alpr-no-avx', label: 'Intel x86 or amd64(x64) no-avx' },
+  { value: 'alpr-gpu', label: 'Intel x86 or amd64(x64) with Nvidia GPU' },
+  { value: 'alpr-arm', label: 'ARM based CPUs, Raspberry Pi or Apple M1' },
+  { value: 'alpr-jetson', label: 'Nvidia Jetson (with GPU) for Jetpack 4.6 (r32)' },
+  { value: 'alpr-jetson:r35', label: 'Nvidia Jetson (with GPU) for Jetpack 5.x (r35)' },
+  { value: 'alpr-zcu104', label: 'ZCU' },
 ];
 
 
 export default function Snapshot() {
-      const [licenseKey, setLicenseKey] = useState('');
-    const [token, setToken] = useState('');
+  const [licenseKey, setLicenseKey] = useState('');
+  const [token, setToken] = useState('');
   const [tokenValidated, setTokenValidated] = useState(false);
 
   const [isLoading, setLoading] = useState(false);
@@ -58,19 +58,19 @@ export default function Snapshot() {
     const { name, value } = e.target;
     if (name == "license") {
       setLicenseKey(value);
-    }else if (name == "token"){
+    } else if (name == "token") {
       setToken(value)
-    }else if (name == "port"){
+    } else if (name == "port") {
       setCurlPort(value);
-    }else if (name == "restart-policy"){
+    } else if (name == "restart-policy") {
       setRestartPolicy(value);
     }
   };
 
-  const handleArchitectureChange = (e) => {
-        setTokenValidated(false);
-        setArchitecture(e.target.value);
-    };
+  const handleArchitectureChange = (e:any) => {
+    setTokenValidated(false);
+    setArchitecture(e.target.value);
+  };
 
 
   interface SnapshotData {
@@ -80,44 +80,44 @@ export default function Snapshot() {
     image: string;
   }
   const generateDockerImage = () => {
-      let dockerImage = 'platerecognizer/';
-      if (country === 'Global' || architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx') {
-          dockerImage += `${architecture}`;
-      } else {
-          dockerImage += `${architecture}:${country}`;
-      }
-      setDockerimage(dockerImage)
-      return (dockerImage)
+    let dockerImage = 'platerecognizer/';
+    if (country === 'Global' || architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx') {
+      dockerImage += `${architecture}`;
+    } else {
+      dockerImage += `${architecture}:${country}`;
+    }
+    setDockerimage(dockerImage)
+    return (dockerImage)
   };
-  const generateDockerRunCommand = (dockerImage) => {
+  const generateDockerRunCommand = (dockerImage:any) => {
     let restartOption;
     switch (restartPolicy) {
-        case 'no':
-            restartOption = ''
-            break
-        default:
-            restartOption = `--restart=${restartPolicy} `
-            break
+      case 'no':
+        restartOption = ''
+        break
+      default:
+        restartOption = `--restart=${restartPolicy} `
+        break
     }
     const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
     let platformSpecificCommand = '';
 
     switch (architecture) {
-        case 'alpr-jetson':
-        case 'alpr-jetson:r35':
-            platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
-            break;
-        case 'alpr-gpu':
-            platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-            break;
-        case 'alpr':
-        case 'alpr-no-avx':
-        case 'alpr-arm':
-        case 'alpr-zcu104':
-            platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-            break;
-        default:
-            break;
+      case 'alpr-jetson':
+      case 'alpr-jetson:r35':
+        platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
+        break;
+      case 'alpr-gpu':
+        platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+        break;
+      case 'alpr':
+      case 'alpr-no-avx':
+      case 'alpr-arm':
+      case 'alpr-zcu104':
+        platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+        break;
+      default:
+        break;
     }
 
     setCommand(`${baseCommand} ${platformSpecificCommand}`);
@@ -125,8 +125,8 @@ export default function Snapshot() {
   };
 
   useEffect(() => {
-        const imagem = generateDockerImage()
-        generateDockerRunCommand(imagem)
+    const imagem = generateDockerImage()
+    generateDockerRunCommand(imagem)
   }, [country, architecture, token, licenseKey, restartPolicy]);
 
 
@@ -157,9 +157,9 @@ export default function Snapshot() {
         }
       });
   };
- const handleCountryChange = (e) => {
-   setTokenValidated(false);
-      setCountry(e.target.value);
+  const handleCountryChange = (e: any) => {
+    setTokenValidated(false);
+    setCountry(e.target.value);
   };
   const handleLinkClick = (e: any) => {
     e.preventDefault();
@@ -279,10 +279,10 @@ export default function Snapshot() {
             disabled={architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx'}
           >
             {countryOptions.map((option, index) => (
-                        <option key={index} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
+              <option key={index} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Form.Select>
         </Col>
         <Col sm={5}>
@@ -293,10 +293,10 @@ export default function Snapshot() {
             defaultValue={architecture}
           >
             {architectureOptionsSnapshot.map((option, index) => (
-                        <option key={index} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
+              <option key={index} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Form.Select>
         </Col>
       </Form.Group>

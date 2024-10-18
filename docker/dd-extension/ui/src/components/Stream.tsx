@@ -63,7 +63,7 @@ export default function Stream() {
           // Pull image and update
           ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
             const autoBoot = data['restart-policy'] != 'no'
-              ? " --restart "+data['restart-policy']
+              ? " --restart " + data['restart-policy']
               : "--rm";
             const command = `docker run ${autoBoot} -t -v ${data.streamPath}:/user-data/ -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${STREAM_IMAGE}`;
             setCommand(command);
