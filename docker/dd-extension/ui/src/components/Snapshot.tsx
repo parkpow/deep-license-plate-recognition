@@ -216,7 +216,7 @@ export default function Snapshot() {
             type="radio"
             name="restart-policy"
             label='No (Docker Default)'
-            id='rp1'
+            id='rps1'
             value='no'
             onChange={handleInputChange}
           />
@@ -224,7 +224,7 @@ export default function Snapshot() {
             type="radio"
             name="restart-policy"
             label='Unless Stopped'
-            id='rp2'
+            id='rps2'
             value='unless-stopped'
             onChange={handleInputChange}
           />
@@ -232,7 +232,7 @@ export default function Snapshot() {
             type="radio"
             name="restart-policy"
             label='Always'
-            id='rp3'
+            id='rps3'
             value='always'
             onChange={handleInputChange}
           />
@@ -240,7 +240,7 @@ export default function Snapshot() {
             type="radio"
             name="restart-policy"
             label='On Failure'
-            id='rp4'
+            id='rps4'
             value='on-failure'
             onChange={handleInputChange}
           />
