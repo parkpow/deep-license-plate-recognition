@@ -21,6 +21,7 @@ export default function Stream() {
   const [license, setLicense] = useState<string>("");
   const [tokenValidated, setTokenValidated] = useState(false);
   const [isLoading, setLoading] = useState(false);
+  const [restartPolicy, setRestartPolicy] = useState('no');
 
   const ddClient = useDockerDesktopClient();
 
@@ -41,6 +42,8 @@ export default function Stream() {
     const { name, value } = e.target;
     if (name == "license") {
       setLicense(value);
+    } else if (name == "restart-policy") {
+      setRestartPolicy(value);
     }
     setTokenValidated(false);
   };
@@ -62,8 +65,8 @@ export default function Stream() {
         if (valid) {
           // Pull image and update
           ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
-            const autoBoot = data['restart-policy'] != 'no'
-              ? " --restart " + data['restart-policy']
+            const autoBoot = restartPolicy != 'no'
+              ? " --restart " + restartPolicy
               : "--rm";
             const command = `docker run ${autoBoot} -t -v ${data.streamPath}:/user-data/ -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${STREAM_IMAGE}`;
             setCommand(command);
@@ -150,6 +153,7 @@ export default function Stream() {
             label='No (Docker Default)'
             id='rp1'
             value='no'
+            checked={restartPolicy == 'no'}
             onChange={handleInputChange}
           />
           <Form.Check

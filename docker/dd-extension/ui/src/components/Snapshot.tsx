@@ -40,13 +40,11 @@ export default function Snapshot() {
   const [licenseKey, setLicenseKey] = useState('');
   const [token, setToken] = useState('');
   const [tokenValidated, setTokenValidated] = useState(false);
-
   const [isLoading, setLoading] = useState(false);
+
   const [command, setCommand] = useState<string>("");
-  const [curlPort, setCurlPort] = useState("");
-
+  const [curlPort, setCurlPort] = useState("8080");
   const [dockerimage, setDockerimage] = useState('');
-
   const [country, setCountry] = useState('Global');
   const [architecture, setArchitecture] = useState('alpr');
   const [restartPolicy, setRestartPolicy] = useState('no');
@@ -218,6 +216,7 @@ export default function Snapshot() {
             label='No (Docker Default)'
             id='rps1'
             value='no'
+            checked={restartPolicy == 'no'}
             onChange={handleInputChange}
           />
           <Form.Check

@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Form from "react-bootstrap/Form";
 import {
   Row,
 } from "react-bootstrap";
+import Loader from "./Loader";
 
 interface ShowCommandProps {
   validated: boolean;
@@ -16,6 +17,8 @@ export default function ShowCommand({
   command,
   curlPort,
 }: ShowCommandProps) {
+  const [isRunningCommand, setRunningCommand] = useState(false);
+
   if (!validated) {
     return null;
   }
@@ -30,6 +33,28 @@ export default function ShowCommand({
       .catch((err) => {
         ddClient.desktopUI.toast.error(`Failed to copy text: ${err}`);
       });
+  }
+
+  function runCommand(e: any){
+    setRunningCommand(true);
+    // Generate list of run options
+    console.debug(command);
+    const cmd:any = command.match(/[^ ]+/g)?.slice(2);
+    // Run in the background
+    if (!cmd.includes('-d')){
+      cmd.unshift('-d')
+    }
+
+    ddClient.docker.cli.exec("run", cmd).then(async (result) => {
+      console.debug(result);
+      setRunningCommand(false);
+      ddClient.desktopUI.toast.success('Command Ran Successfully.');
+      await ddClient.desktopUI.navigate.viewContainer(result.stdout.trim())
+    }).catch(e => {
+      setRunningCommand(false);
+      console.error(e);
+      ddClient.desktopUI.toast.error('Failed Run Command.');
+    })
   }
 
   const curlCommand = curlPort ? (
@@ -57,7 +82,15 @@ export default function ShowCommand({
             <code className="card-text d-block">{command}</code>
             <div className="mt-3">
               <button
-                className="btn btn-sm btn-warning"
+                className="btn btn-sm btn-success mx-2"
+                style={{ borderRadius: 15 }}
+                type="button"
+                onClick={runCommand}
+              >
+                <Loader isLoading={isRunningCommand} /> Run
+              </button>
+              <button
+                className="btn btn-sm btn-warning mx-2"
                 style={{ borderRadius: 15 }}
                 type="button"
                 onClick={copyToClipboard}
