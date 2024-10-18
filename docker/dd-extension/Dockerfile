@@ -14,18 +14,6 @@ RUN npm run build
 FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1
 
-LABEL org.opencontainers.image.title="Plate Recognizer Installer" \
-    org.opencontainers.image.description="Plate Recognizer Installer" \
-    org.opencontainers.image.vendor="Plate Recognizer" \
-    com.docker.desktop.extension.api.version="0.3.4" \
-    com.docker.extension.screenshots="" \
-    com.docker.desktop.extension.icon="" \
-    com.docker.extension.detailed-description="" \
-    com.docker.extension.publisher-url="" \
-    com.docker.extension.additional-urls="" \
-    com.docker.extension.categories="" \
-    com.docker.extension.changelog=""
-
 RUN apt-get update\
     && apt-get install --no-install-recommends -y curl \
     && rm -rf /var/lib/apt/lists/*\
@@ -40,6 +28,19 @@ COPY ./backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy source code
 COPY ./backend /app/
+
+LABEL org.opencontainers.image.title="Plate Recognizer Installer" \
+    org.opencontainers.image.description="Plate Recognizer Installer for Stream and Snapshot SDKs" \
+    org.opencontainers.image.vendor="Plate Recognizer" \
+    com.docker.desktop.extension.api.version="0.3.4" \
+    com.docker.extension.screenshots="" \
+    com.docker.desktop.extension.icon="https://platerecognizer.com/wp-content/uploads/2020/07/plate-recognizer-alpr-anpr-logo.png" \
+    com.docker.extension.detailed-description="Select correct docker image and generate command for installing, updating or uninstalling Snapshot or Stream SDK" \
+    com.docker.extension.publisher-url="https://platerecognizer.com/" \
+    com.docker.extension.additional-urls="https://parkpow.com/" \
+    com.docker.extension.categories="utility-tools" \
+    com.docker.extension.changelog="Initial Release" \
+    com.docker.extension.account-info="required"
 
 
 COPY --from=client-builder /ui/build ui

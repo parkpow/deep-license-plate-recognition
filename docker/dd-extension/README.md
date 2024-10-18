@@ -23,6 +23,11 @@ To install the extension, use `make install-extension` **or**:
   docker extension install platerecognizer/installer:latest
 ```
 
+To Publish
+```shell
+  docker buildx build --push --platform=linux/amd64,linux/arm64 --tag=platerecognizer/installer:0.0.1 .
+```
+
 > If you want to automate this command, use the `-f` or `--force` flag to accept the warning message.
 
 To preview the extension in Docker Desktop, open Docker Dashboard once the installation is complete. The left-hand menu displays a new tab with the name of your extension. You can also use `docker extension ls` to see that the extension has been installed successfully.
