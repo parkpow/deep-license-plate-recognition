@@ -14,7 +14,7 @@ export default [
   },
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "no",
+      // "@typescript-eslint/no-explicit-any": "off",
     },
   },
   pluginJs.configs.recommended,
