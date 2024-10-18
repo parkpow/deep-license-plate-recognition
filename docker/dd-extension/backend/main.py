@@ -25,7 +25,12 @@ def verify_token_license():
     lgr.debug(f"verify token data: {request.data}")
     token = request.json.get("token")
     license = request.json.get("license")
-    valid, message = verify_token(token, license, "port" not in request.json)
+    try:
+        valid, message = verify_token(token, license, "port" not in request.json)
+    except ValueError as e:
+        valid = False
+        message = str(e)
+
     lgr.info(f"verify result: {valid} - {message}")
 
     return {"valid": valid, "message": message}

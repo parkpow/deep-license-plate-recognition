@@ -12,6 +12,11 @@ export default [
       globals: globals.browser,
     },
   },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "no",
+    },
+  },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   pluginReact.configs.flat.recommended,
