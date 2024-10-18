@@ -62,8 +62,8 @@ export default function Stream() {
         if (valid) {
           // Pull image and update
           ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
-            const autoBoot = data.startOnBoot
-              ? " --restart unless-stopped"
+            const autoBoot = data['restart-policy'] != 'no'
+              ? " --restart "+data['restart-policy']
               : "--rm";
             const command = `docker run ${autoBoot} -t -v ${data.streamPath}:/user-data/ -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${STREAM_IMAGE}`;
             setCommand(command);
@@ -139,17 +139,45 @@ export default function Stream() {
         </Col>
       </Form.Group>
 
-      <Form.Group as={Row} className="mb-3" controlId="streamRestartPolicy">
+      <Form.Group as={Row} className="mb-3">
         <Form.Label column sm={4}>
-          Do you want Stream to automatically start on system startup?
+          Restart policy
         </Form.Label>
-        <Col sm={8} className="mt-2">
+        <Col sm={8} className="mt-2 d-flex justify-content-between">
           <Form.Check
-            type="switch"
-            name="startOnBoot"
+            type="radio"
+            name="restart-policy"
+            label='No (Docker Default)'
+            id='rp1'
+            value='no'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='Unless Stopped'
+            id='rp2'
+            value='unless-stopped'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='Always'
+            id='rp3'
+            value='always'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='On Failure'
+            id='rp4'
+            value='on-failure'
             onChange={handleInputChange}
           />
         </Col>
+
       </Form.Group>
 
       <ShowCommand curlPort={""} command={command} validated={tokenValidated} />

@@ -6,7 +6,7 @@ import {
 
 import Form from "react-bootstrap/Form";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Loader from "./Loader";
 import Uninstall from "./Uninstall";
@@ -14,64 +14,64 @@ import Update from "./Update";
 import ShowCommand from "./ShowCommand";
 import {openBrowserUrl} from '../helpers'
 
-
-const snapshotImageOptions = [
-  {
-    label: "Intel CPU",
-    value: "platerecognizer/alpr:latest",
-    uninstall: true,
-  },
-  {
-    label: "Raspberry",
-    value: "platerecognizer/alpr-raspberry-pi:latest",
-    uninstall: false,
-  },
-  {
-    label: "GPU (Nvidia Only)",
-    value: "platerecognizer/alpr-gpu:latest",
-    uninstall: false,
-  },
-  {
-    label: "Jetson Nano",
-    value: "platerecognizer/alpr-jetson:latest",
-    uninstall: true,
-  },
-  {
-    label: "ZCU104",
-    value: "platerecognizer/alpr-zcu104:latest",
-    uninstall: false,
-  },
-  {
-    label: "Thailand",
-    value: "platerecognizer/alpr:thailand",
-    uninstall: false,
-  },
+const countryOptions = [
+    { value: '', label: 'Select country' },
+    { value: 'Global', label: 'Global' },
+    { value: 'egypt', label: 'Egypt' },
+    { value: 'germany', label: 'Germany' },
+    { value: 'japan', label: 'Japan' },
+    { value: 'korea', label: 'Korea' },
+    { value: 'thailand', label: 'Thailand' },
+    { value: 'uae', label: 'United Arab Emirates' },
 ];
 
-const DEFAULT_SNAPSHOT_IMAGE = snapshotImageOptions[0]["value"];
+const architectureOptionsSnapshot = [
+    { value: 'alpr', label: 'Intel x86 or amd64(x64)' },
+    { value: 'alpr-no-avx', label: 'Intel x86 or amd64(x64) no-avx' },
+    { value: 'alpr-gpu', label: 'Intel x86 or amd64(x64) with Nvidia GPU' },
+    { value: 'alpr-arm', label: 'ARM based CPUs, Raspberry Pi or Apple M1' },
+    { value: 'alpr-jetson', label: 'Nvidia Jetson (with GPU) for Jetpack 4.6 (r32)' },
+    { value: 'alpr-jetson:r35', label: 'Nvidia Jetson (with GPU) for Jetpack 5.x (r35)' },
+    { value: 'alpr-zcu104', label: 'ZCU' },
+];
+
 
 export default function Snapshot() {
+      const [licenseKey, setLicenseKey] = useState('');
+    const [token, setToken] = useState('');
   const [tokenValidated, setTokenValidated] = useState(false);
-  const [uninstall, setUninstall] = useState(true);
+
   const [isLoading, setLoading] = useState(false);
   const [command, setCommand] = useState<string>("");
   const [curlPort, setCurlPort] = useState("");
-  const [image, setImage] = useState(DEFAULT_SNAPSHOT_IMAGE);
+
+  const [dockerimage, setDockerimage] = useState('');
+
+  const [country, setCountry] = useState('Global');
+  const [architecture, setArchitecture] = useState('alpr');
+  const [restartPolicy, setRestartPolicy] = useState('no');
+
   const ddClient = useDockerDesktopClient();
 
   const handleInputChange = (e: any) => {
     setTokenValidated(false);
+    const { name, value } = e.target;
+    if (name == "license") {
+      setLicenseKey(value);
+    }else if (name == "token"){
+      setToken(value)
+    }else if (name == "port"){
+      setCurlPort(value);
+    }else if (name == "restart-policy"){
+      setRestartPolicy(value);
+    }
   };
 
-  const handleImageChange = (e: any) => {
-    setTokenValidated(false);
-    const image: string = e.target.value;
-    setImage(image);
-    const snapshotImageOption: any = snapshotImageOptions.find((element) => {
-      return element.value === image;
-    });
-    setUninstall(snapshotImageOption.uninstall);
-  };
+  const handleArchitectureChange = (e) => {
+        setTokenValidated(false);
+        setArchitecture(e.target.value);
+    };
+
 
   interface SnapshotData {
     port: string;
@@ -79,6 +79,56 @@ export default function Snapshot() {
     token: string;
     image: string;
   }
+  const generateDockerImage = () => {
+      let dockerImage = 'platerecognizer/';
+      if (country === 'Global' || architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx') {
+          dockerImage += `${architecture}`;
+      } else {
+          dockerImage += `${architecture}:${country}`;
+      }
+      setDockerimage(dockerImage)
+      return (dockerImage)
+  };
+  const generateDockerRunCommand = (dockerImage) => {
+    let restartOption;
+    switch (restartPolicy) {
+        case 'no':
+            restartOption = ''
+            break
+        default:
+            restartOption = `--restart=${restartPolicy} `
+            break
+    }
+    const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
+    let platformSpecificCommand = '';
+
+    switch (architecture) {
+        case 'alpr-jetson':
+        case 'alpr-jetson:r35':
+            platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
+            break;
+        case 'alpr-gpu':
+            platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+            break;
+        case 'alpr':
+        case 'alpr-no-avx':
+        case 'alpr-arm':
+        case 'alpr-zcu104':
+            platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+            break;
+        default:
+            break;
+    }
+
+    setCommand(`${baseCommand} ${platformSpecificCommand}`);
+
+  };
+
+  useEffect(() => {
+        const imagem = generateDockerImage()
+        generateDockerRunCommand(imagem)
+  }, [country, architecture, token, licenseKey, restartPolicy]);
+
 
   const handleSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault();
@@ -87,7 +137,6 @@ export default function Snapshot() {
 
     const data: any = Object.fromEntries(formData.entries());
     // console.log(data);
-    setCurlPort(data.port);
     setLoading(true);
 
     ddClient.extension.vm?.service
@@ -98,16 +147,7 @@ export default function Snapshot() {
         const message = res["message"];
         if (valid) {
           // Pull image and update
-          ddClient.docker.cli.exec("pull", [data.image]).then((result) => {
-            const autoBoot = data.startOnBoot
-              ? " --restart unless-stopped"
-              : "--rm";
-            const gpus = data.image.includes("gpu") ? " --gpus all" : "";
-            const nvidia = data.image.includes("jetson")
-              ? " --runtime nvidia"
-              : "";
-            const command = `docker run${gpus}${nvidia}${autoBoot} -t -p ${data.port}:8080 -v license:/license -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${data.image}`;
-            setCommand(command);
+          ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {
             setTokenValidated(valid);
             setLoading(false);
           });
@@ -117,7 +157,10 @@ export default function Snapshot() {
         }
       });
   };
-
+ const handleCountryChange = (e) => {
+   setTokenValidated(false);
+      setCountry(e.target.value);
+  };
   const handleLinkClick = (e: any) => {
     e.preventDefault();
     openBrowserUrl(ddClient, e.target.href);
@@ -164,17 +207,45 @@ export default function Snapshot() {
         </Col>
       </Form.Group>
 
-      <Form.Group as={Row} className="mb-3" controlId="snapshotRestartPolicy">
+      <Form.Group as={Row} className="mb-3">
         <Form.Label column sm={4}>
-          Start Snapshot automatically on system startup?
+          Restart policy
         </Form.Label>
-        <Col sm={8} className="mt-2">
+        <Col sm={8} className="mt-2 d-flex justify-content-between">
           <Form.Check
-            type="switch"
-            name="startOnBoot"
+            type="radio"
+            name="restart-policy"
+            label='No (Docker Default)'
+            id='rp1'
+            value='no'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='Unless Stopped'
+            id='rp2'
+            value='unless-stopped'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='Always'
+            id='rp3'
+            value='always'
+            onChange={handleInputChange}
+          />
+          <Form.Check
+            type="radio"
+            name="restart-policy"
+            label='On Failure'
+            id='rp4'
+            value='on-failure'
             onChange={handleInputChange}
           />
         </Col>
+
       </Form.Group>
 
       <Form.Group as={Row} className="mb-3" controlId="snapshotPort">
@@ -199,18 +270,33 @@ export default function Snapshot() {
         <Form.Label column sm={4}>
           Docker image to use:
         </Form.Label>
-        <Col sm={8}>
+        <Col sm={4}>
+          <Form.Select
+            aria-label="Snapshot Docker Image Country"
+            onChange={handleCountryChange}
+            name="country"
+            defaultValue={country}
+            disabled={architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx'}
+          >
+            {countryOptions.map((option, index) => (
+                        <option key={index} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+          </Form.Select>
+        </Col>
+        <Col sm={4}>
           <Form.Select
             aria-label="Snapshot Docker Image"
-            onChange={handleImageChange}
+            onChange={handleArchitectureChange}
             name="image"
-            defaultValue={image}
+            defaultValue={architecture}
           >
-            {snapshotImageOptions.map((snapshotImageOption, index) => (
-              <option value={snapshotImageOption.value} key={index}>
-                {snapshotImageOption.label}
-              </option>
-            ))}
+            {architectureOptionsSnapshot.map((option, index) => (
+                        <option key={index} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
           </Form.Select>
         </Col>
       </Form.Group>
@@ -232,8 +318,8 @@ export default function Snapshot() {
         </label>
       </Form.Group>
 
-      <Update isEnabled={uninstall} image={image} />
-      <Uninstall isEnabled={uninstall} image={image} />
+      <Update isEnabled={true} image={dockerimage} />
+      <Uninstall isEnabled={true} image={dockerimage} />
     </Form>
   );
 }
