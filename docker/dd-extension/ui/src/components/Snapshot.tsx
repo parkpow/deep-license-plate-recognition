@@ -270,7 +270,7 @@ export default function Snapshot() {
         <Form.Label column sm={4}>
           Docker image to use:
         </Form.Label>
-        <Col sm={4}>
+        <Col sm={3}>
           <Form.Select
             aria-label="Snapshot Docker Image Country"
             onChange={handleCountryChange}
@@ -285,7 +285,7 @@ export default function Snapshot() {
                     ))}
           </Form.Select>
         </Col>
-        <Col sm={4}>
+        <Col sm={5}>
           <Form.Select
             aria-label="Snapshot Docker Image"
             onChange={handleArchitectureChange}
