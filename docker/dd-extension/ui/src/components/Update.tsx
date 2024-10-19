@@ -22,11 +22,12 @@ export default function Update({ isEnabled, image }: UpdateProps) {
   const [isLoading, setLoading] = useState(false);
   const ddClient = useDockerDesktopClient();
 
-  const handleUpdateImage = (e: any) => {
+  const handleUpdateImage = () => {
     setLoading(true);
     ddClient.docker.cli
       .exec("pull", [image])
       .then((result) => {
+        console.debug(result)
         setLoading(false);
       })
       .catch((err) => {

@@ -24,7 +24,7 @@ export default function ShowCommand({
   }
   const ddClient = useDockerDesktopClient();
 
-  function copyToClipboard(e: any) {
+  function copyToClipboard() {
     navigator.clipboard
       .writeText(command)
       .then(() => {
@@ -35,11 +35,11 @@ export default function ShowCommand({
       });
   }
 
-  function runCommand(e: any){
+  function runCommand(){
     setRunningCommand(true);
     // Generate list of run options
     console.debug(command);
-    const cmd:any = command.match(/[^ ]+/g)?.slice(2) || [];
+    const cmd:Array<string> = command.match(/[^ ]+/g)?.slice(2) || [];
     // Run in the background
     if (!cmd.includes('-d')){
       cmd.unshift('-d')

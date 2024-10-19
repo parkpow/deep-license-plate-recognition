@@ -18,7 +18,7 @@ export default function Uninstall({ isEnabled, image }: UninstallProps) {
   const [isLoading, setLoading] = useState(false);
   const ddClient = useDockerDesktopClient();
 
-  const handleUninstall = (e: any) => {
+  const handleUninstall = () => {
     setLoading(true);
     ddClient.docker.cli
       .exec("ps", [

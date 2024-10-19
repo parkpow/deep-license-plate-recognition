@@ -25,12 +25,12 @@ export default function Stream() {
 
   const ddClient = useDockerDesktopClient();
 
-  const handleLinkClick = (e: any) => {
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    openBrowserUrl(ddClient, e.target.href);
+    openBrowserUrl(ddClient, e.currentTarget.href);
   };
 
-  const handleConfigureClick = (e: any) => {
+  const handleConfigureClick = () => {
     if (license) {
       const url = "https://app.platerecognizer.com/stream-config/" + license;
       openBrowserUrl(ddClient, url);
@@ -38,7 +38,7 @@ export default function Stream() {
       ddClient.desktopUI.toast.error("License Key is required");
     }
   };
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name == "license") {
       setLicense(value);
@@ -48,9 +48,9 @@ export default function Stream() {
     setTokenValidated(false);
   };
 
-  const handleSubmit = async (event: React.SyntheticEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement> ) => {
     event.preventDefault();
-    const form: any = event.target;
+    const form: HTMLFormElement = event.currentTarget;
     const formData = new FormData(form);
 
     const data: any = Object.fromEntries(formData.entries());
@@ -65,6 +65,7 @@ export default function Stream() {
         if (valid) {
           // Pull image and update
           ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
+            console.debug(result)
             const autoBoot = restartPolicy != 'no'
               ? " --restart " + restartPolicy
               : "--rm";

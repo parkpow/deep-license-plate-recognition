@@ -1,9 +1,12 @@
+import logging
+
 try:
     from urllib.error import URLError
     from urllib.request import Request, urlopen
 except ImportError:
     from urllib2 import Request, URLError, urlopen  # type: ignore
-from ssl import SSLError
+
+lgr = logging.getLogger(__name__)
 
 
 def verify_token(token, license_key, is_stream=True):
@@ -18,15 +21,6 @@ def verify_token(token, license_key, is_stream=True):
         req.add_header("Authorization", f"Token {token.strip()}")
         urlopen(req).read()
         return True, None
-
-    except SSLError:
-        req = Request(
-            f"http://api.platerecognizer.com/v1/{path}/{license_key.strip()}/"
-        )
-        req.add_header("Authorization", f"Token {token.strip()}")
-        urlopen(req).read()
-        return True, None
-
     except URLError as e:
         if "404" in str(e):
             return (
@@ -38,3 +32,6 @@ def verify_token(token, license_key, is_stream=True):
 
         else:
             return True, None
+    except Exception as e:
+        lgr.exception(e)
+        return False, str(e)

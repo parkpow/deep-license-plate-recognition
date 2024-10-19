@@ -51,7 +51,7 @@ export default function Snapshot() {
 
   const ddClient = useDockerDesktopClient();
 
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e:  React.ChangeEvent<HTMLInputElement>) => {
     setTokenValidated(false);
     const { name, value } = e.target;
     if (name == "license") {
@@ -65,18 +65,18 @@ export default function Snapshot() {
     }
   };
 
-  const handleArchitectureChange = (e:any) => {
+  const handleArchitectureChange = (e:React.ChangeEvent<HTMLSelectElement>) => {
     setTokenValidated(false);
     setArchitecture(e.target.value);
   };
 
 
-  interface SnapshotData {
-    port: string;
-    license: string;
-    token: string;
-    image: string;
-  }
+  // type SnapshotData = {
+  //   port: string;
+  //   license: string;
+  //   token: string;
+  //   image: string;
+  // }
   const generateDockerImage = () => {
     let dockerImage = 'platerecognizer/';
     if (country === 'Global' || architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx') {
@@ -87,7 +87,7 @@ export default function Snapshot() {
     setDockerimage(dockerImage)
     return (dockerImage)
   };
-  const generateDockerRunCommand = (dockerImage:any) => {
+  const generateDockerRunCommand = (dockerImage:string) => {
     let restartOption;
     switch (restartPolicy) {
       case 'no':
@@ -128,9 +128,9 @@ export default function Snapshot() {
   }, [country, architecture, token, licenseKey, restartPolicy]);
 
 
-  const handleSubmit = async (event: React.SyntheticEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form: any = event.target;
+    const form: HTMLFormElement = event.currentTarget;
     const formData = new FormData(form);
 
     const data: any = Object.fromEntries(formData.entries());
@@ -146,6 +146,7 @@ export default function Snapshot() {
         if (valid) {
           // Pull image and update
           ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {
+            console.debug(result)
             setTokenValidated(valid);
             setLoading(false);
           });
@@ -159,9 +160,9 @@ export default function Snapshot() {
     setTokenValidated(false);
     setCountry(e.target.value);
   };
-  const handleLinkClick = (e: any) => {
+  const handleLinkClick = (e:  React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    openBrowserUrl(ddClient, e.target.href);
+    openBrowserUrl(ddClient, e.currentTarget.href);
   };
   return (
     <Form onSubmit={handleSubmit}>
