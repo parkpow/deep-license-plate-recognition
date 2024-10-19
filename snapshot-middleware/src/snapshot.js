@@ -3,7 +3,7 @@ import { fetchWithRetry } from "./utils";
 export class SnapshotApi {
 	constructor(token, sdkUrl = null) {
 		if (token === null) {
-			throw new Error("Snapshot TOKEN is required if using Cloud API");
+			throw new Error("Snapshot API token is required for authentication.");
 		} else {
 			this.token = token;
 		}
