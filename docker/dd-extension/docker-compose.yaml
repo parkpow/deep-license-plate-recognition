@@ -1,0 +1,3 @@
+services:
+  platerecognizer-installer:
+    image: ${DESKTOP_PLUGIN_IMAGE}
