@@ -3,13 +3,13 @@ import ErrorStackParser from "error-stack-parser";
 
 const rollbarUrl = `https://api.rollbar.com/api/1/item/`;
 
-function Frame(stackFrame) {
+function Frame({ fileName, lineNumber, columnNumber, functionName, args }) {
 	const data = {};
-	data.filename = stackFrame.fileName;
-	data.lineno = stackFrame.lineNumber;
-	data.colno = stackFrame.columnNumber;
-	data.method = stackFrame.functionName;
-	data.args = stackFrame.args;
+	data.filename = fileName;
+	data.lineno = lineNumber;
+	data.colno = columnNumber;
+	data.method = functionName;
+	data.args = args;
 	return data;
 }
 
@@ -47,16 +47,12 @@ var Rollbar = class {
 	}
 
 	error(exceptions, description, timestamp, event, eventLogs, codeVersion) {
-		const traceChain = [];
-		for (const exception of exceptions) {
-			traceChain.push(this.createTrace(description, exception));
-		}
-
-		const telemetry = [];
-		for (const eventLog of eventLogs) {
-			telemetry.push(this.createTelemetry(eventLog));
-		}
-
+		const traceChain = exceptions.map((exception) =>
+			this.createTrace(description, exception),
+		);
+		const telemetry = eventLogs.map((eventLog) =>
+			this.createTelemetry(eventLog),
+		);
 		const rollbarData = {
 			environment: this.environment,
 			body: { telemetry: telemetry, trace_chain: traceChain },
