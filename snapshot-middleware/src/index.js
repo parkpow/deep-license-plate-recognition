@@ -1,5 +1,14 @@
 import { SnapshotApi } from "./snapshot";
 
+function validGenetecEvent(data) {
+	return (
+		"CameraName" in data &&
+		"ContextImage" in data &&
+		"DateUtc" in data &&
+		"TimeUtc" in data
+	);
+}
+
 export default {
 	async fetch(request, env, ctx) {
 		if (request.method === "POST") {
@@ -17,7 +26,7 @@ export default {
 					cameraId = survisionSerialNumber;
 					createdDate = new Date(parseInt(data["anpr"]["@date"])).toISOString(); // sample 1729206290098
 					imageBase64 = data["anpr"]["decision"]["jpeg"];
-				} else {
+				} else if (validGenetecEvent(data)) {
 					cameraId = data["CameraName"];
 					imageBase64 = data["ContextImage"];
 					// "10/01/2022", Format DD/MM/YYYY
@@ -32,6 +41,10 @@ export default {
 						parseInt(minutes),
 						parseInt(seconds),
 					).toISOString();
+				} else {
+					return new Response("Error - Invalid Request Content", {
+						status: 400,
+					});
 				}
 				ctx.waitUntil(
 					env.INCOMING_WEBHOOKS.send({
