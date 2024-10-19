@@ -19,6 +19,9 @@ describe("Hello World worker", () => {
 	});
 
 	it("responds with Hello World! (integration style)", async () => {
+		const request = new Request("http://example.com");
+		// Create an empty context to pass to `worker.fetch()`.
+		const ctx = createExecutionContext();
 		const response = await SELF.fetch(request, env, ctx);
 		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
 	});
