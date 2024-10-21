@@ -20,6 +20,8 @@ npx wrangler queues create snapshot-middleware
 A url will be generated to be used as the webhook target on source such as a camera settings page
 ```shell
 npm run deploy
+# Deploy with a custom name
+npm run deploy -- --name reimaginedparking-middleware
 ```
 To login again `wrangler login`, Logout using `wrangler logout` or delete `.wrangler` folder
 

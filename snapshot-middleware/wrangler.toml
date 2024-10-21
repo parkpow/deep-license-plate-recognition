@@ -6,7 +6,7 @@ compatibility_flags = [ "nodejs_compat" ]
 upload_source_maps = true
 
 # logpush = true
-tail_consumers = [{service = "snapshot-middleware-tail"}]
+tail_consumers = [{service = "rollbar-error-handler"}]
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
