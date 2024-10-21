@@ -16,6 +16,16 @@ function validInt(i) {
 	return parseInt(i, 10);
 }
 
+function requestParams(request) {
+	const { searchParams } = new URL(request.url);
+	return {
+		mmc: searchParams.get("mmc"),
+		camera_id: searchParams.get("camera_id"),
+		regions: searchParams.get("regions"),
+		config: searchParams.get("config"),
+	};
+}
+
 export default {
 	async fetch(request, env, ctx) {
 		if (request.method === "POST") {
@@ -61,6 +71,7 @@ export default {
 						image: imageBase64,
 						cameraId: cameraId,
 						timestamp: createdDate,
+						params: requestParams(request),
 					}),
 				);
 				return new Response("OK!");
@@ -84,6 +95,7 @@ export default {
 				message.body["image"],
 				message.body["cameraId"],
 				message.body["timestamp"],
+				message.body["params"],
 			);
 			console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
 			// Explicitly acknowledge the message as delivered

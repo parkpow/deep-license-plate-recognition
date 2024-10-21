@@ -15,13 +15,28 @@ export class SnapshotApi {
 		console.debug("Api Base: " + this.apiBase);
 	}
 
-	async uploadBase64(encodedImage, camera, timestamp) {
+	async uploadBase64(encodedImage, camera, timestamp, params) {
+		console.debug(params);
 		const endpoint = "/v1/plate-reader/";
 		const body = new FormData();
-		body.set("camera_id", camera);
 		body.set("upload", encodedImage);
 		body.set("timestamp", timestamp);
-		body.set("mmc", "true");
+
+		if (params["camera_id"]) {
+			body.set("camera_id", params["camera_id"]);
+		} else {
+			body.set("camera_id", camera);
+		}
+		if (params["mmc"]) {
+			body.set("mmc", params["mmc"]);
+		}
+		if (params["regions"]) {
+			body.set("regions", params["regions"]);
+		}
+		if (params["config"]) {
+			body.set("config", params["config"]);
+		}
+
 		let init = {
 			body: body,
 			method: "POST",
