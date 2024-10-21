@@ -2,8 +2,8 @@ import { Error429, Error5xx } from "./exceptions";
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
-export const fetchWithRetry = (url, init, tries = 3) =>
-	fetch(url, init)
+export function fetchWithRetry(url, init, tries = 3) {
+	return fetch(url, init)
 		.then(async (response) => {
 			if (response.ok) {
 				return response;
@@ -26,7 +26,7 @@ export const fetchWithRetry = (url, init, tries = 3) =>
 				(error instanceof Error429 || error instanceof Error5xx) &&
 				tries > 0
 			) {
-				console.error(`Retry Response status: ${error.message}`);
+				console.log(`Retrying request: ${tries}`);
 				// if the rate limit is reached or exceeded,
 				const delay = 2000;
 				return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
@@ -34,3 +34,4 @@ export const fetchWithRetry = (url, init, tries = 3) =>
 				throw error;
 			}
 		});
+}
