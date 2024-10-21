@@ -55,7 +55,7 @@ npm run logs
 - Create a `.dev.vars` with the env variables required:
 ```dotenv
 SNAPSHOT_TOKEN=
-SNAPSHOT_URL=
+SNAPSHOT_URL= # Optional
 ROLLBAR_TOKEN= # optional
 ```
 - Run `npm run dev` in your terminal to start a development server
