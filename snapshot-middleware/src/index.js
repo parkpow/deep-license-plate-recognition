@@ -9,6 +9,13 @@ function validGenetecEvent(data) {
 	);
 }
 
+function validInt(i) {
+	if (isNaN(i)) {
+		throw new Error(`Invalid value for time - ${i}`);
+	}
+	return parseInt(i, 10);
+}
+
 export default {
 	async fetch(request, env, ctx) {
 		if (request.method === "POST") {
@@ -26,7 +33,7 @@ export default {
 					cameraId = survisionSerialNumber;
 					// sample 1729206290098
 					createdDate = new Date(
-						parseInt(data["anpr"]["@date"], 10),
+						validInt(data["anpr"]["@date"], 10),
 					).toISOString();
 					imageBase64 = data["anpr"]["decision"]["jpeg"];
 				} else if (validGenetecEvent(data)) {
@@ -37,12 +44,12 @@ export default {
 					//  "11:49:22", Format HH/MM/SS
 					let [hours, minutes, seconds] = data["TimeUtc"].split(":");
 					createdDate = new Date(
-						parseInt(year, 10),
-						parseInt(month, 10),
-						parseInt(day, 10),
-						parseInt(hours, 10),
-						parseInt(minutes, 10),
-						parseInt(seconds, 10),
+						validInt(year, 10),
+						validInt(month, 10),
+						validInt(day, 10),
+						validInt(hours, 10),
+						validInt(minutes, 10),
+						validInt(seconds, 10),
 					).toISOString();
 				} else {
 					return new Response("Error - Invalid Request Content", {
