@@ -2,7 +2,6 @@ name: Code Review GPT
 
 on:
   pull_request:
-    types: [opened, reopened, review_requested]
     branches: [master]
   pull_request_review_comment:
     types: [ created ]
