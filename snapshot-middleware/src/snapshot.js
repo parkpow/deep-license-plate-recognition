@@ -29,6 +29,8 @@ export class SnapshotApi {
 		}
 		if (params["mmc"]) {
 			body.set("mmc", params["mmc"]);
+		} else {
+			body.set("mmc", "true");
 		}
 		if (params["regions"]) {
 			body.set("regions", params["regions"]);
