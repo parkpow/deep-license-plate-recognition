@@ -21,6 +21,7 @@ export class SnapshotApi {
 		body.set("camera_id", camera);
 		body.set("upload", encodedImage);
 		body.set("timestamp", timestamp);
+		body.set("mmc", "true");
 		let init = {
 			body: body,
 			method: "POST",
