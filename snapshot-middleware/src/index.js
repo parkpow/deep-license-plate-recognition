@@ -13,7 +13,7 @@ export default {
 	async fetch(request, env, ctx) {
 		if (request.method === "POST") {
 			const contentType = request.headers.get("content-type");
-			if (contentType.includes("application/json")) {
+			if (contentType?.includes("application/json")) {
 				const data = await request.json();
 				console.debug(data);
 				let cameraId = null;
@@ -24,7 +24,10 @@ export default {
 				);
 				if (survisionSerialNumber) {
 					cameraId = survisionSerialNumber;
-					createdDate = new Date(parseInt(data["anpr"]["@date"])).toISOString(); // sample 1729206290098
+					// sample 1729206290098
+					createdDate = new Date(
+						parseInt(data["anpr"]["@date"], 10),
+					).toISOString();
 					imageBase64 = data["anpr"]["decision"]["jpeg"];
 				} else if (validGenetecEvent(data)) {
 					cameraId = data["CameraName"];
@@ -34,12 +37,12 @@ export default {
 					//  "11:49:22", Format HH/MM/SS
 					let [hours, minutes, seconds] = data["TimeUtc"].split(":");
 					createdDate = new Date(
-						parseInt(year),
-						parseInt(month),
-						parseInt(day),
-						parseInt(hours),
-						parseInt(minutes),
-						parseInt(seconds),
+						parseInt(year, 10),
+						parseInt(month, 10),
+						parseInt(day, 10),
+						parseInt(hours, 10),
+						parseInt(minutes, 10),
+						parseInt(seconds, 10),
 					).toISOString();
 				} else {
 					return new Response("Error - Invalid Request Content", {

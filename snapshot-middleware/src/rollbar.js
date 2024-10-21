@@ -3,7 +3,7 @@ import ErrorStackParser from "error-stack-parser";
 
 const rollbarUrl = `https://api.rollbar.com/api/1/item/`;
 
-function Frame({ fileName, lineNumber, columnNumber, functionName, args }) {
+const Frame = ({ fileName, lineNumber, columnNumber, functionName, args }) => {
 	const data = {};
 	data.filename = fileName;
 	data.lineno = lineNumber;
@@ -11,12 +11,12 @@ function Frame({ fileName, lineNumber, columnNumber, functionName, args }) {
 	data.method = functionName;
 	data.args = args;
 	return data;
-}
+};
 
 var Rollbar = class {
 	constructor(token, environment) {
 		if (!token) {
-			return;
+			throw new Error("Token is required for Rollbar initialization");
 		}
 		this.token = token;
 		this.environment = environment != null ? environment : "production";
