@@ -52,7 +52,12 @@ npm run logs
 ```
 
 ## Local development
-- Create a `.dev.vars` with the env variables required
+- Create a `.dev.vars` with the env variables required:
+```dotenv
+SNAPSHOT_TOKEN=
+SNAPSHOT_URL=
+ROLLBAR_TOKEN= # optional
+```
 - Run `npm run dev` in your terminal to start a development server
 - Open a browser tab at http://localhost:8787/ to see your worker in action
 - Test with curl

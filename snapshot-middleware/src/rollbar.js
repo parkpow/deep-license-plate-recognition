@@ -13,7 +13,7 @@ const Frame = ({ fileName, lineNumber, columnNumber, functionName, args }) => {
 	return data;
 };
 
-var Rollbar = class {
+class Rollbar {
 	constructor(token, environment) {
 		if (!token) {
 			throw new Error("Token is required for Rollbar initialization");
@@ -84,7 +84,7 @@ var Rollbar = class {
 		};
 		return fetchWithRetry(rollbarUrl, init).then((response) => response.json());
 	}
-};
+}
 
 export default {
 	async tail(events, env, ctx) {
