@@ -91,6 +91,8 @@ export default {
 	async queue(batch, env) {
 		const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
 		for (const message of batch.messages) {
+			lgr.info("Processing Queue Message:");
+			lgr.info(message.body);
 			const result = await snapshot.uploadBase64(
 				message.body["image"],
 				message.body["cameraId"],
