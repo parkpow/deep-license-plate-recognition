@@ -23,9 +23,23 @@ class Rollbar {
 	}
 
 	createTrace(description, exception) {
-		const stack = ErrorStackParser.parse(exception);
+		let stackFrames = null;
+		try {
+			const stack = ErrorStackParser.parse(exception);
+			stackFrames = stack.map((stackFrame) => Frame(stackFrame));
+		} catch (e) {
+			stackFrames = [
+				Frame({
+					fileName: "index.js",
+					lineNumber: null,
+					columnNumber: null,
+					functionName: null,
+					args: null,
+				}),
+			];
+		}
 		return {
-			frames: stack.map((stackFrame) => Frame(stackFrame)),
+			frames: stackFrames,
 			exception: {
 				class: exception.name,
 				message: exception.message,

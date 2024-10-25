@@ -32,7 +32,6 @@ export default {
 			const contentType = request.headers.get("content-type");
 			if (contentType?.includes("application/json")) {
 				const data = await request.json();
-				console.debug(data);
 				let cameraId = null;
 				let imageBase64 = null;
 				let createdDate = null;
@@ -46,11 +45,19 @@ export default {
 						validInt(data["anpr"]["@date"], 10),
 					).toISOString();
 					imageBase64 = data["anpr"]["decision"]["jpeg"];
+					ctx.waitUntil(
+						env.INCOMING_WEBHOOKS.send({
+							image: imageBase64,
+							cameraId: cameraId,
+							timestamp: createdDate,
+							params: requestParams(request),
+						}),
+					);
 				} else if (validGenetecEvent(data)) {
 					cameraId = data["CameraName"];
 					imageBase64 = data["ContextImage"];
 					// "10/01/2022", Format DD/MM/YYYY
-					let [day, month, year] = data["DateUtc"].split("/");
+					let [month, day, year] = data["DateUtc"].split("/");
 					//  "11:49:22", Format HH/MM/SS
 					let [hours, minutes, seconds] = data["TimeUtc"].split(":");
 					createdDate = new Date(
@@ -61,19 +68,24 @@ export default {
 						validInt(minutes, 10),
 						validInt(seconds, 10),
 					).toISOString();
+					// Gentec camera data is larger than the queue limit (128 KB), we send directly
+					const snapshot = new SnapshotApi(
+						env.SNAPSHOT_TOKEN,
+						env.SNAPSHOT_URL,
+					);
+					ctx.waitUntil(
+						snapshot.uploadBase64(
+							imageBase64,
+							cameraId,
+							createdDate,
+							requestParams(request),
+						),
+					);
 				} else {
 					return new Response("Error - Invalid Request Content", {
 						status: 400,
 					});
 				}
-				ctx.waitUntil(
-					env.INCOMING_WEBHOOKS.send({
-						image: imageBase64,
-						cameraId: cameraId,
-						timestamp: createdDate,
-						params: requestParams(request),
-					}),
-				);
 				return new Response("OK!");
 			} else {
 				return new Response(
@@ -92,7 +104,7 @@ export default {
 		const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
 		for (const message of batch.messages) {
 			console.info("Processing Queue Message:");
-			console.info(message.body);
+			console.info(message.body["cameraId"]);
 			const result = await snapshot.uploadBase64(
 				message.body["image"],
 				message.body["cameraId"],
