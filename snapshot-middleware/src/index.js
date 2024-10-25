@@ -35,6 +35,7 @@ export default {
 				let cameraId = null;
 				let imageBase64 = null;
 				let createdDate = null;
+				const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
 				const survisionSerialNumber = request.headers.get(
 					"survision-serial-number",
 				);
@@ -46,12 +47,12 @@ export default {
 					).toISOString();
 					imageBase64 = data["anpr"]["decision"]["jpeg"];
 					ctx.waitUntil(
-						env.INCOMING_WEBHOOKS.send({
-							image: imageBase64,
-							cameraId: cameraId,
-							timestamp: createdDate,
-							params: requestParams(request),
-						}),
+						snapshot.uploadBase64(
+							imageBase64,
+							cameraId,
+							createdDate,
+							requestParams(request),
+						),
 					);
 				} else if (validGenetecEvent(data)) {
 					cameraId = data["CameraName"];
@@ -69,10 +70,6 @@ export default {
 						validInt(seconds, 10),
 					).toISOString();
 					// Gentec camera data is larger than the queue limit (128 KB), we send directly
-					const snapshot = new SnapshotApi(
-						env.SNAPSHOT_TOKEN,
-						env.SNAPSHOT_URL,
-					);
 					ctx.waitUntil(
 						snapshot.uploadBase64(
 							imageBase64,
