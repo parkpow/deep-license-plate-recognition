@@ -63,7 +63,7 @@ export default {
 					let [hours, minutes, seconds] = data["TimeUtc"].split(":");
 					createdDate = new Date(
 						validInt(year, 10),
-						validInt(month, 10),
+						validInt(month, 10) - 1,
 						validInt(day, 10),
 						validInt(hours, 10),
 						validInt(minutes, 10),
