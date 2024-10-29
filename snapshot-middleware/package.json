@@ -1,0 +1,22 @@
+{
+  "name": "snapshot-middleware",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:rollbar": "wrangler deploy -c rollbar.toml",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "logs": "wrangler tail",
+    "test": "vitest"
+  },
+  "dependencies": {
+     "error-stack-parser": "^2.1.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.2",
+    "wrangler": "^3.81.0",
+    "vitest": "2.0.5"
+
+  }
+}

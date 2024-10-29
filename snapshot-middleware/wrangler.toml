@@ -1,0 +1,32 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "snapshot-middleware"
+main = "src/index.js"
+compatibility_date = "2024-10-11"
+compatibility_flags = [ "nodejs_compat" ]
+upload_source_maps = true
+
+# logpush = true
+tail_consumers = [{service = "rollbar-error-handler"}]
+
+# Workers Logs
+# Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+# Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
+[observability]
+enabled = true
+
+
+# Bind a Queue producer. Use this binding to schedule an arbitrary task that may be processed later by a Queue consumer.
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#queues
+[[queues.producers]]
+	binding = "INCOMING_WEBHOOKS"
+	queue = "snapshot-middleware"
+
+# Bind a Queue consumer. Queue Consumers can retrieve tasks scheduled by Producers to act on them.
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#queues
+[[queues.consumers]]
+	queue = "snapshot-middleware"
+	# Optional: Configure batching and retries: https://developers.cloudflare.com/queues/learning/batching-retries/
+	# max_batch_size = 10
+	# max_batch_timeout = 30
+	# max_retries = 10
+	# dead_letter_queue = "my-queue-dlq"
