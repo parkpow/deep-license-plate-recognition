@@ -68,7 +68,7 @@ docker run -e URL=http://MY_IP_ADDRESS:8001 platerecognizer/webhook-tester
 
 3. Configure the webhook on Platerecognizer.
    - In Stream, edit your `config.ini`, add the following to a camera: `webhook_target = http://MY_IP_ADDRESS:8001/`
-   - For Snapshot, open [Webhooks Configuration](https://app.platerecognizer.com/accounts/webhooks/).
+   - For Snapshot, open [Webhooks Configuration](https://app.platerecognizer.com/service/snapshot-cloud/webhooks/).
 
 ## Home Assistant
 
@@ -182,7 +182,7 @@ timezone = UTC
 
 ### Snapshot Webhook Configuration
 
-Follow the instructions [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to configure the webhook middleware URL as the target in Plate Recognizer [webhooks settings](https://app.platerecognizer.com/webhooks/cloud/) (e.g.: `http://192.168.0.180:8002`).
+Follow the instructions [here](https://guides.platerecognizer.com/docs/snapshot/api-reference#webhooks) to configure the webhook middleware URL as the target in Plate Recognizer [webhooks settings](https://app.platerecognizer.com/service/snapshot-cloud/webhooks/) (e.g.: `http://192.168.0.180:8002`).
 
 ## Forward Stream Webhook Events to Synology API
 
@@ -250,4 +250,3 @@ You can also use the `mail.py` file as a foundation for integrating other inform
 
 ## Webhook Salient CompleteView
 [This project](webhook_salient/README.md) uses Stream webhooks to send license plate data to your CompleteView VMS.
-
