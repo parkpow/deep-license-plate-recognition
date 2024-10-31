@@ -10,16 +10,6 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
     - [C# / .Net Framework v4.8:](#c--net-framework-v48)
   - [Sending Data to the Webhook Receiver](#sending-data-to-the-webhook-receiver)
   - [Home Assistant](#home-assistant)
-  - [Stream and OpenEye](#stream-and-openeye)
-    - [Start the Webhook Server](#start-the-webhook-server)
-    - [Start Stream](#start-stream)
-  - [Receive and Forward Webhook data to a SOAP service](#receive-and-forward-webhook-data-to-a-soap-service)
-    - [Required Parameters](#required-parameters)
-    - [Command Execution Format](#command-execution-format)
-    - [Stream Webhook Configuration](#stream-webhook-configuration)
-    - [Snapshot Webhook Configuration](#snapshot-webhook-configuration)
-  - [Forward Stream Webhook Events to Synology API](#forward-stream-webhook-events-to-synology-api)
-  - [Extract license plate image from webhook and forward to another endpoint](#extract-license-plate-image-from-webhook-and-forward-to-another-endpoint)
   - [Webhook via AWS Lambda](#webhook-via-aws-lambda)
 
 ## Sample Code
