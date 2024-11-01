@@ -11,6 +11,7 @@ Plate Recognizer lets you forward the inference results to a third party. Here a
   - [Sending Data to the Webhook Receiver](#sending-data-to-the-webhook-receiver)
   - [Home Assistant](#home-assistant)
   - [Webhook via AWS Lambda](#webhook-via-aws-lambda)
+  - [Webhook Middleware](#webhook-middleware)
 
 ## Sample Code
 
@@ -238,5 +239,5 @@ You can also use the `mail.py` file as a foundation for integrating other inform
 ## Webhook via AWS Lambda
 [This guide](webhook_lambda/) aims to provide you with a minimum sample to receive webhook data from Snapshot/Stream on your AWS Lambda instance.
 
-## Webhook Salient CompleteView
-[This project](webhook_salient/README.md) uses Stream webhooks to send license plate data to your CompleteView VMS.
+## Webhook Middleware
+[This guide](https://guides.platerecognizer.com/docs/stream/integrations) will help you integrate webhooks into your applications.
