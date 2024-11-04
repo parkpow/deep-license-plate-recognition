@@ -125,7 +125,7 @@ export default function Snapshot() {
   useEffect(() => {
     const imagem = generateDockerImage()
     generateDockerRunCommand(imagem)
-  }, [country, architecture, token, licenseKey, restartPolicy]);
+  }, [country, architecture, token, curlPort, licenseKey, restartPolicy]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -166,8 +166,6 @@ export default function Snapshot() {
   };
   return (
     <Form onSubmit={handleSubmit}>
-      <Loader isLoading={isLoading} />
-
       <Form.Group as={Row} className="mb-3" controlId="snapshotToken">
         <Form.Label column sm={4}>
           Please enter your Plate Recognizer{" "}
@@ -260,7 +258,7 @@ export default function Snapshot() {
             placeholder="Port"
             name="port"
             required
-            defaultValue={8080}
+            value={curlPort}
             onChange={handleInputChange}
           />
         </Col>
@@ -310,6 +308,7 @@ export default function Snapshot() {
       <Form.Group as={Row} className="mb-3">
         <div className="col-2">
           <Button className="btn btn-primary" type="submit">
+            <Loader isLoading={isLoading} />
             Show Docker Command
           </Button>
         </div>
