@@ -53,7 +53,7 @@ export default function ShowCommand({
     }).catch(e => {
       setRunningCommand(false);
       console.error(e);
-      ddClient.desktopUI.toast.error(`Run Command Failled: ${e.stderr.trim()}`);
+      ddClient.desktopUI.toast.error(`Run Command Failed: ${e.stderr.trim()}`);
     })
   }
 
