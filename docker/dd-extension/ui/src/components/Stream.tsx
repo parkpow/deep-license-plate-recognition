@@ -83,7 +83,6 @@ export default function Stream() {
 
   return (
     <Form onSubmit={handleSubmit}>
-      <Loader isLoading={isLoading} />
       <Form.Group as={Row} className="mb-3" controlId="streamToken">
         <Form.Label column sm={4}>
           Please enter your Plate Recognizer{" "}
@@ -208,6 +207,7 @@ export default function Stream() {
       <Form.Group as={Row} className="mb-3">
         <div className="col-2">
           <Button className="btn btn-primary" type="submit">
+            <Loader isLoading={isLoading} />
             Show Docker Command
           </Button>
         </div>
