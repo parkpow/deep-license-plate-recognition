@@ -1,7 +1,7 @@
 
 ## Middlewares
 
-Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integrations) to get started with the middlewares.
+Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integrations/middleware) to get started with the middlewares.
 
 ## How to Run
 
