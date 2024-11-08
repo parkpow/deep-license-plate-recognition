@@ -3,7 +3,7 @@ import {
   Col,
   Button,
 } from "react-bootstrap";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 
@@ -19,6 +19,8 @@ export default function Stream() {
   const STREAM_IMAGE = "platerecognizer/alpr-stream";
   const [command, setCommand] = useState<string>("");
   const [license, setLicense] = useState<string>("");
+  const [token, setToken] = useState<string>("");
+  const [streamPath, setStreamPath] = useState<string>("");
   const [tokenValidated, setTokenValidated] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [restartPolicy, setRestartPolicy] = useState('no');
@@ -44,6 +46,10 @@ export default function Stream() {
       setLicense(value);
     } else if (name == "restart-policy") {
       setRestartPolicy(value);
+    } else if (name == "token") {
+      setToken(value);
+    }else if (name == "streamPath") {
+      setStreamPath(value);
     }
     setTokenValidated(false);
   };
@@ -63,6 +69,12 @@ export default function Stream() {
         const valid = res["valid"];
         const message = res["message"];
         if (valid) {
+          localStorage.setItem('stream', JSON.stringify({
+            token:token,
+            streamPath:streamPath,
+            restartPolicy:restartPolicy,
+            license:license,
+          }));
           // Pull image and update
           ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
             console.debug(result)
@@ -80,6 +92,18 @@ export default function Stream() {
         }
       });
   };
+
+  // Load any existing data from local storage on component mount
+  useEffect(() => {
+    const storedData = localStorage.getItem('stream');
+    if (storedData) {
+      const streamData = JSON.parse(storedData);
+      setToken(streamData.token);
+      setStreamPath(streamData.streamPath);
+      setRestartPolicy(streamData.restartPolicy);
+      setLicense(streamData.license);
+    }
+  }, []);
 
   return (
     <Form onSubmit={handleSubmit}>
@@ -100,6 +124,7 @@ export default function Stream() {
             placeholder="Token"
             required
             name="token"
+            value={token}
             onChange={handleInputChange}
           />
         </Col>
@@ -122,6 +147,7 @@ export default function Stream() {
             placeholder="License Key"
             required
             name="license"
+            value={license}
             onChange={handleInputChange}
           />
         </Col>
@@ -137,6 +163,7 @@ export default function Stream() {
             placeholder="Path to directory"
             required
             name="streamPath"
+            value={streamPath}
             onChange={handleInputChange}
           />
         </Col>
@@ -162,6 +189,7 @@ export default function Stream() {
             label='Unless Stopped'
             id='rp2'
             value='unless-stopped'
+            checked={restartPolicy == 'unless-stopped'}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -170,6 +198,7 @@ export default function Stream() {
             label='Always'
             id='rp3'
             value='always'
+            checked={restartPolicy == 'always'}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -178,6 +207,7 @@ export default function Stream() {
             label='On Failure'
             id='rp4'
             value='on-failure'
+            checked={restartPolicy == 'on-failure'}
             onChange={handleInputChange}
           />
         </Col>

@@ -127,6 +127,20 @@ export default function Snapshot() {
     generateDockerRunCommand(imagem)
   }, [country, architecture, token, curlPort, licenseKey, restartPolicy]);
 
+  // Load any existing data from local storage on component mount
+  useEffect(() => {
+    const storedData = localStorage.getItem('snapshot');
+    if (storedData) {
+      const snapshotData = JSON.parse(storedData);
+      setToken(snapshotData.token);
+      setLicenseKey(snapshotData.license);
+      setRestartPolicy(snapshotData.restartPolicy);
+      setCurlPort(snapshotData.curlPort);
+      setCountry(snapshotData.country);
+      setArchitecture(snapshotData.architecture);
+    }
+  }, []);
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -144,6 +158,14 @@ export default function Snapshot() {
         const valid = res["valid"];
         const message = res["message"];
         if (valid) {
+          localStorage.setItem('snapshot', JSON.stringify({
+            token:token,
+            license:licenseKey,
+            restartPolicy:restartPolicy,
+            curlPort:curlPort,
+            country:country,
+            architecture:architecture            
+          }));
           // Pull image and update
           ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {
             console.debug(result)
@@ -180,6 +202,7 @@ export default function Snapshot() {
             placeholder="Token"
             required
             name="token"
+            value={token}
             onChange={handleInputChange}
           />
         </Col>
@@ -198,6 +221,7 @@ export default function Snapshot() {
             type="text"
             placeholder="License Key"
             required
+            value={licenseKey}
             name="license"
             onChange={handleInputChange}
           />
@@ -224,6 +248,7 @@ export default function Snapshot() {
             label='Unless Stopped'
             id='rps2'
             value='unless-stopped'
+            checked={restartPolicy == 'unless-stopped'}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -232,6 +257,7 @@ export default function Snapshot() {
             label='Always'
             id='rps3'
             value='always'
+            checked={restartPolicy == 'always'}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -240,6 +266,7 @@ export default function Snapshot() {
             label='On Failure'
             id='rps4'
             value='on-failure'
+            checked={restartPolicy == 'on-failure'}
             onChange={handleInputChange}
           />
         </Col>
