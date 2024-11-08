@@ -98,10 +98,10 @@ export default function Stream() {
     const storedData = localStorage.getItem('stream');
     if (storedData) {
       const streamData = JSON.parse(storedData);
-      setToken(streamData.token);
-      setStreamPath(streamData.streamPath);
-      setRestartPolicy(streamData.restartPolicy);
-      setLicense(streamData.license);
+      setToken(streamData?.token);
+      setStreamPath(streamData?.streamPath);
+      setRestartPolicy(streamData?.restartPolicy);
+      setLicense(streamData?.license);
     }
   }, []);
 

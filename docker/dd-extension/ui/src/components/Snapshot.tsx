@@ -132,12 +132,12 @@ export default function Snapshot() {
     const storedData = localStorage.getItem('snapshot');
     if (storedData) {
       const snapshotData = JSON.parse(storedData);
-      setToken(snapshotData.token);
-      setLicenseKey(snapshotData.license);
-      setRestartPolicy(snapshotData.restartPolicy);
-      setCurlPort(snapshotData.curlPort);
-      setCountry(snapshotData.country);
-      setArchitecture(snapshotData.architecture);
+      setToken(snapshotData?.token);
+      setLicenseKey(snapshotData?.license);
+      setRestartPolicy(snapshotData?.restartPolicy);
+      setCurlPort(snapshotData?.curlPort);
+      setCountry(snapshotData?.country);
+      setArchitecture(snapshotData?.architecture);
     }
   }, []);
 
