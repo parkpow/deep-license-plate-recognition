@@ -30,7 +30,8 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
+      const cntLength = validInt(request.headers.get("content-length"), 10);
+      if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
         let cameraId = null;
         let imageBase64 = null;
@@ -86,7 +87,7 @@ export default {
         return new Response("OK!");
       } else {
         return new Response(
-          "Error - Invalid Content Type, Expected application/json ",
+          "Error - Expected Content-Type application/json and Content-Length > 0",
           { status: 400 },
         );
       }
