@@ -87,7 +87,7 @@ export default {
         return new Response("OK!");
       } else {
         return new Response(
-          "Error - Invalid Content Type, Expected application/json ",
+          "Error - Expected Content-Type application/json and Content-Length > 0",
           { status: 400 },
         );
       }
