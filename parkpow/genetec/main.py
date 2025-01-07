@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import threading
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import partial
@@ -38,7 +39,7 @@ class WebhookQueue:
         self.api = api
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    def enqueue(self, data):
+    def enqueue(self, data, params):
         camera_id = data["CameraName"]
         image_base_64 = data["ContextImage"]
         # "10/01/2022", Format DD/MM/YYYY
@@ -121,10 +122,23 @@ class WebhookQueue:
         elif isinstance(self.api, Snapshot):
             event_data = {
                 "upload": image_base_64,
-                "camera_id": camera_id,
                 "timestamp": created_date.isoformat(),
-                # 'params': {} # TODO include extra params in URL
             }
+            # include extra params in URL
+            if "camera_id" in params:
+                event_data["camera_id"] = params["camera_id"][0]
+            else:
+                event_data["camera_id"] = camera_id
+            if "mmc" in params:
+                event_data["mmc"] = params["mmc"][0]
+            else:
+                event_data["mmc"] = "true"
+            if "regions" in params:
+                event_data["regions"] = params["regions"][0]
+
+            if "config" in params:
+                event_data["config"] = params["config"][0]
+
         else:
             # should never happen
             raise NotImplementedError
@@ -182,7 +196,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             lgr.debug(f"raw_data: {raw_data}")
             data = json.loads(raw_data)
             if Genetec.validate(data):
-                self.wq.enqueue(data)
+                query = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query)
+                self.wq.enqueue(data, params)
                 res = "OK"
             else:
                 res = "Unexpected Genetec Format"
