@@ -31,7 +31,7 @@ class Snapshot:
     def __init__(self, token, sdk_url=None):
         self.sdk_url = sdk_url
         if token is None:
-            raise Exception("A TOKEN is required if using Cloud API")
+            raise ValueError("A TOKEN is required if using Cloud API")
         else:
             self.session = requests.Session()
             self.session.headers = {"Authorization": "Token " + token}
@@ -82,7 +82,7 @@ class Snapshot:
 class ParkPowApi:
     def __init__(self, token, sdk_url=None):
         if token is None:
-            raise Exception("ParkPow TOKEN is required if using Cloud API")
+            raise ValueError("ParkPow TOKEN is required if using Cloud API")
         if sdk_url:
             self.api_base = sdk_url + "/api/v1/"
         else:
@@ -105,7 +105,7 @@ class ParkPowApi:
                         time.sleep(1)
                     else:
                         lgr.error(response.text)
-                        raise Exception("Error logging vehicle")
+                        raise RuntimeError("Error logging vehicle")
                 else:
                     res_json = response.json()
                     return res_json
