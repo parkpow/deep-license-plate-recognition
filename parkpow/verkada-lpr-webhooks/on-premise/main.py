@@ -202,7 +202,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"OK")
 
         data = json_data["data"]
-        print("send to queue")
+        lgr.debug("send to queue")
         self.wq.enqueue(data)
         self.wfile.write(b"OK")
 
