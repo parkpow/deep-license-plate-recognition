@@ -42,21 +42,12 @@ class WebhookQueue:
     def enqueue(self, data, params):
         camera_id = data["CameraName"]
         image_base_64 = data["ContextImage"]
-        # "10/01/2022", Format DD/MM/YYYY
-        month, day, year = data["DateUtc"].split("/")
-        lgr.debug([month, day, year])
-        #  "11:49:22", Format HH/MM/SS
-        hour, minute, second = data["TimeUtc"].split(":")
-        lgr.debug([hour, minute, second])
-        created_date = datetime(
-            int(year),
-            int(month),
-            int(day),
-            int(hour),
-            int(minute),
-            int(second),
-            tzinfo=timezone.utc,
-        )
+        date_utc = data["DateUtc"]
+        time_utc = data["TimeUtc"]
+        created_date = datetime.strptime(
+            f"{date_utc} {time_utc}", "%d/%m/%Y %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+
         # created_date = datetime.now() uncomment for testing
         if isinstance(self.api, ParkPowApi):
             v_attrs = data["Attributes"]
