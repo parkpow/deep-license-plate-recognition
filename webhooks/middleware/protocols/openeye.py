@@ -70,9 +70,9 @@ def process_request(
         response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
         logging.info(
-            f"Vehicle:{plate}. Response sent successfully: {response.status_code}"
+            f"Vehicle:{plate}, URL:{url}. Response sent successfully with status code: {response.status_code}"
         )
         return "Request sent successfully.", response.status_code
     except requests.exceptions.HTTPError as err:
-        logging.error(f"Vehicle:{plate}. Failed to send request: {err}")
+        logging.error(f"Vehicle:{plate}, URL:{url}. Failed to send request: {err}")
         return f"Failed to send request: {err}", 400

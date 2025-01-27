@@ -51,7 +51,7 @@ def forward_to_SOAP_service(json_data, image):
         logging.info(f"Vehicle: {plate}. SOAP request successful.")
         return "SOAP request successful.", 200
     else:
-        logging.error(f"Vehicle: {plate}. SOAP request failed.")
+        logging.error(f"Vehicle: {plate}. SOAP request failed. Response: {response}")
         return "SOAP request failed.", 400
 
 
