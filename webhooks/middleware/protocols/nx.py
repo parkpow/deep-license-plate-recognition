@@ -145,10 +145,10 @@ def process_request(
     try:
         response = session.post(url, json=payload, headers=headers, verify=ssl)
         response.raise_for_status()
-        logging.info("Request was successful.")
+        logging.info(f"Vehicle: {plate}. Request was successful.")
         return "Request was successful", response.status_code
     except requests.exceptions.RequestException as err:
-        logging.error(f"Error processing the request: {err}")
+        logging.error(f"Vehicle: {plate}.Error processing the request: {err}")
         return f"Failed to process the request: {err}", 400
 
 
