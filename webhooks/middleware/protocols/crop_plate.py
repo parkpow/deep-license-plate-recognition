@@ -28,6 +28,7 @@ def process_request(
         return "No file uploaded.", 400
 
     data = json_data["data"]["results"][0]
+    plate = data.get("plate")
 
     plate_bounding_box = data.get("box") or data["vehicle"]["box"]
     crop_box = (
@@ -44,11 +45,11 @@ def process_request(
     }
     data = {"json": json.dumps(json_data)}
 
-    response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
-
-    if response.status_code == 200:
-        logging.info("Webhook request sent successfully.")
-        return "Webhook request sent successfully.", response.status_code
-    else:
-        logging.error(f"Webhook request failed. Response code: {response.status_code}")
-        return "Webhook request failed.", response.status_code
+    try:
+        response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
+        response.raise_for_status()
+        logging.info(f"Vehicle: {plate}. Request was successful.")
+        return "Request was successful", response.status_code
+    except requests.exceptions.RequestException as err:
+        logging.error(f"Vehicle: {plate}. Error processing the request: {err}")
+        return f"Failed to process the request: {err}", response.status_code

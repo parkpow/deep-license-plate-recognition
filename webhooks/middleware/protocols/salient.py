@@ -68,6 +68,7 @@ def process_request(
             notify_salient(
                 username, password, vms_api_url, camera_uid, camera_id, plate, timestamp
             )
+            logging.info(f"Vehicle: {plate}. Notified Salient successfully.")
         except Exception as e:
             logging.error(f"Vehicle: {plate}. Failed to notify Salient: {e}")
             return f"Failed to notify Salient: {e}", 400
