@@ -1,9 +1,14 @@
 import base64
+import logging
 import os
 from datetime import datetime
 from typing import Any
 
 from zeep import Client, Transport
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def forward_to_SOAP_service(json_data, image):
@@ -43,8 +48,10 @@ def forward_to_SOAP_service(json_data, image):
     response = client.service.PostImage(**request_data)
 
     if response:
+        logging.info(f"Vehicle: {plate}. SOAP request successful.")
         return "SOAP request successful.", 200
     else:
+        logging.error(f"Vehicle: {plate}. SOAP request failed. Response: {response}")
         return "SOAP request failed.", 400
 
 

@@ -35,13 +35,13 @@ def notify_salient(
         )
         res.raise_for_status()
     except requests.exceptions.HTTPError as errh:
-        lgr.error("Http Error:", errh)
+        lgr.error(f"Vehicle: {description}. Http Error:", errh)
     except requests.exceptions.ConnectionError as errc:
-        lgr.error("Error Connecting:", errc)
+        lgr.error(f"Vehicle: {description}. Error Connecting:", errc)
     except requests.exceptions.Timeout as errt:
-        lgr.error("Timeout Error:", errt)
+        lgr.error(f"Vehicle: {description}. Timeout Error:", errt)
     except requests.exceptions.RequestException as err:
-        lgr.error("Oops: Something Else", err)
+        lgr.error(f"Vehicle: {description}. Oops: Something Else", err)
 
 
 def process_request(
@@ -68,7 +68,9 @@ def process_request(
             notify_salient(
                 username, password, vms_api_url, camera_uid, camera_id, plate, timestamp
             )
+            logging.info(f"Vehicle: {plate}. Notified Salient successfully.")
         except Exception as e:
+            logging.error(f"Vehicle: {plate}. Failed to notify Salient: {e}")
             return f"Failed to notify Salient: {e}", 400
 
     return "OK", 200

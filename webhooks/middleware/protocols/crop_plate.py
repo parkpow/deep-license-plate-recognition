@@ -1,10 +1,15 @@
 import json
+import logging
 import os
 from io import BytesIO
 from typing import Any
 
 import requests
 from PIL import Image
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def crop_image(image_data, crop_box):
@@ -19,9 +24,11 @@ def process_request(
     json_data: dict[str, Any], upload_file: bytes | None = None
 ) -> tuple[str, int]:
     if not upload_file:
+        logging.error("No file uploaded.")
         return "No file uploaded.", 400
 
     data = json_data["data"]["results"][0]
+    plate = data.get("plate")
 
     plate_bounding_box = data.get("box") or data["vehicle"]["box"]
     crop_box = (
@@ -38,9 +45,11 @@ def process_request(
     }
     data = {"json": json.dumps(json_data)}
 
-    response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
-
-    if response.status_code == 200:
-        return "Webhook request sent successfully.", response.status_code
-    else:
-        return "Webhook request failed.", response.status_code
+    try:
+        response = requests.post(os.getenv("WEBHOOK_URL", ""), data=data, files=files)
+        response.raise_for_status()
+        logging.info(f"Vehicle: {plate}. Request was successful.")
+        return "Request was successful", response.status_code
+    except requests.exceptions.RequestException as err:
+        logging.error(f"Vehicle: {plate}. Error processing the request: {err}")
+        return f"Failed to process the request: {err}", response.status_code

@@ -1,9 +1,14 @@
+import logging
 import os
 from typing import Any
 from urllib import parse
 
 import dateutil.parser as dp
 import requests
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def process_request(
@@ -20,6 +25,7 @@ def process_request(
         parsed_date_time = dp.parse(timestamp)
         timestamp = str(int(parsed_date_time.timestamp()))
     except ValueError:
+        logging.error(f"Vehicle: {plate}. Invalid timestamp format.")
         return "Invalid timestamp format.", 400
 
     request_data = {
@@ -33,8 +39,12 @@ def process_request(
     response = requests.post(url=url, headers=HEADERS, data=data, verify=False)
 
     if response.status_code == 200:
+        logging.info(f"Vehicle: {plate}. REST request successful.")
         return "REST request successful.", response.status_code
     else:
+        logging.error(
+            f"Vehicle: {plate}. REST request failed. Response code: {response.status_code}"
+        )
         return (
             f"REST request failed. Response code: {response.status_code}",
             response.status_code,

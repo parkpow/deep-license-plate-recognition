@@ -1,9 +1,14 @@
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Any
 
 import requests
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def convert_to_timestamp_microseconds(time_string):
@@ -64,7 +69,10 @@ def process_request(
     try:
         response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
+        logging.info(
+            f"Vehicle:{plate}, URL:{url}. Response sent successfully with status code: {response.status_code}"
+        )
         return "Request sent successfully.", response.status_code
     except requests.exceptions.HTTPError as err:
-        print(err)
+        logging.error(f"Vehicle:{plate}, URL:{url}. Failed to send request: {err}")
         return f"Failed to send request: {err}", 400
