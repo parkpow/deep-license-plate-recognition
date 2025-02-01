@@ -1,5 +1,8 @@
 import argparse
+import hashlib
 import os
+import tarfile
+import tempfile
 from pathlib import Path
 
 from docker.client import DockerClient
@@ -13,42 +16,122 @@ paths_to_copy = [
 ]
 
 
+def archive_image_updates(image, output):
+    container = None
+    try:
+        container = client.containers.run(
+            image, command="/bin/bash", tty=True, detach=True, remove=True
+        )
+
+        for path in paths_to_copy:
+            zip_file = f"{output}/{path.name}.tar"
+            with open(zip_file, "wb") as fp:
+                bits, stat = container.get_archive(path)
+                print(stat)
+                for chunk in bits:
+                    fp.write(chunk)
+            print(f"Successfully created {zip_file}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        if container is not None:
+            container.stop()
+
+
+def hash_file(filepath):
+    """Calculate the SHA256 hash of a file."""
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(8192):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def extract_tar(tar_path, extract_to):
+    """Extract tar file to a specified directory."""
+    with tarfile.open(tar_path, "r") as tar:
+        tar.extractall(extract_to)
+
+
+def create_diff_tar(source_tar, destination_tar, output_tar):
+    """Create a tar file containing only new or updated files from source_tar compared to destination_tar."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        source_dir = os.path.join(temp_dir, "source")
+        destination_dir = os.path.join(temp_dir, "destination")
+
+        os.makedirs(source_dir, exist_ok=True)
+        os.makedirs(destination_dir, exist_ok=True)
+
+        extract_tar(source_tar, source_dir)
+        extract_tar(destination_tar, destination_dir)
+
+        diff_files = []
+
+        for root, _, files in os.walk(source_dir):
+            for file in files:
+                source_file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(source_file_path, source_dir)
+                destination_file_path = os.path.join(destination_dir, relative_path)
+
+                if not os.path.exists(destination_file_path) or hash_file(
+                    source_file_path
+                ) != hash_file(destination_file_path):
+                    diff_files.append(relative_path)
+
+        with tarfile.open(output_tar, "w") as tar:
+            for file in diff_files:
+                full_path = os.path.join(source_dir, file)
+                tar.add(full_path, arcname=file)
+
+
 def extract_updates(args):
-    container = client.containers.run(
-        args.image, command="/bin/bash", tty=True, detach=True, remove=True
-    )
-    os.makedirs(args.output, exist_ok=True)
+    source_image_fs = args.output / "source"
+    dest_image_fs = args.output / "dest"
+    os.makedirs(source_image_fs, exist_ok=True)
+    os.makedirs(dest_image_fs, exist_ok=True)
+
+    # Download Source Image Files
+    archive_image_updates(args.source, source_image_fs)
+    # Download Source Image Files
+    archive_image_updates(args.dest, dest_image_fs)
+    diff_fs = args.output / "diff"
+    os.makedirs(diff_fs, exist_ok=True)
+
     for path in paths_to_copy:
-        zip_file = f"{args.output}/{path.name}.tar"
-        with open(zip_file, "wb") as fp:
-            bits, stat = container.get_archive(path)
-            print(stat)
-            for chunk in bits:
-                fp.write(chunk)
-        print(f"Successfully created {zip_file}")
-    container.stop()
+        create_diff_tar(
+            source_image_fs / f"{path.name}.tar",
+            dest_image_fs / f"{path.name}.tar",
+            diff_fs / f"{path.name}.tar",
+        )
 
 
 def restore_updates(args):
-    container = client.containers.run(
-        args.image,
-        command="/bin/bash",
-        tty=True,
-        detach=True,
-        remove=True,
-        working_dir="/",
-    )
-    for path in paths_to_copy:
-        update_file = f"{path.name}.tar"
-        with open(args.output / update_file, "rb") as fp:
-            container.put_archive(str(path.parent), fp.read())
-    # Copy source image CMD, entrypoint ENV
-    image_config = client.api.inspect_image(args.image)["Config"]
-    container.commit(
-        "platerecognizer/alpr-stream", args.tag, pause=True, conf=image_config
-    )
-    container.stop()
-    print(f"Updated image is platerecognizer/alpr-stream:{args.tag}")
+    container = None
+    try:
+        container = client.containers.run(
+            args.dest,
+            command="/bin/bash",
+            tty=True,
+            detach=True,
+            remove=True,
+            working_dir="/",
+        )
+        for path in paths_to_copy:
+            # TODO Delete no-longer existing files from container
+            update_file = f"{path.name}.tar"
+            with open(args.source / update_file, "rb") as fp:
+                container.put_archive(str(path.parent), fp.read())
+        # Copy source image CMD, entrypoint ENV
+        image_config = client.api.inspect_image(args.dest)["Config"]
+        container.commit(
+            "platerecognizer/alpr-stream", args.output, pause=True, conf=image_config
+        )
+        print(f"Updated image is platerecognizer/alpr-stream:{args.output}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        if container is not None:
+            container.stop()
 
 
 def main():
@@ -59,15 +142,22 @@ def main():
     # TODO parser.add_argument('-c', '--compatibility', help='Confirm python versions as similar')
     subparsers = parser.add_subparsers(help="Extract/Restore Help")
     parser_a = subparsers.add_parser("extract", help="Extract updates on machine A")
+    parser_a.add_argument(
+        "-s", "--source", type=str, help="Docker Image Tag with updates"
+    )
+    parser_a.add_argument("-d", "--dest", type=str, help="Docker Image Tag to update")
     parser_a.add_argument("-o", "--output", type=Path, help="Folder to extract to")
-    parser_a.add_argument("-i", "--image", type=str, help="Docker Image with updates")
     parser_a.set_defaults(func=extract_updates)
 
     parser_b = subparsers.add_parser("restore", help="Restore on machine B")
-    parser_b.add_argument("-o", "--output", type=Path, help="Folder to restore from")
-    parser_b.add_argument("-i", "--image", type=str, help="Existing image to update")
+    parser_b.add_argument("-s", "--source", type=Path, help="Folder to restore from")
+    parser_b.add_argument("-d", "--dest", type=str, help="Existing image Tag to update")
     parser_b.add_argument(
-        "-t", "--tag", type=str, help="Tag new image", default="latest"
+        "-o",
+        "--output",
+        type=str,
+        help="New Docker Image Tag With the Updates",
+        default="latest",
     )
     parser_b.set_defaults(func=restore_updates)
     args = parser.parse_args()
