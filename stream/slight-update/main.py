@@ -16,7 +16,15 @@ paths_to_copy = [
 ]
 
 
-def archive_image_updates(image, output):
+def get_python_version(image):
+    config = client.api.inspect_image(image)["Config"]
+    for env in config["Env"]:
+        name, value = env.split("=", maxsplit=1)
+        if name == "PYTHON_VERSION":
+            return value
+
+
+def archive_image_updates(image, output) -> str | None:
     container = None
     try:
         container = client.containers.run(
@@ -31,8 +39,10 @@ def archive_image_updates(image, output):
                 for chunk in bits:
                     fp.write(chunk)
             print(f"Successfully created {zip_file}")
+        return get_python_version(image)
     except Exception as e:
         print(f"An error occurred: {e}")
+        raise
     finally:
         if container is not None:
             container.stop()
@@ -91,9 +101,14 @@ def extract_updates(args):
     os.makedirs(dest_image_fs, exist_ok=True)
 
     # Download Source Image Files
-    archive_image_updates(args.source, source_image_fs)
+    source_python = archive_image_updates(args.source, source_image_fs)
     # Download Source Image Files
-    archive_image_updates(args.dest, dest_image_fs)
+    dest_python = archive_image_updates(args.dest, dest_image_fs)
+    if source_python != dest_python:
+        print(
+            "WARNING! Update across different python version is not guaranteed to work."
+            f"You are updating from [{source_python}] to [{dest_python}]"
+        )
     diff_fs = args.output / "diff"
     os.makedirs(diff_fs, exist_ok=True)
 
@@ -139,7 +154,6 @@ def main():
         prog="stream-sdk-update",
         description="Stream SDK Slight Update",
     )
-    # TODO parser.add_argument('-c', '--compatibility', help='Confirm python versions as similar')
     subparsers = parser.add_subparsers(help="Extract/Restore Help")
     parser_a = subparsers.add_parser("extract", help="Extract updates on machine A")
     parser_a.add_argument(
