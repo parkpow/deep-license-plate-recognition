@@ -1,6 +1,5 @@
 import argparse
 import hashlib
-import os
 import tarfile
 import tempfile
 from pathlib import Path
@@ -57,7 +56,7 @@ def hash_file(filepath):
     return hasher.hexdigest()
 
 
-def extract_tar(tar_path, extract_to):
+def extract_tar(tar_path: Path, extract_to: Path):
     """Extract tar file to a specified directory."""
     with tarfile.open(tar_path, "r") as tar:
         tar.extractall(extract_to)
@@ -65,40 +64,40 @@ def extract_tar(tar_path, extract_to):
 
 def create_diff_tar(source_tar, destination_tar, output_tar):
     """Create a tar file containing only new or updated files from source_tar compared to destination_tar."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        source_dir = os.path.join(temp_dir, "source")
-        destination_dir = os.path.join(temp_dir, "destination")
-
-        os.makedirs(source_dir, exist_ok=True)
-        os.makedirs(destination_dir, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        temp_dir = Path(tmpdirname)
+        source_dir = temp_dir / "source"
+        source_dir.mkdir(exist_ok=True)
+        destination_dir = temp_dir / "destination"
+        destination_dir.mkdir(exist_ok=True)
 
         extract_tar(source_tar, source_dir)
         extract_tar(destination_tar, destination_dir)
 
         diff_files = []
 
-        for root, _, files in os.walk(source_dir):
+        for root, _, files in source_dir.walk(on_error=print):
             for file in files:
-                source_file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(source_file_path, source_dir)
-                destination_file_path = os.path.join(destination_dir, relative_path)
+                source_file_path = root / file
+                relative_path = source_file_path.relative_to(source_dir)
+                destination_file_path = destination_dir / relative_path
 
-                if not os.path.exists(destination_file_path) or hash_file(
+                if not destination_file_path.exists() or hash_file(
                     source_file_path
                 ) != hash_file(destination_file_path):
                     diff_files.append(relative_path)
 
         with tarfile.open(output_tar, "w") as tar:
             for file in diff_files:
-                full_path = os.path.join(source_dir, file)
+                full_path = source_dir / file
                 tar.add(full_path, arcname=file)
 
 
 def extract_updates(args):
     source_image_fs = args.output / "source"
     dest_image_fs = args.output / "dest"
-    os.makedirs(source_image_fs, exist_ok=True)
-    os.makedirs(dest_image_fs, exist_ok=True)
+    source_image_fs.mkdir(exist_ok=True)
+    dest_image_fs.mkdir(exist_ok=True)
 
     # Download Source Image Files
     source_python = archive_image_updates(args.source, source_image_fs)
@@ -110,7 +109,7 @@ def extract_updates(args):
             f"You are updating from [{source_python}] to [{dest_python}]"
         )
     diff_fs = args.output / "diff"
-    os.makedirs(diff_fs, exist_ok=True)
+    diff_fs.mkdir(exist_ok=True)
 
     for path in paths_to_copy:
         create_diff_tar(
