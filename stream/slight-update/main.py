@@ -96,7 +96,7 @@ def create_diff_tar(source_tar, destination_tar, output_tar):
 def extract_updates(args):
     source_image_fs = args.output / "source"
     dest_image_fs = args.output / "dest"
-    source_image_fs.mkdir(exist_ok=True)
+    source_image_fs.mkdir(exist_ok=True, parents=True)
     dest_image_fs.mkdir(exist_ok=True)
 
     # Download Source Image Files
