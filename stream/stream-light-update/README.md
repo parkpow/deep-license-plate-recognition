@@ -1,4 +1,4 @@
-# Stream Slight Update
+# Stream Light Update
 1. Install requirements
 ```shell
 pip install -r requirements.txt
