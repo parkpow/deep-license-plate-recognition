@@ -13,17 +13,29 @@ paths_to_copy = [
     Path("/usr/local/lib/python3.8/site-packages/"),
     Path("/usr/local/lib/python3.8/dist-packages/"),
 ]
+CONTAINER_STOP_TIMEOUT = 2
 
 
-def get_python_version(image):
+def get_versions(image) -> tuple[str | None, str | None]:
+    """
+    Returns python and stream version from container config ENV
+    :param image:
+    :return:
+    """
+    py_version = None
+    stream_version = None
     config = client.api.inspect_image(image)["Config"]
     for env in config["Env"]:
         name, value = env.split("=", maxsplit=1)
         if name == "PYTHON_VERSION":
-            return value
+            py_version = value
+        elif name == "TAG":
+            stream_version = value
+
+    return py_version, stream_version
 
 
-def archive_image_updates(image, output) -> str | None:
+def archive_image_updates(image, output) -> tuple[str | None, str | None]:
     container = None
     try:
         container = client.containers.run(
@@ -38,13 +50,10 @@ def archive_image_updates(image, output) -> str | None:
                 for chunk in bits:
                     fp.write(chunk)
             print(f"Successfully created {zip_file}")
-        return get_python_version(image)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        raise
+        return get_versions(image)
     finally:
         if container is not None:
-            container.stop()
+            container.stop(timeout=CONTAINER_STOP_TIMEOUT)
 
 
 def hash_file(filepath):
@@ -94,29 +103,29 @@ def create_diff_tar(source_tar, destination_tar, output_tar):
 
 
 def extract_updates(args):
-    source_image_fs = args.output / "source"
-    dest_image_fs = args.output / "dest"
-    source_image_fs.mkdir(exist_ok=True, parents=True)
-    dest_image_fs.mkdir(exist_ok=True)
-
-    # Download Source Image Files
-    source_python = archive_image_updates(args.source, source_image_fs)
-    # Download Source Image Files
-    dest_python = archive_image_updates(args.dest, dest_image_fs)
-    if source_python != dest_python:
-        print(
-            "WARNING! Update across different python version is not guaranteed to work."
-            f"You are updating from [{source_python}] to [{dest_python}]"
+    with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as dest:
+        source_image_fs = Path(src)
+        dest_image_fs = Path(dest)
+        # Download Source Image Files
+        source_python, source_stream = archive_image_updates(
+            args.source, source_image_fs
         )
-    diff_fs = args.output / "diff"
-    diff_fs.mkdir(exist_ok=True)
+        # Download Source Image Files
+        dest_python, dest_stream = archive_image_updates(args.dest, dest_image_fs)
+        if source_python != dest_python:
+            print(
+                "WARNING! Update across different python version is not guaranteed to work."
+                f"You are updating from [{source_python}] to [{dest_python}]"
+            )
+        diff_fs = args.output / f"update_{dest_stream}_to_{source_stream}"
+        diff_fs.mkdir(exist_ok=True, parents=True)
 
-    for path in paths_to_copy:
-        create_diff_tar(
-            source_image_fs / f"{path.name}.tar",
-            dest_image_fs / f"{path.name}.tar",
-            diff_fs / f"{path.name}.tar",
-        )
+        for path in paths_to_copy:
+            create_diff_tar(
+                source_image_fs / f"{path.name}.tar",
+                dest_image_fs / f"{path.name}.tar",
+                diff_fs / f"{path.name}.tar",
+            )
 
 
 def restore_updates(args):
@@ -141,11 +150,9 @@ def restore_updates(args):
             "platerecognizer/alpr-stream", args.output, pause=True, conf=image_config
         )
         print(f"Updated image is platerecognizer/alpr-stream:{args.output}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
     finally:
         if container is not None:
-            container.stop()
+            container.stop(timeout=CONTAINER_STOP_TIMEOUT)
 
 
 def main():
