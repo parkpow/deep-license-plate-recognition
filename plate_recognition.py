@@ -140,14 +140,19 @@ def flatten_dict(d, parent_key="", sep="_"):
 
 def flatten(result):
     plates = result["results"]
-    del result["results"]
     if "usage" in result:
         del result["usage"]
     flattened_data = []  # Accumulate flattened data for each plate
-    for plate in plates:
+    if not plates:
         data = result.copy()
-        data.update(flatten_dict(plate))
+        data.update(flatten_dict({}))  # Assuming flatten_dict can handle an empty dict
         flattened_data.append(data)
+    else:
+        del result["results"]
+        for plate in plates:
+            data = result.copy()
+            data.update(flatten_dict(plate))
+            flattened_data.append(data)
     return flattened_data
 
 
@@ -172,6 +177,97 @@ def save_cropped(api_res, path, args):
             cropped.save(dest / filename)
 
 
+def is_detection_mode_vehicle(engine_config):
+    if not engine_config:
+        return False
+
+    try:
+        engine_config_dict = json.loads(engine_config)
+    except (TypeError, json.JSONDecodeError):
+        return False
+
+    return engine_config_dict.get("detection_mode") == "vehicle"
+
+
+def transform_result(input_data):
+    output = OrderedDict([
+        ("filename", input_data.get("filename")),
+        ("timestamp", input_data.get("timestamp")),
+        ("camera_id", input_data.get("camera_id")),
+        ("results", [])
+    ])
+
+    no_plate_box = OrderedDict([("xmin", None), ("ymin", None), ("xmax", None), ("ymax", None)])
+    no_plate_region = OrderedDict([("code", None),("score", None)])
+
+    for result in input_data.get("results", []):
+        # Process plate data if available
+        plate_data = result.get("plate")
+        if plate_data:
+            props = plate_data.get("props", {})
+            plate_candidates = props.get("plate", [])
+            top_plate = plate_candidates[0] if plate_candidates else None
+
+            region_candidates = props.get("region", [])
+            top_region = region_candidates[0] if region_candidates else None
+            region_entry = (OrderedDict([
+                ("code", top_region.get("value")),
+                ("score", top_region.get("score"))
+            ]) if top_region else None)
+        else:
+            plate_candidates = []
+            top_plate = None
+            region_entry = None
+
+        # Skip if vehicle data is missing
+        vehicle_data = result.get("vehicle")
+        if not vehicle_data:
+            continue
+
+        # Process vehicle properties
+        v_props = vehicle_data.get("props", {})
+        model_make = v_props.get("make_model", [])
+
+        colors = [
+            OrderedDict([("color", c.get("value")), ("score", c.get("score"))])
+            for c in v_props.get("color", [])
+        ]
+        orientations = [
+            OrderedDict([("orientation", o.get("value")), ("score", o.get("score"))])
+            for o in v_props.get("orientation", [])
+        ]
+
+        candidates = [
+            OrderedDict([("score", cand.get("score")), ("plate", cand.get("value"))])
+            for cand in plate_candidates
+        ]
+
+        vehicle_entry = OrderedDict([
+            ("score", vehicle_data.get("score")),
+            ("type", vehicle_data.get("type")),
+            ("box", vehicle_data.get("box")),
+        ])
+
+        transformed_result = OrderedDict([
+            ("box", plate_data.get("box") if plate_data else no_plate_box),
+            ("plate", top_plate.get("value") if top_plate else None),
+            ("region", region_entry if top_plate else no_plate_region),
+            ("score", top_plate.get("score") if top_plate else None),
+            ("candidates", candidates if plate_data else None),
+            ("dscore", plate_data.get("score") if plate_data else None),
+            ("vehicle", vehicle_entry),
+            ("model_make", model_make),
+            ("color", colors),
+            ("orientation", orientations),
+        ])
+
+        output["results"].append(transformed_result)
+
+    output["usage"] = input_data.get("usage", {})
+    output["processing_time"] = input_data.get("processing_time")
+    return output
+
+
 def save_results(results, args):
     path = args.output_file
     if not Path(path).parent.exists():
@@ -185,15 +281,17 @@ def save_results(results, args):
     elif args.format == "csv":
         fieldnames = []
         for result in results[:10]:
-            candidates = flatten(result.copy())
+            data = transform_result(result) if is_detection_mode_vehicle(args.engine_config) else result
+            candidates = flatten(data.copy())
             for candidate in candidates:
                 if len(fieldnames) < len(candidate):
                     fieldnames = candidate.keys()
-        with open(path, "w") as fp:
+        with open(path, "w", newline="") as fp:
             writer = csv.DictWriter(fp, fieldnames=fieldnames)
             writer.writeheader()
             for result in results:
-                flattened_results = flatten(result)  # Get flattened data for each plate
+                result_data = transform_result(result) if is_detection_mode_vehicle(args.engine_config) else result
+                flattened_results = flatten(result_data)
                 for flattened_result in flattened_results:
                     writer.writerow(flattened_result)
 
