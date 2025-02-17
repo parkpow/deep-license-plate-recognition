@@ -140,6 +140,7 @@ def flatten_dict(d, parent_key="", sep="_"):
 
 def flatten(result):
     plates = result["results"]
+    del result["results"]
     if "usage" in result:
         del result["usage"]
     flattened_data = []  # Accumulate flattened data for each plate
@@ -148,7 +149,6 @@ def flatten(result):
         data.update(flatten_dict({}))  # Assuming flatten_dict can handle an empty dict
         flattened_data.append(data)
     else:
-        del result["results"]
         for plate in plates:
             data = result.copy()
             data.update(flatten_dict(plate))
