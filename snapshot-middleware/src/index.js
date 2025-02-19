@@ -30,7 +30,7 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
-      const cntLength = validInt(request.headers.get("content-length"), 10);
+      const cntLength = validInt(request.headers.get("content-length"));
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
         let cameraId = null;
@@ -43,9 +43,7 @@ export default {
         if (survisionSerialNumber) {
           cameraId = survisionSerialNumber;
           // sample 1729206290098
-          createdDate = new Date(
-            validInt(data["anpr"]["@date"], 10),
-          ).toISOString();
+          createdDate = new Date(validInt(data["anpr"]["@date"])).toISOString();
           imageBase64 = data["anpr"]["decision"]["jpeg"];
           ctx.waitUntil(
             snapshot.uploadBase64(
@@ -59,16 +57,22 @@ export default {
           cameraId = data["CameraName"];
           imageBase64 = data["ContextImage"];
           // "10/01/2022", Format DD/MM/YYYY
-          let [month, day, year] = data["DateUtc"].split("/");
+          const dateUtc = data["DateUtc"];
+          let year, month, day;
+          if (dateUtc.indexOf("-") > -1) {
+            [year, month, day] = dateUtc.split("-");
+          } else {
+            [month, day, year] = dateUtc.split("/");
+          }
           //  "11:49:22", Format HH/MM/SS
           let [hours, minutes, seconds] = data["TimeUtc"].split(":");
           createdDate = new Date(
-            validInt(year, 10),
-            validInt(month, 10) - 1,
-            validInt(day, 10),
-            validInt(hours, 10),
-            validInt(minutes, 10),
-            validInt(seconds, 10),
+            validInt(year),
+            validInt(month) - 1,
+            validInt(day),
+            validInt(hours),
+            validInt(minutes),
+            validInt(seconds),
           ).toISOString();
           // Gentec camera data is larger than the queue limit (128 KB), we send directly
           ctx.waitUntil(
