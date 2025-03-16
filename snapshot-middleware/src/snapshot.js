@@ -49,7 +49,7 @@ export class SnapshotApi {
     };
     const url = this.apiBase + endpoint;
     return fetchWithRetry(url, init)
-      .then((response) => new Response(response.json()))
+      .then((response) => new Response(response.text()))
       .catch((error) => {
         if (error instanceof UnexpectedResponse) {
           return new Response(error.message, { status: error.status });
