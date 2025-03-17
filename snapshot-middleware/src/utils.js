@@ -2,7 +2,7 @@ import {
   Error429,
   Error5xx,
   RetryLimit,
-  UnexpectedResponse,
+  UnexpectedApiResponse,
 } from "./exceptions";
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
@@ -22,7 +22,7 @@ export function fetchWithRetry(url, init, tries = 3) {
         console.error(responseText);
         // 2. reject instead of throw, preferred
         return Promise.reject(
-          new UnexpectedResponse(responseText, response.status),
+          new UnexpectedApiResponse(responseText, response.status),
         );
       }
     })

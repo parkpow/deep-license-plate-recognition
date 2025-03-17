@@ -21,10 +21,10 @@ export class RetryLimit extends Error {
   }
 }
 
-export class UnexpectedResponse extends Error {
+export class UnexpectedApiResponse extends Error {
   constructor(message, status) {
     super(message);
-    this.name = "UnexpectedSResponse";
+    this.name = "UnexpectedApiResponse";
     this.status = status;
   }
 }
