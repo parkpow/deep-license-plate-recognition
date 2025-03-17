@@ -1,4 +1,5 @@
 import { fetchWithRetry } from "./utils";
+import { UnexpectedApiResponse } from "./exceptions";
 
 export class SnapshotApi {
   constructor(token, sdkUrl = null) {
@@ -47,6 +48,15 @@ export class SnapshotApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init).then((response) => response.json());
+    return fetchWithRetry(url, init)
+      .then((response) => response.text())
+      .then((responseText) => new Response(responseText))
+      .catch((error) => {
+        if (error instanceof UnexpectedApiResponse) {
+          return new Response(error.message, { status: error.status });
+        } else {
+          throw error;
+        }
+      });
   }
 }

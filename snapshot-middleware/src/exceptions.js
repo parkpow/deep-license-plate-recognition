@@ -13,3 +13,18 @@ export class Error5xx extends Error {
     this.data = response;
   }
 }
+
+export class RetryLimit extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "RetryLimit";
+  }
+}
+
+export class UnexpectedApiResponse extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "UnexpectedApiResponse";
+    this.status = status;
+  }
+}

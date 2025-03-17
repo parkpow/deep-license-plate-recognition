@@ -1,4 +1,9 @@
-import { Error429, Error5xx } from "./exceptions";
+import {
+  Error429,
+  Error5xx,
+  RetryLimit,
+  UnexpectedApiResponse,
+} from "./exceptions";
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -13,19 +18,20 @@ export function fetchWithRetry(url, init, tries = 3) {
           throw new Error429("Rate Limited", response);
         if (response.status >= 500 && response.status <= 599)
           throw new Error5xx(`Server Error - ${response.status}`, response);
-
-        console.error(await response.text());
+        const responseText = await response.text();
+        console.error(responseText);
         // 2. reject instead of throw, preferred
-        const errorMessage = `Unexpected Response: ${response.status}`;
-        return Promise.reject(new Error(errorMessage));
+        return Promise.reject(
+          new UnexpectedApiResponse(responseText, response.status),
+        );
       }
     })
     .catch((error) => {
       // Retry network error or 5xx errors
-      if (
-        (error instanceof Error429 || error instanceof Error5xx) &&
-        tries > 0
-      ) {
+      if (error instanceof Error429 || error instanceof Error5xx) {
+        if (tries <= 0) {
+          throw new RetryLimit("Rate Limited");
+        }
         console.log(`Retrying request: ${tries}`);
         // if the rate limit is reached or exceeded,
         const delay = 2000;

@@ -45,13 +45,12 @@ export default {
           // sample 1729206290098
           createdDate = new Date(validInt(data["anpr"]["@date"])).toISOString();
           imageBase64 = data["anpr"]["decision"]["jpeg"];
-          ctx.waitUntil(
-            snapshot.uploadBase64(
-              imageBase64,
-              cameraId,
-              createdDate,
-              requestParams(request),
-            ),
+
+          return await snapshot.uploadBase64(
+            imageBase64,
+            cameraId,
+            createdDate,
+            requestParams(request),
           );
         } else if (validGenetecEvent(data)) {
           cameraId = data["CameraName"];
@@ -74,21 +73,19 @@ export default {
             validInt(minutes),
             validInt(seconds),
           ).toISOString();
-          // Gentec camera data is larger than the queue limit (128 KB), we send directly
-          ctx.waitUntil(
-            snapshot.uploadBase64(
-              imageBase64,
-              cameraId,
-              createdDate,
-              requestParams(request),
-            ),
+
+          // Genetec camera data is larger than the queue limit (128 KB), we send directly
+          return await snapshot.uploadBase64(
+            imageBase64,
+            cameraId,
+            createdDate,
+            requestParams(request),
           );
         } else {
           return new Response("Error - Invalid Request Content", {
             status: 400,
           });
         }
-        return new Response("OK!");
       } else {
         return new Response(
           "Error - Expected Content-Type application/json and Content-Length > 0",
