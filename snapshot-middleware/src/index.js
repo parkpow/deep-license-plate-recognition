@@ -96,23 +96,4 @@ export default {
       return new Response("Error - Required POST", { status: 400 });
     }
   },
-
-  // The queue handler is invoked when a batch of messages is ready to be delivered
-  // https://developers.cloudflare.com/queues/platform/javascript-apis/#messagebatch
-  async queue(batch, env) {
-    const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
-    for (const message of batch.messages) {
-      console.info("Processing Queue Message:");
-      console.info(message.body["cameraId"]);
-      const result = await snapshot.uploadBase64(
-        message.body["image"],
-        message.body["cameraId"],
-        message.body["timestamp"],
-        message.body["params"],
-      );
-      console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
-      // Explicitly acknowledge the message as delivered
-      message.ack();
-    }
-  },
 };
