@@ -168,9 +168,9 @@ def main():
         description="Blur plates and faces in a folder recursively",
         epilog="""Examples:
 Process images from a folder:
-  python main.py -b=http://localhost:8001 --images=/path/to/images
+  python main.py -b=http://localhost:8001/v1/blur --images=/path/to/images
 Specify engine config and/or two regions:
-  python main.py -b=http://localhost:8001 --config='{"region":"strict"}' -r us-ca -r th-37 --images=/path/to/images""",
+  python main.py -b=http://localhost:8001/v1/blur --config='{"region":"strict"}' -r us-ca -r th-37 --images=/path/to/images""",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
