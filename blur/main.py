@@ -178,7 +178,7 @@ Specify engine config and/or two regions:
         "-b",
         "--blur-url",
         help="Url to blur SDK. Example http://localhost:5000",
-        required=True,
+        default="https://blur.platerecognizer.com/v1/blur",
     )
     parser.add_argument(
         "--images",
