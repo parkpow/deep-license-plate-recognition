@@ -54,12 +54,12 @@ Json::Value sendRequest(string auth_token, string fileName, string mode) {
 		part = curl_mime_addpart(form);
 		curl_mime_name(part, "config");
 
-		if (strcmp(mode.c_str(),"redacted") == 0){
-			curl_mime_data(part, "{\"mode\":\"redacted\"}", CURL_ZERO_TERMINATED);
+		if (strcmp(mode.c_str(),"redaction") == 0){
+			curl_mime_data(part, "{\"mode\":\"redaction\"}", CURL_ZERO_TERMINATED);
 		} else if (strcmp(mode.c_str(),"fast") == 0){
 			curl_mime_data(part, "{\"mode\":\"fast\"}", CURL_ZERO_TERMINATED);
 		} else{
-			cout << "Unknown config mode : "+mode+"\n Valid Options: fast, redacted\n";
+			cout << "Unknown config mode : "+mode+"\n Valid Options: fast, redaction\n";
 			exit(1);
 		}
 	}
