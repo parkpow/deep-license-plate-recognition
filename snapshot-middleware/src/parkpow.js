@@ -16,7 +16,7 @@ export class ParkPowApi {
   }
 
   async webhookReceiver(encodedImage, data) {
-    console.debug(params);
+    console.debug("Webhook Receiver called with data:", data);
     const endpoint = "/api/v1/webhook-receiver/";
 
     const body = new FormData();

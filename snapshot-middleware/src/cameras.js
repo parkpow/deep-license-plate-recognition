@@ -7,6 +7,9 @@ class Camera {
   static PROCESSOR_ID = -1;
 
   constructor(cameraId, imageBase64, createdDate, data) {
+    if (this.constructor === Camera) {
+      throw new Error("Class is of abstract type and can't be instantiated");
+    }
     this.data = data;
     this.cameraId = cameraId;
     this.imageBase64 = imageBase64;
@@ -56,7 +59,7 @@ class Survision extends Camera {
   }
 
   static validRequest(request, data) {
-    request.headers.get(Survision.SERIAL_NUMBER_HEADER);
+    !!request.headers.get(Survision.SERIAL_NUMBER_HEADER);
   }
 
   get plate() {

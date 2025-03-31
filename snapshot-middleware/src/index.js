@@ -4,7 +4,7 @@ import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
 
 function validInt(i, fallBack = null) {
-  if (i === null || isNaN(i)) {
+  if (i === null || i === "" || i === undefined || isNaN(i)) {
     if (fallBack != null) {
       return fallBack;
     }
@@ -39,7 +39,7 @@ function findProcessor(selection, request, data) {
   return ENABLED_CAMERAS.find((element, index) => {
     if (selection > -1) {
       // Fixed Selection by ID
-      return element.PROCESSOR_ID === processorId;
+      return element.PROCESSOR_ID === selection;
     } else {
       // Automated selection from the request formats
       return element.validRequest(request, data);
@@ -113,7 +113,10 @@ export default {
                   .webhookReceiver(processorInstance.imageBase64, responseJson)
                   .then((response) => response.json());
               }
-              return new Response(res);
+
+              return new Response(JSON.stringify(res), {
+                headers: { "Content-Type": "application/json" },
+              });
             })
             .catch((error) => {
               if (error instanceof UnexpectedApiResponse) {
