@@ -1,17 +1,14 @@
 import { SnapshotApi } from "./snapshot";
+import { ENABLED_CAMERAS } from "./cameras";
+import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
+import { ParkPowApi } from "./parkpow";
 
-function validGenetecEvent(data) {
-  return (
-    "CameraName" in data &&
-    "ContextImage" in data &&
-    "DateUtc" in data &&
-    "TimeUtc" in data
-  );
-}
-
-function validInt(i) {
-  if (isNaN(i)) {
-    throw new Error(`Invalid value for time - ${i}`);
+function validInt(i, fallBack = null) {
+  if (i === null || isNaN(i)) {
+    if (fallBack != null) {
+      return fallBack;
+    }
+    throw new InvalidIntValue(`Invalid value for time - ${i}`);
   }
   return parseInt(i, 10);
 }
@@ -23,7 +20,31 @@ function requestParams(request) {
     camera_id: searchParams.get("camera_id"),
     regions: searchParams.get("regions"),
     config: searchParams.get("config"),
+    processorSelection: searchParams.get("processor_selection"),
+    overwritePlate: searchParams.get("overwrite_plate"),
+    overwriteDirection: searchParams.get("overwrite_direction"),
+    overwriteOrientation: searchParams.get("overwrite_orientation"),
+    parkpowForwarding: searchParams.get("parkpow_forwarding"),
   };
+}
+
+/**
+ * Select a processor automatically or as specified
+ * @param selection
+ * @param request
+ * @param data
+ * @returns {Survision | Genetec}
+ */
+function findProcessor(selection, request, data) {
+  return ENABLED_CAMERAS.find((element, index) => {
+    if (selection > -1) {
+      // Fixed Selection by ID
+      return element.PROCESSOR_ID === processorId;
+    } else {
+      // Automated selection from the request formats
+      return element.validRequest(request, data);
+    }
+  });
 }
 
 export default {
@@ -31,56 +52,76 @@ export default {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
       const cntLength = validInt(request.headers.get("content-length"));
+
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
-        let cameraId = null;
-        let imageBase64 = null;
-        let createdDate = null;
         const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
-        const survisionSerialNumber = request.headers.get(
-          "survision-serial-number",
-        );
-        if (survisionSerialNumber) {
-          cameraId = survisionSerialNumber;
-          // sample 1729206290098
-          createdDate = new Date(validInt(data["anpr"]["@date"])).toISOString();
-          imageBase64 = data["anpr"]["decision"]["jpeg"];
 
-          return await snapshot.uploadBase64(
-            imageBase64,
-            cameraId,
-            createdDate,
-            requestParams(request),
-          );
-        } else if (validGenetecEvent(data)) {
-          cameraId = data["CameraName"];
-          imageBase64 = data["ContextImage"];
-          // "10/01/2022", Format DD/MM/YYYY
-          const dateUtc = data["DateUtc"];
-          let year, month, day;
-          if (dateUtc.indexOf("-") > -1) {
-            [year, month, day] = dateUtc.split("-");
-          } else {
-            [month, day, year] = dateUtc.split("/");
-          }
-          //  "11:49:22", Format HH/MM/SS
-          let [hours, minutes, seconds] = data["TimeUtc"].split(":");
-          createdDate = new Date(
-            validInt(year),
-            validInt(month) - 1,
-            validInt(day),
-            validInt(hours),
-            validInt(minutes),
-            validInt(seconds),
-          ).toISOString();
+        // TODO 1. user will configure camera, if not then fallback to the checking of headers - user specify integration_id
+        const params = requestParams(request);
+        console.debug("Params:", params);
 
-          // Genetec camera data is larger than the queue limit (128 KB), we send directly
-          return await snapshot.uploadBase64(
-            imageBase64,
-            cameraId,
-            createdDate,
-            requestParams(request),
-          );
+        const processorSelection = validInt(params.processorSelection, -1);
+        console.debug("Processor Selection:", processorSelection);
+        const CameraClass = findProcessor(processorSelection, request, data);
+        console.debug("CameraClass:", CameraClass);
+        if (CameraClass) {
+          const processorInstance = CameraClass(request, data);
+          return snapshot
+            .uploadBase64(
+              processorInstance.imageBase64,
+              processorInstance.cameraId,
+              processorInstance.createdDate,
+              params,
+            )
+            .then((response) => response.json())
+            .then(async (responseJson) => {
+              // check config to forward to ParkPow
+              let parkPowForwardingEnabled = false;
+              if (params.parkpowForwarding) {
+                parkPowForwardingEnabled = true;
+              }
+              if (params.overwritePlate) {
+                parkPowForwardingEnabled = true;
+                responseJson = snapshot.overwritePlate(
+                  responseJson,
+                  processorInstance.plate,
+                );
+              }
+              if (params.overwriteOrientation) {
+                parkPowForwardingEnabled = true;
+                responseJson = snapshot.overwriteOrientation(
+                  responseJson,
+                  processorInstance.orientation,
+                );
+              }
+              if (params.overwriteDirection) {
+                parkPowForwardingEnabled = true;
+                responseJson = snapshot.overwriteDirection(
+                  responseJson,
+                  processorInstance.direction,
+                );
+              }
+              const res = { snapshot: responseJson };
+              if (parkPowForwardingEnabled) {
+                const parkPow = new ParkPowApi(
+                  env.PARKPOW_TOKEN,
+                  env.PARKPOW_URL,
+                );
+                // include ParkPow response in final response
+                res["parkPow"] = await parkPow
+                  .webhookReceiver(processorInstance.imageBase64, responseJson)
+                  .then((response) => response.json());
+              }
+              return new Response(res);
+            })
+            .catch((error) => {
+              if (error instanceof UnexpectedApiResponse) {
+                return new Response(error.message, { status: error.status });
+              } else {
+                throw error;
+              }
+            });
         } else {
           return new Response("Error - Invalid Request Content", {
             status: 400,

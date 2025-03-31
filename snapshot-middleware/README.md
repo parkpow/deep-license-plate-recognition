@@ -16,6 +16,7 @@ npm run deploy
 npm run deploy -- --name reimaginedparking-middleware
 ```
 To login again `wrangler login`, Logout using `wrangler logout` or delete `.wrangler` folder
+> Login command if wrangler is not installed globally `./node_modules/.bin/wrangler login`
 
 2. Update the application env variables with the following values
 > This will redeploy the worker and persist any future deployments
@@ -26,6 +27,9 @@ To login again `wrangler login`, Logout using `wrangler logout` or delete `.wran
 SNAPSHOT_TOKEN=
 # Snapshot API URL - Optional (You don't need to define it if you use Snapshot Cloud
 SNAPSHOT_URL=
+PARKPOW_TOKEN=
+PARKPOW_URL=
+
 ```
 
 3. To log errors with Rollbar, Deploy the tail worker

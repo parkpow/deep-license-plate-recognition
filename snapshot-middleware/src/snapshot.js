@@ -16,6 +16,18 @@ export class SnapshotApi {
     console.debug("Api Base: " + this.apiBase);
   }
 
+  overwritePlate(responseJson, cameraPlate) {
+    throw new Error("Not Implemented");
+  }
+
+  overwriteDirection(responseJson, cameraOrientation) {
+    throw new Error("Not Implemented");
+  }
+
+  overwriteOrientation(responseJson, cameraOrientation) {
+    throw new Error("Not Implemented");
+  }
+
   async uploadBase64(encodedImage, camera, timestamp, params) {
     console.debug(params);
     const endpoint = "/v1/plate-reader/";
@@ -48,15 +60,6 @@ export class SnapshotApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init)
-      .then((response) => response.text())
-      .then((responseText) => new Response(responseText))
-      .catch((error) => {
-        if (error instanceof UnexpectedApiResponse) {
-          return new Response(error.message, { status: error.status });
-        } else {
-          throw error;
-        }
-      });
+    return fetchWithRetry(url, init);
   }
 }
