@@ -1,20 +1,8 @@
-import { SnapshotApi } from "./snapshot";
-
-function validGenetecEvent(data) {
-  return (
-    "CameraName" in data &&
-    "ContextImage" in data &&
-    "DateUtc" in data &&
-    "TimeUtc" in data
-  );
-}
-
-function validInt(i) {
-  if (isNaN(i)) {
-    throw new Error(`Invalid value for time - ${i}`);
-  }
-  return parseInt(i, 10);
-}
+import { SnapshotApi, SnapshotResponse } from "./snapshot";
+import { ENABLED_CAMERAS } from "./cameras";
+import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
+import { ParkPowApi } from "./parkpow";
+import { validInt } from "./utils";
 
 function requestParams(request) {
   const { searchParams } = new URL(request.url);
@@ -23,68 +11,121 @@ function requestParams(request) {
     camera_id: searchParams.get("camera_id"),
     regions: searchParams.get("regions"),
     config: searchParams.get("config"),
+    processorSelection: searchParams.get("processor_selection"),
+    overwritePlate: searchParams.get("overwrite_plate"),
+    overwriteDirection: searchParams.get("overwrite_direction"),
+    overwriteOrientation: searchParams.get("overwrite_orientation"),
+    parkpowForwarding: searchParams.get("parkpow_forwarding"),
   };
 }
 
+/**
+ * Select a processor automatically or as specified
+ * @param selection
+ * @param request
+ * @param data
+ * @returns {Survision | Genetec}
+ */
+function findProcessor(selection, request, data) {
+  return ENABLED_CAMERAS.find((element, index) => {
+    if (selection > -1) {
+      // Fixed Selection by ID
+      return element.selectionId === selection;
+    } else {
+      // Automated selection from the request formats
+      return element.validRequest(request, data);
+    }
+  });
+}
+
+/**
+ * Integration URL will configure processor, if not then fallback to the checking of headers
+ */
 export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
       const cntLength = validInt(request.headers.get("content-length"));
+
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
-        let cameraId = null;
-        let imageBase64 = null;
-        let createdDate = null;
         const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
-        const survisionSerialNumber = request.headers.get(
-          "survision-serial-number",
-        );
-        if (survisionSerialNumber) {
-          cameraId = survisionSerialNumber;
-          // sample 1729206290098
-          createdDate = new Date(validInt(data["anpr"]["@date"])).toISOString();
-          imageBase64 = data["anpr"]["decision"]["jpeg"];
+        const params = requestParams(request);
+        console.debug(`Params: ${JSON.stringify(params)}`);
+        const processorSelection = validInt(params.processorSelection, -1);
+        console.debug(`Processor Selection: ${processorSelection}`);
+        const CameraClass = findProcessor(processorSelection, request, data);
+        console.debug(`CameraClass: ${CameraClass}`);
+        if (CameraClass) {
+          const processorInstance = new CameraClass(request, data);
+          console.debug(`processorInstance: ${processorInstance}`);
+          return snapshot
+            .uploadBase64(
+              processorInstance.imageBase64,
+              processorInstance.cameraId,
+              processorInstance.createdDate,
+              params,
+            )
+            .then(
+              async (response) => new SnapshotResponse(await response.json()),
+            )
+            .then(async (snapshotResponse) => {
+              console.debug(
+                `snapshotResponse.results: ${snapshotResponse.results}`,
+              );
+              // check config to forward to ParkPow
+let parkPowForwardingEnabled = !!params.parkpowForwarding;
+              if (params.overwritePlate) {
+                parkPowForwardingEnabled = true;
+                snapshotResponse.overwritePlate(processorInstance.plate);
+              }
+              if (params.overwriteOrientation) {
+                parkPowForwardingEnabled = true;
+                snapshotResponse.overwriteOrientation(
+                  processorInstance.orientation,
+                  processorInstance.plate,
+                );
+              }
+              if (params.overwriteDirection) {
+                parkPowForwardingEnabled = true;
+                snapshotResponse.overwriteDirection(
+                  processorInstance.direction,
+                  processorInstance.plate,
+                );
+              }
 
-          return await snapshot.uploadBase64(
-            imageBase64,
-            cameraId,
-            createdDate,
-            requestParams(request),
-          );
-        } else if (validGenetecEvent(data)) {
-          cameraId = data["CameraName"];
-          imageBase64 = data["ContextImage"];
-          // "10/01/2022", Format DD/MM/YYYY
-          const dateUtc = data["DateUtc"];
-          let year, month, day;
-          if (dateUtc.indexOf("-") > -1) {
-            [year, month, day] = dateUtc.split("-");
-          } else {
-            [month, day, year] = dateUtc.split("/");
-          }
-          //  "11:49:22", Format HH/MM/SS
-          let [hours, minutes, seconds] = data["TimeUtc"].split(":");
-          createdDate = new Date(
-            validInt(year),
-            validInt(month) - 1,
-            validInt(day),
-            validInt(hours),
-            validInt(minutes),
-            validInt(seconds),
-          ).toISOString();
-
-          // Genetec camera data is larger than the queue limit (128 KB), we send directly
-          return await snapshot.uploadBase64(
-            imageBase64,
-            cameraId,
-            createdDate,
-            requestParams(request),
-          );
+              const res = { snapshot: snapshotResponse.result };
+              if (parkPowForwardingEnabled) {
+                const parkPow = new ParkPowApi(
+                  env.PARKPOW_TOKEN,
+                  env.PARKPOW_URL,
+                );
+                // include ParkPow response in final response
+                res["parkpow"] = await parkPow.logVehicle(
+                  processorInstance.imageBase64,
+                  snapshotResponse.result,
+                  snapshotResponse.cameraId,
+                  snapshotResponse.timestamp,
+                );
+              }
+              return new Response(JSON.stringify(res), {
+                headers: { "Content-Type": "application/json" },
+              });
+            })
+            .catch((error) => {
+              if (error instanceof UnexpectedApiResponse) {
+                return new Response(error.message, { status: error.status });
+              } else {
+                throw error;
+              }
+            });
         } else {
-          return new Response("Error - Invalid Request Content", {
-            status: 400,
-          });
+          return new Response(
+            "Error - Invalid Request Content or Wrong Processor",
+            {
+              status: 400,
+            },
+          );
         }
       } else {
         return new Response(

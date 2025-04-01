@@ -1,5 +1,100 @@
 import { fetchWithRetry } from "./utils";
-import { UnexpectedApiResponse } from "./exceptions";
+
+export class SnapshotResponse {
+  constructor(data) {
+    this._data = data;
+    console.log(data);
+  }
+
+  /**
+   * Handle missing results from snapshot by creating a minimal result
+   * Incase forwarding is needed
+   */
+  ensureResultsNotEmpty(plate) {
+    if (this.results.length === 0) {
+      this.results.push({
+        plate: plate,
+        score: 0.9,
+        // box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
+      });
+    }
+  }
+
+  overwritePlate(plate) {
+    this.ensureResultsNotEmpty(plate);
+    this.result["plate"] = plate;
+    if (
+      this.result["candidates"] === undefined ||
+      this.result["candidates"].length === 0
+    ) {
+      this.result["candidates"] = [
+        {
+          plate: plate,
+          score: 0.9,
+        },
+      ];
+    } else {
+      this.result["candidates"][0]["plate"] = plate;
+    }
+
+    // TODO Overwrite plate scores
+    //this.result['score'] = null
+    //this.result['dscore'] = null
+    // this.result['candidates'][0]['score'] = score
+  }
+
+  /**
+   * Default result is the first result
+   * @returns {*}
+   */
+  get result() {
+    return this.results[0];
+  }
+
+  overwriteDirection(direction, licensePlateNumber) {
+    this.ensureResultsNotEmpty(licensePlateNumber);
+    this.result["direction"] = direction;
+    // TODO Overwrite plate scores
+    //this.result['direction_score'] = null
+  }
+
+  overwriteOrientation(orientation, licensePlateNumber) {
+    this.ensureResultsNotEmpty(licensePlateNumber);
+
+    if (
+      this.result["orientation"] === undefined ||
+      this.result["orientation"].length === 0
+    ) {
+      this.result["orientation"] = [
+        {
+          orientation: orientation,
+          score: 0.9,
+        },
+      ];
+    } else {
+      this.result["orientation"][0]["orientation"] = orientation;
+    }
+
+    // TODO Overwrite orientation scores
+    // this.result['orientation'][0]['score'] = null
+  }
+
+  get data() {
+    return this._data;
+  }
+
+  get results() {
+    return this._data["results"];
+  }
+
+  get cameraId() {
+    return this._data["camera_id"];
+  }
+
+  get timestamp() {
+    return this._data["timestamp"];
+  }
+}
 
 export class SnapshotApi {
   constructor(token, sdkUrl = null) {
@@ -48,15 +143,6 @@ export class SnapshotApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init)
-      .then((response) => response.text())
-      .then((responseText) => new Response(responseText))
-      .catch((error) => {
-        if (error instanceof UnexpectedApiResponse) {
-          return new Response(error.message, { status: error.status });
-        } else {
-          throw error;
-        }
-      });
+    return fetchWithRetry(url, init);
   }
 }

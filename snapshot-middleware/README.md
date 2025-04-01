@@ -16,16 +16,38 @@ npm run deploy
 npm run deploy -- --name reimaginedparking-middleware
 ```
 To login again `wrangler login`, Logout using `wrangler logout` or delete `.wrangler` folder
+> Login command if wrangler is not installed globally `./node_modules/.bin/wrangler login`
 
 2. Update the application env variables with the following values
 > This will redeploy the worker and persist any future deployments
 > For added security, Click on the Encrypt button on each variable
 
+
+### Secrets
 ```shell
 # Snapshot Cloud Token - Find it here https://app.platerecognizer.com/service/snapshot-cloud/
 SNAPSHOT_TOKEN=
+PARKPOW_TOKEN=
+```
+
+### Texts
+```shell
 # Snapshot API URL - Optional (You don't need to define it if you use Snapshot Cloud
 SNAPSHOT_URL=
+PARKPOW_URL=
+```
+
+The worker can also be controlled using GET params
+- `processor_selection` - Specify **source camera ID** that will be used for processing instead of detecting from request format
+- `overwrite_plate` - Overwrite Snapshot `plate` with camera response before forwarding to ParkPow
+- `overwrite_direction` - Overwrite Snapshot `direction` with camera response before forwarding
+- `overwrite_orientation` - Overwrite Snapshot `orientation` with camera response before forwarding
+- `parkpow_forwarding` - Enable ParkPow forwarding. This is also automatically enabled if you use any `overwrite_*` params.
+
+**Source Camera IDs**:
+```plaintext
+SURVISION = 1
+GENETEC = 2
 ```
 
 3. To log errors with Rollbar, Deploy the tail worker

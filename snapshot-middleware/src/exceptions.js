@@ -28,3 +28,10 @@ export class UnexpectedApiResponse extends Error {
     this.status = status;
   }
 }
+
+export class InvalidIntValue extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "InvalidIntValue";
+  }
+}

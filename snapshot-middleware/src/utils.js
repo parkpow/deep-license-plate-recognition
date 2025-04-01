@@ -1,6 +1,7 @@
 import {
   Error429,
   Error5xx,
+  InvalidIntValue,
   RetryLimit,
   UnexpectedApiResponse,
 } from "./exceptions";
@@ -40,4 +41,14 @@ export function fetchWithRetry(url, init, tries = 3) {
         throw error;
       }
     });
+}
+
+export function validInt(i, fallBack = null) {
+  if (i === null || i === "" || i === undefined || isNaN(i)) {
+    if (fallBack != null) {
+      return fallBack;
+    }
+    throw new InvalidIntValue(`Invalid value for time - ${i}`);
+  }
+  return parseInt(i, 10);
 }
