@@ -98,13 +98,12 @@ export default {
                 );
               }
 
-              const res = { snapshot: snapshotResponse.data };
+              const res = { snapshot: snapshotResponse.result };
               if (parkPowForwardingEnabled) {
                 const parkPow = new ParkPowApi(
                   env.PARKPOW_TOKEN,
                   env.PARKPOW_URL,
                 );
-
                 // include ParkPow response in final response
                 res["parkPow"] = await parkPow.logVehicle(
                   processorInstance.imageBase64,

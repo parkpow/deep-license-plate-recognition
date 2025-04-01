@@ -1,4 +1,3 @@
-import { SnapshotApi } from "./snapshot";
 import {
   PARKPOW_ORIENTATION_REAR,
   PARKPOW_ORIENTATION_FRONT,
@@ -157,6 +156,6 @@ class Genetec extends Camera {
   }
 }
 
-exports.ENABLED_CAMERAS = [Survision, Genetec];
-exports.PROCESSOR_SURVISION = SURVISION;
-exports.PROCESSOR_GENETEC = GENETEC;
+export const ENABLED_CAMERAS = [Survision, Genetec];
+export const PROCESSOR_SURVISION = SURVISION;
+export const PROCESSOR_GENETEC = GENETEC;

@@ -27,6 +27,7 @@ export class ParkPowApi {
    * @param encodedImage
    * @param result
    * @param timestamp
+   * @param cameraId
    * @returns {Promise<*>}
    */
   async logVehicle(encodedImage, result, cameraId, timestamp) {
@@ -50,6 +51,7 @@ export class ParkPowApi {
     return fetchWithRetry(url, init, 5).then((response) => response.json());
   }
 }
-exports.PARKPOW_ORIENTATION_FRONT = ORIENTATION_FRONT;
-exports.PARKPOW_ORIENTATION_REAR = ORIENTATION_REAR;
-exports.PARKPOW_ORIENTATION_UNKNOWN = ORIENTATION_UNKNOWN;
+
+export const PARKPOW_ORIENTATION_FRONT = ORIENTATION_FRONT;
+export const PARKPOW_ORIENTATION_REAR = ORIENTATION_REAR;
+export const PARKPOW_ORIENTATION_UNKNOWN = ORIENTATION_UNKNOWN;
