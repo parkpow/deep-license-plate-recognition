@@ -75,7 +75,7 @@ class Survision extends Camera {
   }
 
   static validRequest(request, data) {
-    !!request.headers.get(Survision.SERIAL_NUMBER_HEADER);
+    return !!request.headers.get(Survision.SERIAL_NUMBER_HEADER);
   }
 
   get plate() {
@@ -97,9 +97,9 @@ class Survision extends Camera {
 
 class Genetec extends Camera {
   constructor(request, data) {
-    let cameraId = data["CameraName"];
+    const cameraId = data["CameraName"];
     // "10/01/2022", Format DD/MM/YYYY
-    let dateUtc = data["DateUtc"];
+    const dateUtc = data["DateUtc"];
     let year, month, day;
     if (dateUtc.indexOf("-") > -1) {
       [year, month, day] = dateUtc.split("-");
@@ -107,7 +107,7 @@ class Genetec extends Camera {
       [month, day, year] = dateUtc.split("/");
     }
     //  "11:49:22", Format HH/MM/SS
-    let [hours, minutes, seconds] = data["TimeUtc"].split(":");
+    const [hours, minutes, seconds] = data["TimeUtc"].split(":");
     console.debug(`year: ${year}`);
     console.debug(`month: ${month}`);
     console.debug(`day: ${day}`);
