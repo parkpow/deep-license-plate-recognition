@@ -1,4 +1,9 @@
-const { SnapshotApi } = require("./snapshot");
+import { SnapshotApi } from "./snapshot";
+import {
+  PARKPOW_ORIENTATION_REAR,
+  PARKPOW_ORIENTATION_FRONT,
+  PARKPOW_ORIENTATION_UNKNOWN,
+} from "./parkpow";
 
 const SURVISION = 1;
 const GENETEC = 2;
@@ -47,6 +52,12 @@ class Camera {
   }
 }
 
+function alertForImplementation(dataString) {
+  // Throw error to capture payload for fixing
+  console.error(dataString);
+  throw new Error(`Not Implemented: ${dataString}`);
+}
+
 class Survision extends Camera {
   static PROCESSOR_ID = SURVISION;
   static SERIAL_NUMBER_HEADER = "survision-serial-number";
@@ -65,14 +76,16 @@ class Survision extends Camera {
   get plate() {
     return this.data["anpr"]["decision"]["@plate"];
   }
-  get orientation() {}
+  get orientation() {
+    alertForImplementation(JSON.stringify(this.data));
+  }
 
   get direction() {
     const direction = this.data["anpr"]["decision"]["@direction"];
-    if (direction === "@direction") {
-      return null;
+    if (direction === "unknown") {
+      return PARKPOW_ORIENTATION_UNKNOWN;
     } else {
-      throw new Error("Not Implemented");
+      alertForImplementation(JSON.stringify(this.data));
     }
   }
 }
@@ -108,14 +121,29 @@ class Genetec extends Camera {
   get plate() {
     return this.data["Plate"];
   }
-  get orientation() {}
+  get orientation() {
+    const relativeMotion = this.data["Attributes"]["Relative Motion"];
+    if (relativeMotion === "Moving Away") {
+      // Assume Car is facing where it's going
+      return PARKPOW_ORIENTATION_REAR;
+    } else if (relativeMotion === "Approaching") {
+      // Assume Car is facing where it's going
+      return PARKPOW_ORIENTATION_FRONT;
+    } else {
+      alertForImplementation(JSON.stringify(this.data));
+    }
+  }
 
   get direction() {
     const relativeMotion = this.data["Attributes"]["Relative Motion"];
     if (relativeMotion === "Moving Away") {
+      // Assume Car going upward. 90°
+      return 90;
     } else if (relativeMotion === "Approaching") {
+      // Assume Car going downward. 270°
+      return 270;
     } else {
-      throw new Error("Not Implemented");
+      alertForImplementation(JSON.stringify(this.data));
     }
   }
 

@@ -32,6 +32,19 @@ PARKPOW_URL=
 
 ```
 
+The worker can also be controlled using GET params
+- `processor_selection` - Specify **source camera ID** that will be used for processing instead of detecting from request format
+- `overwrite_plate` - Overwrite Snapshot `plate` with camera response before forwarding to ParkPow
+- `overwrite_direction` - Overwrite Snapshot `direction` with camera response before forwarding
+- `overwrite_orientation` - Overwrite Snapshot `orientation` with camera response before forwarding
+- `parkpow_forwarding` - Enable ParkPow forwarding. This is also automatically enabled if you use any `overwrite_*` params.
+
+**Source Camera IDs**:
+```plaintext
+SURVISION = 1
+GENETEC = 2
+```
+
 3. To log errors with Rollbar, Deploy the tail worker
 ```shell
 npm run deploy:rollbar

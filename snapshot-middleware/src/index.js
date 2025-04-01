@@ -1,4 +1,4 @@
-import { SnapshotApi } from "./snapshot";
+import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
 import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
@@ -74,8 +74,8 @@ export default {
               processorInstance.createdDate,
               params,
             )
-            .then((response) => response.json())
-            .then(async (responseJson) => {
+            .then((response) => new SnapshotResponse(response.json()))
+            .then(async (snapshotResponse) => {
               // check config to forward to ParkPow
               let parkPowForwardingEnabled = false;
               if (params.parkpowForwarding) {
@@ -83,37 +83,36 @@ export default {
               }
               if (params.overwritePlate) {
                 parkPowForwardingEnabled = true;
-                responseJson = snapshot.overwritePlate(
-                  responseJson,
-                  processorInstance.plate,
-                );
+                snapshotResponse.overwritePlate(processorInstance.plate);
               }
               if (params.overwriteOrientation) {
                 parkPowForwardingEnabled = true;
-                responseJson = snapshot.overwriteOrientation(
-                  responseJson,
+                snapshotResponse.overwriteOrientation(
                   processorInstance.orientation,
                 );
               }
               if (params.overwriteDirection) {
                 parkPowForwardingEnabled = true;
-                responseJson = snapshot.overwriteDirection(
-                  responseJson,
+                snapshotResponse.overwriteDirection(
                   processorInstance.direction,
                 );
               }
-              const res = { snapshot: responseJson };
+
+              const res = { snapshot: snapshotResponse.data };
               if (parkPowForwardingEnabled) {
                 const parkPow = new ParkPowApi(
                   env.PARKPOW_TOKEN,
                   env.PARKPOW_URL,
                 );
-                // include ParkPow response in final response
-                res["parkPow"] = await parkPow
-                  .webhookReceiver(processorInstance.imageBase64, responseJson)
-                  .then((response) => response.json());
-              }
 
+                // include ParkPow response in final response
+                res["parkPow"] = await parkPow.logVehicle(
+                  processorInstance.imageBase64,
+                  snapshotResponse.result,
+                  snapshotResponse.cameraId,
+                  snapshotResponse.timestamp,
+                );
+              }
               return new Response(JSON.stringify(res), {
                 headers: { "Content-Type": "application/json" },
               });

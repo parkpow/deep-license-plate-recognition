@@ -1,5 +1,9 @@
 import { fetchWithRetry } from "./utils";
 
+const ORIENTATION_FRONT = "Front";
+const ORIENTATION_REAR = "Rear";
+const ORIENTATION_UNKNOWN = "Unknown";
+
 export class ParkPowApi {
   constructor(token, sdkUrl = null) {
     if (token === null) {
@@ -12,35 +16,40 @@ export class ParkPowApi {
     } else {
       this.apiBase = "https://app.parkpow.com";
     }
+    // Include API VERSION
+    this.apiBase = `${this.apiBase}/api/v1/`;
     console.debug("Api Base: " + this.apiBase);
   }
 
-  async webhookReceiver(encodedImage, data) {
-    console.debug("Webhook Receiver called with data:", data);
-    const endpoint = "/api/v1/webhook-receiver/";
-
-    const body = new FormData();
-    body.set("upload", encodedImage);
-
-    const payload = {
-      hook: {
-        target: "http://localhost:8081/",
-        id: 2,
-        event: "image.done",
-      },
-      data: data,
+  /**
+   * Use Log Vehicle API because image is already in base64 from camera
+   * https://app.parkpow.com/documentation/#tag/Visits/operation/Create%20Visit%20(Send%20Camera%20Images%20and%20License%20Plate%20Data)
+   * @param encodedImage
+   * @param result
+   * @param timestamp
+   * @returns {Promise<*>}
+   */
+  async logVehicle(encodedImage, result, cameraId, timestamp) {
+    console.debug("logVehicle called with result:", result);
+    const endpoint = "log-vehicle/";
+    const data = {
+      camera: cameraId,
+      image: encodedImage,
+      results: [result], // TODO Add handling of multiple results
+      time: timestamp,
     };
-
-    body.set("json", JSON.stringify(payload));
-
     let init = {
-      body: body,
+      body: JSON.stringify(data),
       method: "POST",
       headers: {
+        "Content-type": "application/json",
         Authorization: "Token " + this.token,
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init);
+    return fetchWithRetry(url, init, 5).then((response) => response.json());
   }
 }
+exports.PARKPOW_ORIENTATION_FRONT = ORIENTATION_FRONT;
+exports.PARKPOW_ORIENTATION_REAR = ORIENTATION_REAR;
+exports.PARKPOW_ORIENTATION_UNKNOWN = ORIENTATION_UNKNOWN;

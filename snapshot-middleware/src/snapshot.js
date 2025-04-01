@@ -1,5 +1,57 @@
 import { fetchWithRetry } from "./utils";
-import { UnexpectedApiResponse } from "./exceptions";
+
+export class SnapshotResponse {
+  constructor(data) {
+    this._data = data;
+    console.log(data);
+  }
+
+  overwritePlate(plate) {
+    this.result["plate"] = plate;
+    this.result["candidates"][0]["plate"] = plate;
+
+    // TODO Overwrite plate scores
+    //this.result['score'] = null
+    //this.result['dscore'] = null
+    // this.result['candidates'][0]['score'] = score
+  }
+
+  /**
+   * Default result is the first result
+   * @returns {*}
+   */
+  get result() {
+    return this.results[0];
+  }
+
+  overwriteDirection(direction) {
+    this.result["direction"] = direction;
+    // TODO Overwrite plate scores
+    //this.result['direction_score'] = null
+  }
+
+  overwriteOrientation(orientation) {
+    this.result["orientation"][0]["orientation"] = orientation;
+    // TODO Overwrite orientation scores
+    // this.result['orientation'][0]['score'] = null
+  }
+
+  get data() {
+    return this._data;
+  }
+
+  get results() {
+    return this._data["results"];
+  }
+
+  get cameraId() {
+    return this._data["camera_id"];
+  }
+
+  get timestamp() {
+    return this._data["timestamp"];
+  }
+}
 
 export class SnapshotApi {
   constructor(token, sdkUrl = null) {
@@ -14,18 +66,6 @@ export class SnapshotApi {
       this.apiBase = "https://api.platerecognizer.com";
     }
     console.debug("Api Base: " + this.apiBase);
-  }
-
-  overwritePlate(responseJson, cameraPlate) {
-    throw new Error("Not Implemented");
-  }
-
-  overwriteDirection(responseJson, cameraOrientation) {
-    throw new Error("Not Implemented");
-  }
-
-  overwriteOrientation(responseJson, cameraOrientation) {
-    throw new Error("Not Implemented");
   }
 
   async uploadBase64(encodedImage, camera, timestamp, params) {
