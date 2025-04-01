@@ -23,7 +23,19 @@ export class SnapshotResponse {
   overwritePlate(plate) {
     this.ensureResultsNotEmpty(plate);
     this.result["plate"] = plate;
-    this.result["candidates"][0]["plate"] = plate;
+    if (
+      this.result["candidates"] === undefined ||
+      this.result["candidates"].length === 0
+    ) {
+      this.result["candidates"] = [
+        {
+          plate: plate,
+          score: 0.9,
+        },
+      ];
+    } else {
+      this.result["candidates"][0]["plate"] = plate;
+    }
 
     // TODO Overwrite plate scores
     //this.result['score'] = null
@@ -48,7 +60,21 @@ export class SnapshotResponse {
 
   overwriteOrientation(orientation, licensePlateNumber) {
     this.ensureResultsNotEmpty(licensePlateNumber);
-    this.result["orientation"][0]["orientation"] = orientation;
+
+    if (
+      this.result["orientation"] === undefined ||
+      this.result["orientation"].length === 0
+    ) {
+      this.result["orientation"] = [
+        {
+          orientation: orientation,
+          score: 0.9,
+        },
+      ];
+    } else {
+      this.result["orientation"][0]["orientation"] = orientation;
+    }
+
     // TODO Overwrite orientation scores
     // this.result['orientation'][0]['score'] = null
   }

@@ -104,7 +104,7 @@ export default {
                   env.PARKPOW_URL,
                 );
                 // include ParkPow response in final response
-                res["parkPow"] = await parkPow.logVehicle(
+                res["parkpow"] = await parkPow.logVehicle(
                   processorInstance.imageBase64,
                   snapshotResponse.result,
                   snapshotResponse.cameraId,
