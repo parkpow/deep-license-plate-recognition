@@ -46,8 +46,7 @@ class Camera {
    * @param data
    */
   static validRequest(request, data) {
-    throw Error("Not Implemented");
-  }
+    throw new Error("validRequest must be implemented in a subclass");
 }
 
 function alertForImplementation(dataString) {
