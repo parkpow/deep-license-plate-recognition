@@ -74,10 +74,7 @@ export default {
                 `snapshotResponse.results: ${snapshotResponse.results}`,
               );
               // check config to forward to ParkPow
-              let parkPowForwardingEnabled = false;
-              if (params.parkpowForwarding) {
-                parkPowForwardingEnabled = true;
-              }
+let parkPowForwardingEnabled = !!params.parkpowForwarding;
               if (params.overwritePlate) {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwritePlate(processorInstance.plate);
