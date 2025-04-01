@@ -20,8 +20,7 @@ class Camera {
   }
 
   static get selectionId() {
-    throw new Error("Not Implemented");
-  }
+    throw new Error("selectionId must be implemented in a subclass");
 
   /**
    * Get Plate from this.data
