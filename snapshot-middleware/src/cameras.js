@@ -38,8 +38,7 @@ class Camera {
    * Get Plate from this.data
    */
   get orientation() {
-    throw new Error("Not Implemented");
-  }
+    throw new Error("orientation getter must be implemented in a subclass");
 
   /**
    * Checks if the request or data(JSON payload) should be processed by this camera
