@@ -6,7 +6,22 @@ export class SnapshotResponse {
     console.log(data);
   }
 
+  /**
+   * Handle missing results from snapshot by creating a minimal result
+   * Incase forwarding is needed
+   */
+  ensureResultsNotEmpty(plate) {
+    if (this.results.length === 0) {
+      this.results.push({
+        plate: plate,
+        score: 0.9,
+        // box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
+      });
+    }
+  }
+
   overwritePlate(plate) {
+    this.ensureResultsNotEmpty(plate);
     this.result["plate"] = plate;
     this.result["candidates"][0]["plate"] = plate;
 
@@ -24,13 +39,15 @@ export class SnapshotResponse {
     return this.results[0];
   }
 
-  overwriteDirection(direction) {
+  overwriteDirection(direction, licensePlateNumber) {
+    this.ensureResultsNotEmpty(licensePlateNumber);
     this.result["direction"] = direction;
     // TODO Overwrite plate scores
     //this.result['direction_score'] = null
   }
 
-  overwriteOrientation(orientation) {
+  overwriteOrientation(orientation, licensePlateNumber) {
+    this.ensureResultsNotEmpty(licensePlateNumber);
     this.result["orientation"][0]["orientation"] = orientation;
     // TODO Overwrite orientation scores
     // this.result['orientation'][0]['score'] = null

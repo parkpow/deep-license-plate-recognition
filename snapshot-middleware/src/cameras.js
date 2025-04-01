@@ -3,13 +3,12 @@ import {
   PARKPOW_ORIENTATION_FRONT,
   PARKPOW_ORIENTATION_UNKNOWN,
 } from "./parkpow";
+import { validInt } from "./utils";
 
 const SURVISION = 1;
 const GENETEC = 2;
 
 class Camera {
-  static PROCESSOR_ID = -1;
-
   constructor(cameraId, imageBase64, createdDate, data) {
     if (this.constructor === Camera) {
       throw new Error("Class is of abstract type and can't be instantiated");
@@ -18,6 +17,10 @@ class Camera {
     this.cameraId = cameraId;
     this.imageBase64 = imageBase64;
     this.createdDate = createdDate;
+  }
+
+  static get selectionId() {
+    throw new Error("Not Implemented");
   }
 
   /**
@@ -58,7 +61,6 @@ function alertForImplementation(dataString) {
 }
 
 class Survision extends Camera {
-  static PROCESSOR_ID = SURVISION;
   static SERIAL_NUMBER_HEADER = "survision-serial-number";
 
   constructor(request, data) {
@@ -66,6 +68,10 @@ class Survision extends Camera {
     let createdDate = new Date(validInt(data["anpr"]["@date"])).toISOString();
     let imageBase64 = data["anpr"]["decision"]["jpeg"];
     super(cameraId, imageBase64, createdDate, data);
+  }
+
+  static get selectionId() {
+    return SURVISION;
   }
 
   static validRequest(request, data) {
@@ -90,8 +96,6 @@ class Survision extends Camera {
 }
 
 class Genetec extends Camera {
-  static PROCESSOR_ID = GENETEC;
-
   constructor(request, data) {
     let cameraId = data["CameraName"];
     // "10/01/2022", Format DD/MM/YYYY
@@ -104,6 +108,12 @@ class Genetec extends Camera {
     }
     //  "11:49:22", Format HH/MM/SS
     let [hours, minutes, seconds] = data["TimeUtc"].split(":");
+    console.debug(`year: ${year}`);
+    console.debug(`month: ${month}`);
+    console.debug(`day: ${day}`);
+    console.debug(`hours: ${hours}`);
+    console.debug(`minutes: ${minutes}`);
+    console.debug(`seconds: ${seconds}`);
     const createdDate = new Date(
       validInt(year),
       validInt(month) - 1,
@@ -112,9 +122,13 @@ class Genetec extends Camera {
       validInt(minutes),
       validInt(seconds),
     ).toISOString();
-
+    console.debug(`createdDate: ${createdDate}`);
     const imageBase64 = data["ContextImage"];
-    super(cameraId, imageBase64, createdDate);
+    super(cameraId, imageBase64, createdDate, data);
+  }
+
+  static get selectionId() {
+    return GENETEC;
   }
 
   get plate() {

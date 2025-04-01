@@ -2,16 +2,7 @@ import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
 import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
-
-function validInt(i, fallBack = null) {
-  if (i === null || i === "" || i === undefined || isNaN(i)) {
-    if (fallBack != null) {
-      return fallBack;
-    }
-    throw new InvalidIntValue(`Invalid value for time - ${i}`);
-  }
-  return parseInt(i, 10);
-}
+import { validInt } from "./utils";
 
 function requestParams(request) {
   const { searchParams } = new URL(request.url);
@@ -39,7 +30,7 @@ function findProcessor(selection, request, data) {
   return ENABLED_CAMERAS.find((element, index) => {
     if (selection > -1) {
       // Fixed Selection by ID
-      return element.PROCESSOR_ID === selection;
+      return element.selectionId === selection;
     } else {
       // Automated selection from the request formats
       return element.validRequest(request, data);
@@ -47,6 +38,9 @@ function findProcessor(selection, request, data) {
   });
 }
 
+/**
+ * Integration URL will configure processor, if not then fallback to the checking of headers
+ */
 export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
@@ -56,17 +50,15 @@ export default {
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
         const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
-
-        // TODO 1. user will configure camera, if not then fallback to the checking of headers - user specify integration_id
         const params = requestParams(request);
-        console.debug("Params:", params);
-
+        console.debug(`Params: ${JSON.stringify(params)}`);
         const processorSelection = validInt(params.processorSelection, -1);
-        console.debug("Processor Selection:", processorSelection);
+        console.debug(`Processor Selection: ${processorSelection}`);
         const CameraClass = findProcessor(processorSelection, request, data);
-        console.debug("CameraClass:", CameraClass);
+        console.debug(`CameraClass: ${CameraClass}`);
         if (CameraClass) {
-          const processorInstance = CameraClass(request, data);
+          const processorInstance = new CameraClass(request, data);
+          console.debug(`processorInstance: ${processorInstance}`);
           return snapshot
             .uploadBase64(
               processorInstance.imageBase64,
@@ -74,8 +66,13 @@ export default {
               processorInstance.createdDate,
               params,
             )
-            .then((response) => new SnapshotResponse(response.json()))
+            .then(
+              async (response) => new SnapshotResponse(await response.json()),
+            )
             .then(async (snapshotResponse) => {
+              console.debug(
+                `snapshotResponse.results: ${snapshotResponse.results}`,
+              );
               // check config to forward to ParkPow
               let parkPowForwardingEnabled = false;
               if (params.parkpowForwarding) {
@@ -89,12 +86,14 @@ export default {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwriteOrientation(
                   processorInstance.orientation,
+                  processorInstance.plate,
                 );
               }
               if (params.overwriteDirection) {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwriteDirection(
                   processorInstance.direction,
+                  processorInstance.plate,
                 );
               }
 
@@ -124,9 +123,12 @@ export default {
               }
             });
         } else {
-          return new Response("Error - Invalid Request Content", {
-            status: 400,
-          });
+          return new Response(
+            "Error - Invalid Request Content or Wrong Processor",
+            {
+              status: 400,
+            },
+          );
         }
       } else {
         return new Response(

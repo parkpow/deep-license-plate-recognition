@@ -22,14 +22,19 @@ To login again `wrangler login`, Logout using `wrangler logout` or delete `.wran
 > This will redeploy the worker and persist any future deployments
 > For added security, Click on the Encrypt button on each variable
 
+
+### Secrets
 ```shell
 # Snapshot Cloud Token - Find it here https://app.platerecognizer.com/service/snapshot-cloud/
 SNAPSHOT_TOKEN=
+PARKPOW_TOKEN=
+```
+
+### Texts
+```shell
 # Snapshot API URL - Optional (You don't need to define it if you use Snapshot Cloud
 SNAPSHOT_URL=
-PARKPOW_TOKEN=
 PARKPOW_URL=
-
 ```
 
 The worker can also be controlled using GET params
