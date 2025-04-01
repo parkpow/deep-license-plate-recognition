@@ -32,8 +32,7 @@ class Camera {
    * Get Plate from this.data
    */
   get direction() {
-    throw new Error("Not Implemented");
-  }
+    throw new Error("direction getter must be implemented in a subclass");
 
   /**
    * Get Plate from this.data
