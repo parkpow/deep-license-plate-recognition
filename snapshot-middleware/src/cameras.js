@@ -26,8 +26,7 @@ class Camera {
    * Get Plate from this.data
    */
   get plate() {
-    throw new Error("Not Implemented");
-  }
+    throw new Error("plate getter must be implemented in a subclass");
 
   /**
    * Get Plate from this.data
