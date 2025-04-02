@@ -1,6 +1,6 @@
 import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
-import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
+import { UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
 import { validInt } from "./utils";
 
@@ -74,7 +74,7 @@ export default {
                 `snapshotResponse.results: ${snapshotResponse.results}`,
               );
               // check config to forward to ParkPow
-let parkPowForwardingEnabled = !!params.parkpowForwarding;
+              let parkPowForwardingEnabled = !!params.parkpowForwarding;
               if (params.overwritePlate) {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwritePlate(processorInstance.plate);
