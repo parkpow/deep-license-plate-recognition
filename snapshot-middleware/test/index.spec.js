@@ -19,20 +19,20 @@ import {
 import worker from "../src";
 
 import GenetecSamplePayload from "./Genetec.json";
-// import GenetecSnapshotResponse from "./GenetecSnapshot.txt";
+import GenetecSnapshotResponse from "./GenetecSnapshot.json";
 import SurvisionSamplePayload from "./Survision.json";
-// import SurvisionSnapshotResponse from "./SurvisionSnapshot.txt";
+import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
 
-// beforeAll(() => {
-//   // throw errors if an outbound request isn't mocked
-//   fetchMock.disableNetConnect();
-// });
+beforeAll(() => {
+  // throw errors if an outbound request isn't mocked
+  fetchMock.disableNetConnect();
+});
 
-// beforeEach(() => fetchMock.activate());
-// afterEach(() => {
-// 	fetchMock.assertNoPendingInterceptors();
-// 	fetchMock.deactivate();
-// });
+beforeEach(() => fetchMock.activate());
+afterEach(() => {
+  fetchMock.assertNoPendingInterceptors();
+  fetchMock.deactivate();
+});
 
 /**
  * Create Expected Request from cameras with relevant headers and payload
@@ -107,24 +107,38 @@ it("No Expected Content-Type - Expected Content-Type application/json and Conten
 });
 
 it("Uploads Images In Request to Snapshot", async () => {
-  // fetchMock.get('https://api.platerecognizer.com')
-  //   .intercept({ path: '/v1/plate-reader/', method: 'POST'})
-  //   .reply(200, "body");
+  fetchMock
+    .get("https://api.platerecognizer.com")
+    .intercept({ path: "/v1/plate-reader/", method: "POST" })
+    .reply(200, "body");
 
   // Test Sample Payloads
-  const payloads = [SurvisionSamplePayload];
+  const payloads = [
+    [GenetecSamplePayload, {}, GenetecSnapshotResponse],
+    [
+      SurvisionSamplePayload,
+      { "survision-serial-number": "sv1-searial-1" },
+      SurvisionSnapshotResponse,
+    ],
+  ];
   for (let i = 0; i < payloads.length; i++) {
+    let [payload, headers, snapshotResponse] = payloads[i];
     let request = createJsonUploadRequest(
       "http://snapshot-middleware.platerecognizer.com",
-      payloads[i],
+      payload,
+      headers,
     );
     // Create an empty context to pass to `worker.fetch()`
     let ctx = createExecutionContext();
     let response = await worker.fetch(request, env, ctx);
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    //expect(await response.status).toBe(200);
+    expect(await response.status).toBe(200);
     expect(await response.text()).toBe("Success");
+
+    // TODO by default the response should be Snapshot response
+    //  unless manually forwarded to ParkPow then it's ParkPow response
+    expect(await snapshotResponse).toBe("Success");
   }
 });
 

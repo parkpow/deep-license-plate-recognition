@@ -3,7 +3,7 @@ import { fetchWithRetry } from "./utils";
 export class SnapshotResponse {
   constructor(data) {
     this._data = data;
-    console.log(data);
+    console.log(JSON.stringify(data));
   }
 
   /**

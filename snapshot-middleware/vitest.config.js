@@ -5,6 +5,13 @@ export default defineWorkersConfig({
     poolOptions: {
       workers: {
         wrangler: { configPath: "./wrangler.toml" },
+        main: "./src/index.js",
+        miniflare: {
+          bindings: {
+            PARKPOW_TOKEN: "empty",
+            SNAPSHOT_TOKEN: "empty",
+          },
+        },
       },
     },
   },
