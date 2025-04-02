@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Windows
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
