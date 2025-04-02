@@ -48,7 +48,7 @@ export function validInt(i, fallBack = null) {
     if (fallBack != null) {
       return fallBack;
     }
-    throw new InvalidIntValue(`Invalid value for time - ${i}`);
+    throw new InvalidIntValue(`Invalid int value - ${i}`);
   }
   return parseInt(i, 10);
 }

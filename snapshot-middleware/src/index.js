@@ -45,8 +45,8 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
-      const cntLength = validInt(request.headers.get("content-length"));
-
+      const contentLength = request.headers.get("content-length");
+      const cntLength = validInt(contentLength, -1);
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
         const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
