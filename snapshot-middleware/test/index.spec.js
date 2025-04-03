@@ -163,13 +163,44 @@ describe("Snapshot Upload", () => {
     expect(await response.json()).toStrictEqual(rateLimitResponse);
   });
 
-  it("Forwards Back Response", async () => {
-    throw new Error("Not Implemented");
-  });
+  const snapshotStatusCases = [
+    [300, JSON.stringify({ detail: "Response 300" }), 1],
+    [400, JSON.stringify({ detail: "Response 400" }), 1],
+    [
+      429,
+      JSON.stringify({
+        detail: "Request was throttled. Expected available in 1 second.",
+        status_code: 429,
+      }),
+      3,
+    ],
+    [500, JSON.stringify({ detail: "Response 500" }), 3],
+    [504, '<doc type="html">...', 3],
+  ];
+  test.each(snapshotStatusCases)(
+    "Snapshot Status: %s is forwarded as worker response",
+    async (status, mockSnapshotResponse, times) => {
+      fetchMock
+        .get("https://api.platerecognizer.com")
+        .intercept({ path: "/v1/plate-reader/", method: "POST" })
+        .reply(status, mockSnapshotResponse)
+        .times(times);
 
-  it("Invalid Request has Error Response", async () => {
-    throw new Error("Not Implemented");
-  });
+      let req = createJsonUploadRequest(
+        WORKER_REQUEST_INPUT,
+        SurvisionSamplePayload,
+        SURVISION_HEADERS_DEFAULT,
+      ); // Create an empty context to pass to `worker.fetch()`
+      let ctx = createExecutionContext();
+      let response = await worker.fetch(req, env, ctx);
+      // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
+      await waitOnExecutionContext(ctx);
+      expect(await response.status).toBe(status);
+      // By default, the response should be Snapshot response
+      //  unless manually forwarded to ParkPow then it's ParkPow response
+      expect(await response.text()).toStrictEqual(mockSnapshotResponse);
+    },
+  );
 
   it("Overwrite Params", async () => {
     // TODO mock resData = await parkPow.logVehicle( and check params
@@ -232,10 +263,36 @@ describe("ParkPow Forwarding", () => {
   );
 
   it("retries rate limits", async () => {
-    throw new Error("Not Implemented");
+    const rateLimitResponse = {
+      detail: "TODO",
+      status_code: 429,
+    };
+    fetchMock
+      .get("https://api.platerecognizer.com")
+      .intercept({ path: "/v1/plate-reader/", method: "POST" })
+      .reply(200, SurvisionSamplePayload);
+
+    fetchMock
+      .get("https://app.parkpow.com")
+      .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+      .reply(429, JSON.stringify(rateLimitResponse))
+      .times(3);
+
+    let req = createJsonUploadRequest(
+      WORKER_REQUEST_INPUT + "?parkpow_forwarding=1",
+      SurvisionSamplePayload,
+      SURVISION_HEADERS_DEFAULT,
+    );
+    // Create an empty context to pass to `worker.fetch()`
+    let ctx = createExecutionContext();
+    let response = await worker.fetch(req, env, ctx);
+    // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
+    await waitOnExecutionContext(ctx);
+    expect(await response.status).toBe(429);
+    expect(await response.json()).toStrictEqual(rateLimitResponse);
   });
 
-  it("Forwards Back Response To User", async () => {
+  it("ParkPow Response message and status is worker response", async () => {
     throw new Error("Not Implemented");
   });
 
