@@ -8,18 +8,17 @@ import {
 
 const wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
-export function fetchWithRetry(url, init, tries = 3) {
+export function fetchWithRetry(url, init, tries = 3, delay = 2000) {
   return fetch(url, init)
     .then(async (response) => {
       if (response.ok) {
         return response;
       } else {
-        // 1. throw a new exception
-        if (response.status === 429)
-          throw new Error429("Rate Limited", response);
-        if (response.status >= 500 && response.status <= 599)
-          throw new Error5xx(`Server Error - ${response.status}`, response);
         const responseText = await response.text();
+        // 1. throw a new exception
+        if (response.status === 429) throw new Error429(responseText);
+        if (response.status >= 500 && response.status <= 599)
+          throw new Error5xx(responseText, response.status);
         console.error(responseText);
         // 2. reject instead of throw, preferred
         return Promise.reject(
@@ -31,11 +30,10 @@ export function fetchWithRetry(url, init, tries = 3) {
       // Retry network error or 5xx errors
       if (error instanceof Error429 || error instanceof Error5xx) {
         if (tries <= 0) {
-          throw new RetryLimit("Rate Limited");
+          throw new RetryLimit(error.message, error.status);
         }
         console.log(`Retrying request: ${tries}`);
         // if the rate limit is reached or exceeded,
-        const delay = 2000;
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
       } else {
         throw error;

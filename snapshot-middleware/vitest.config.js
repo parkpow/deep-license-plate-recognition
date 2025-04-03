@@ -10,6 +10,10 @@ export default defineWorkersConfig({
           bindings: {
             PARKPOW_TOKEN: "empty",
             SNAPSHOT_TOKEN: "empty",
+            ROLLBAR_TOKEN: "empty",
+            RETRY_DELAY: 10,
+            PARKPOW_RETRY_LIMIT: 2,
+            SNAPSHOT_RETRY_LIMIT: 2,
           },
         },
       },

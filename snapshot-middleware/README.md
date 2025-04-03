@@ -35,6 +35,10 @@ PARKPOW_TOKEN=
 # Snapshot API URL - Optional (You don't need to define it if you use Snapshot Cloud
 SNAPSHOT_URL=
 PARKPOW_URL=
+SNAPSHOT_RETRY_LIMIT=5
+SNAPSHOT_RETRY_LIMIT=5
+RETRY_DELAY=2000
+
 ```
 
 The worker can also be controlled using GET params

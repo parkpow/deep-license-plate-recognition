@@ -5,7 +5,9 @@ const ORIENTATION_REAR = "Rear";
 const ORIENTATION_UNKNOWN = "Unknown";
 
 export class ParkPowApi {
-  constructor(token, sdkUrl = null) {
+  constructor(token, sdkUrl = null, retryLimit = 5, retryDelay = 2000) {
+    this.retryLimit = apiRetryLimit;
+    this.retryDelay = retryDelay;
     if (token === null) {
       throw new Error("ParkPow API token is required for authentication.");
     } else {
@@ -48,7 +50,9 @@ export class ParkPowApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init, 5).then((response) => response.json());
+    return fetchWithRetry(url, init, this.retryLimit, this.retryDelay).then(
+      (response) => response.json(),
+    );
   }
 }
 

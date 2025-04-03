@@ -49,7 +49,12 @@ export default {
       const cntLength = validInt(contentLength, -1);
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
-        const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
+        const snapshot = new SnapshotApi(
+          env.SNAPSHOT_TOKEN,
+          env.SNAPSHOT_URL,
+          validInt(env.SNAPSHOT_RETRY_LIMIT, 5),
+          validInt(env.RETRY_DELAY, 2000),
+        );
         const params = requestParams(request);
         console.debug(`Params: ${JSON.stringify(params)}`);
         const processorSelection = validInt(params.processorSelection, -1);
@@ -57,13 +62,13 @@ export default {
         const CameraClass = findProcessor(processorSelection, request, data);
         console.debug(`CameraClass: ${CameraClass}`);
         if (CameraClass) {
-          const processorInstance = new CameraClass(request, data);
-          console.debug(`processorInstance: ${processorInstance}`);
+          const cameraData = new CameraClass(request, data);
+          console.debug(`CameraData Instance: ${cameraData}`);
           return snapshot
             .uploadBase64(
-              processorInstance.imageBase64,
-              processorInstance.cameraId,
-              processorInstance.createdDate,
+              cameraData.imageBase64,
+              cameraData.cameraId,
+              cameraData.createdDate,
               params,
             )
             .then(
@@ -77,38 +82,45 @@ export default {
               let parkPowForwardingEnabled = !!params.parkpowForwarding;
               if (params.overwritePlate) {
                 parkPowForwardingEnabled = true;
-                snapshotResponse.overwritePlate(processorInstance.plate);
+                snapshotResponse.overwritePlate(cameraData.plate);
               }
               if (params.overwriteOrientation) {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwriteOrientation(
-                  processorInstance.orientation,
-                  processorInstance.plate,
+                  cameraData.orientation,
+                  cameraData.plate,
                 );
               }
               if (params.overwriteDirection) {
                 parkPowForwardingEnabled = true;
                 snapshotResponse.overwriteDirection(
-                  processorInstance.direction,
-                  processorInstance.plate,
+                  cameraData.direction,
+                  cameraData.plate,
                 );
               }
 
-              const res = { snapshot: snapshotResponse.result };
-              if (parkPowForwardingEnabled) {
+              let resData;
+              if (
+                parkPowForwardingEnabled &&
+                snapshotResponse.results.length > 0
+              ) {
                 const parkPow = new ParkPowApi(
                   env.PARKPOW_TOKEN,
                   env.PARKPOW_URL,
+                  validInt(env.PARKPOW_RETRY_LIMIT, 5),
+                  validInt(env.RETRY_DELAY, 2000),
                 );
-                // include ParkPow response in final response
-                res["parkpow"] = await parkPow.logVehicle(
-                  processorInstance.imageBase64,
+                resData = await parkPow.logVehicle(
+                  cameraData.imageBase64,
                   snapshotResponse.result,
                   snapshotResponse.cameraId,
                   snapshotResponse.timestamp,
                 );
+              } else {
+                resData = snapshotResponse.data;
               }
-              return new Response(JSON.stringify(res), {
+              // console.debug(`resString: ${resString}`)
+              return new Response(JSON.stringify(resData), {
                 headers: { "Content-Type": "application/json" },
               });
             })
