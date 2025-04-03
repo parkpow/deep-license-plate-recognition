@@ -1,0 +1,213 @@
+{
+  "processing_time": 44.071,
+  "results": [
+    {
+      "box": {
+        "xmin": 693,
+        "ymin": 681,
+        "xmax": 988,
+        "ymax": 759
+      },
+      "plate": "mw818wm",
+      "region": {
+        "code": "fr",
+        "score": 0.816
+      },
+      "score": 1,
+      "candidates": [
+        {
+          "score": 1,
+          "plate": "mw818wm"
+        },
+        {
+          "score": 0.864,
+          "plate": "mw81bwm"
+        },
+        {
+          "score": 0.864,
+          "plate": "mw8i8wm"
+        },
+        {
+          "score": 0.864,
+          "plate": "mwb18wm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mw8ibwm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mwb1bwm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mwbi8wm"
+        },
+        {
+          "score": 0.593,
+          "plate": "mwbibwm"
+        }
+      ],
+      "dscore": 0.883,
+      "vehicle": {
+        "score": 0.414,
+        "type": "Unknown",
+        "box": {
+          "xmin": 385,
+          "ymin": 142,
+          "xmax": 1446,
+          "ymax": 921
+        }
+      },
+      "model_make": [
+        {
+          "make": "generic",
+          "model": "Invalid",
+          "score": 0.761
+        },
+        {
+          "make": "generic",
+          "model": "Unknown",
+          "score": 0.008
+        }
+      ],
+      "color": [
+        {
+          "color": "black",
+          "score": 0.426
+        },
+        {
+          "color": "white",
+          "score": 0.385
+        },
+        {
+          "color": "silver",
+          "score": 0.066
+        }
+      ],
+      "orientation": [
+        {
+          "orientation": "Rear",
+          "score": 0.685
+        },
+        {
+          "orientation": "Unknown",
+          "score": 0.246
+        },
+        {
+          "orientation": "Front",
+          "score": 0.07
+        }
+      ],
+      "direction": 81,
+      "direction_score": 0.999
+    },
+    {
+      "box": {
+        "xmin": 693,
+        "ymin": 681,
+        "xmax": 988,
+        "ymax": 759
+      },
+      "plate": "mw818wm2",
+      "region": {
+        "code": "fr",
+        "score": 0.816
+      },
+      "score": 1,
+      "candidates": [
+        {
+          "score": 1,
+          "plate": "mw818wm2"
+        },
+        {
+          "score": 0.864,
+          "plate": "mw81bwm"
+        },
+        {
+          "score": 0.864,
+          "plate": "mw8i8wm"
+        },
+        {
+          "score": 0.864,
+          "plate": "mwb18wm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mw8ibwm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mwb1bwm"
+        },
+        {
+          "score": 0.728,
+          "plate": "mwbi8wm"
+        },
+        {
+          "score": 0.593,
+          "plate": "mwbibwm"
+        }
+      ],
+      "dscore": 0.883,
+      "vehicle": {
+        "score": 0.414,
+        "type": "Unknown",
+        "box": {
+          "xmin": 385,
+          "ymin": 142,
+          "xmax": 1446,
+          "ymax": 921
+        }
+      },
+      "model_make": [
+        {
+          "make": "generic",
+          "model": "Invalid",
+          "score": 0.761
+        },
+        {
+          "make": "generic",
+          "model": "Unknown",
+          "score": 0.008
+        }
+      ],
+      "color": [
+        {
+          "color": "black",
+          "score": 0.426
+        },
+        {
+          "color": "white",
+          "score": 0.385
+        },
+        {
+          "color": "silver",
+          "score": 0.066
+        }
+      ],
+      "orientation": [
+        {
+          "orientation": "Rear",
+          "score": 0.685
+        },
+        {
+          "orientation": "Unknown",
+          "score": 0.246
+        },
+        {
+          "orientation": "Front",
+          "score": 0.07
+        }
+      ],
+      "direction": 81,
+      "direction_score": 0.999
+    }
+  ],
+  "filename": "1809_oHlaQ_d670ea11-e2b2-4ca6-98ab-0ee5c7178f70.jpg",
+  "version": 1,
+  "camera_id": "sv1-searial-1",
+  "timestamp": "2024-10-17T23:04:50.098000Z",
+  "image_width": 1920,
+  "image_height": 1088
+}

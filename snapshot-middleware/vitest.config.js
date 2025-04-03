@@ -6,10 +6,14 @@ export default defineWorkersConfig({
       workers: {
         wrangler: { configPath: "./wrangler.toml" },
         main: "./src/index.js",
+        // singleWorker: true,
         miniflare: {
           bindings: {
             PARKPOW_TOKEN: "empty",
+            //PARKPOW_URL: 'http://0.0.0.0:8000',
+            PARKPOW_URL: "",
             SNAPSHOT_TOKEN: "empty",
+            SNAPSHOT_URL: "",
             ROLLBAR_TOKEN: "empty",
             RETRY_DELAY: 10,
             PARKPOW_RETRY_LIMIT: 2,

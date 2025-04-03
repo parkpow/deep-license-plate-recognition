@@ -1,0 +1,276 @@
+import {
+  env,
+  createExecutionContext,
+  waitOnExecutionContext,
+  fetchMock,
+} from "cloudflare:test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  MockInstance,
+  test,
+} from "vitest";
+
+import worker from "../src/index";
+
+import GenetecSamplePayload from "./Genetec.json";
+import GenetecSnapshotResponse from "./GenetecSnapshot.json";
+import GenetecResultParkPow from "./GenetecResultParkPow.json";
+import SurvisionSamplePayload from "./Survision.json";
+import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
+import SurvisionSnapshotResponseX2 from "./SurvisionSnapshotX2.json";
+import SurvisionParkPowResponse from "./SurvisionParkPow.json";
+import { isMockActive, MockAgent, setDispatcher } from "cloudflare:mock-agent";
+import { validInt } from "../src/utils";
+import { PROCESSOR_GENETEC } from "../src/cameras";
+
+const WORKER_REQUEST_INPUT = "http://snapshot-middleware.platerecognizer.com";
+const SURVISION_HEADERS_DEFAULT = {
+  "survision-serial-number": "sv1-searial-1",
+};
+
+const SNAPSHOT_BASE_URL = "https://api.platerecognizer.com";
+// const PARKPOW_BASE_URL = "https://app.parkpow.com";
+const PARKPOW_BASE_URL = "http://0.0.0.0:8000";
+
+beforeAll(() => {
+  // throw errors if an outbound request isn't mocked
+  fetchMock.disableNetConnect();
+});
+
+beforeEach(() => fetchMock.activate());
+
+afterEach(() => {
+  fetchMock.assertNoPendingInterceptors();
+  fetchMock.deactivate();
+});
+
+/**
+ * Create Expected Request from cameras with relevant headers and payload
+ * @param input
+ * @param jsonData
+ * @param extraHeaders
+ * @returns {Request}
+ */
+function createJsonUploadRequest(input, jsonData, extraHeaders = {}) {
+  const bodyJson = JSON.stringify(jsonData);
+  return new Request(input, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": bodyJson.length,
+      ...extraHeaders,
+    },
+    body: bodyJson,
+  });
+}
+
+describe("Overwrite Parameters", async () => {
+  const overwriteParamEmpty = [
+    // param, input, expectedResult
+    [
+      "overwrite_plate",
+      1,
+      {
+        plate: "9HKA742",
+        score: 0.9,
+        candidates: [{ plate: "9HKA742", score: 0.9 }],
+      },
+    ],
+    ["overwrite_direction", 1, { direction: 90, plate: "9HKA742", score: 0.9 }],
+    [
+      "overwrite_orientation",
+      1,
+      {
+        orientation: [{ orientation: "Rear", score: 0.9 }],
+        plate: "9HKA742",
+        score: 0.9,
+      },
+    ],
+  ];
+  test.each(overwriteParamEmpty)(
+    "Empty results Param: %s ",
+    async (param, input, modifiedResult) => {
+      fetchMock
+        .get(SNAPSHOT_BASE_URL)
+        .intercept({ path: "/v1/plate-reader/", method: "POST" })
+        .reply(200, GenetecSnapshotResponse);
+
+      const client2 = fetchMock.get(PARKPOW_BASE_URL);
+      client2
+        .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+        .reply(200, ({ body }) => {
+          // throw new Error(body)
+          return body;
+        });
+      const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
+      let req = createJsonUploadRequest(url, GenetecSamplePayload, {});
+      // Create an empty context to pass to `worker.fetch()`
+      let ctx = createExecutionContext();
+      let response = await worker.fetch(req, env, ctx);
+      // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
+      await waitOnExecutionContext(ctx);
+      //expect(await response.status).toBe(200);
+      const responseJson = await response.json();
+      expect(responseJson["time"]).toBe("2024-10-24T17:29:26Z");
+      expect(responseJson["camera"]).toBe("G637821011231200521C - Camera");
+      expect(responseJson["results"]).toStrictEqual([modifiedResult]);
+    },
+  );
+
+  const nonEmptyResult1 = {
+    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
+    plate: "MW818WM",
+    region: { code: "fr", score: 0.816 },
+    score: 1,
+    candidates: [
+      { score: 1, plate: "MW818WM" },
+      { score: 0.864, plate: "mw81bwm" },
+      {
+        score: 0.864,
+        plate: "mw8i8wm",
+      },
+      { score: 0.864, plate: "mwb18wm" },
+      { score: 0.728, plate: "mw8ibwm" },
+      {
+        score: 0.728,
+        plate: "mwb1bwm",
+      },
+      { score: 0.728, plate: "mwbi8wm" },
+      { score: 0.593, plate: "mwbibwm" },
+    ],
+    dscore: 0.883,
+    vehicle: {
+      score: 0.414,
+      type: "Unknown",
+      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
+    },
+    model_make: [
+      { make: "generic", model: "Invalid", score: 0.761 },
+      {
+        make: "generic",
+        model: "Unknown",
+        score: 0.008,
+      },
+    ],
+    color: [
+      { color: "black", score: 0.426 },
+      { color: "white", score: 0.385 },
+      {
+        color: "silver",
+        score: 0.066,
+      },
+    ],
+    orientation: [
+      { orientation: "Rear", score: 0.685 },
+      {
+        orientation: "Unknown",
+        score: 0.246,
+      },
+      { orientation: "Front", score: 0.07 },
+    ],
+    direction: 81,
+    direction_score: 0.999,
+  };
+  const nonEmptyResult2 = {
+    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
+    plate: "mw818wm",
+    region: { code: "fr", score: 0.816 },
+    score: 1,
+    candidates: [
+      { score: 1, plate: "mw818wm" },
+      { score: 0.864, plate: "mw81bwm" },
+      {
+        score: 0.864,
+        plate: "mw8i8wm",
+      },
+      { score: 0.864, plate: "mwb18wm" },
+      { score: 0.728, plate: "mw8ibwm" },
+      {
+        score: 0.728,
+        plate: "mwb1bwm",
+      },
+      { score: 0.728, plate: "mwbi8wm" },
+      { score: 0.593, plate: "mwbibwm" },
+    ],
+    dscore: 0.883,
+    vehicle: {
+      score: 0.414,
+      type: "Unknown",
+      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
+    },
+    model_make: [
+      { make: "generic", model: "Invalid", score: 0.761 },
+      {
+        make: "generic",
+        model: "Unknown",
+        score: 0.008,
+      },
+    ],
+    color: [
+      { color: "black", score: 0.426 },
+      { color: "white", score: 0.385 },
+      {
+        color: "silver",
+        score: 0.066,
+      },
+    ],
+    orientation: [
+      { orientation: "Rear", score: 0.685 },
+      {
+        orientation: "Unknown",
+        score: 0.246,
+      },
+      { orientation: "Front", score: 0.07 },
+    ],
+    direction: "Unknown",
+    direction_score: 0.999,
+  };
+
+  // const nonEmptyResult3 = {}
+
+  const overwriteParamNonEmpty = [
+    // param, input, expectedResult
+    ["overwrite_plate", 1, nonEmptyResult1],
+    ["overwrite_direction", 1, nonEmptyResult2],
+    // ['overwrite_orientation', 1, nonEmptyResult3], TODO uncomment when Survision.orientation is implemented
+  ];
+  test.each(overwriteParamNonEmpty)(
+    "Non-Empty results Param: %s",
+    async (param, input, modifiedResult) => {
+      fetchMock
+        .get(SNAPSHOT_BASE_URL)
+        .intercept({ path: "/v1/plate-reader/", method: "POST" })
+        .reply(200, SurvisionSnapshotResponse);
+
+      const client = fetchMock.get(PARKPOW_BASE_URL);
+      client
+        .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+        .reply(200, ({ body }) => {
+          return body;
+        });
+      const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
+      let req = createJsonUploadRequest(
+        url,
+        SurvisionSamplePayload,
+        SURVISION_HEADERS_DEFAULT,
+      );
+      // Create an empty context to pass to `worker.fetch()`
+      let ctx = createExecutionContext();
+      let response = await worker.fetch(req, env, ctx);
+      // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
+      await waitOnExecutionContext(ctx);
+      //expect(await response.status).toBe(200);
+      const responseJson = await response.json();
+      expect(responseJson["time"]).toBe("2024-10-17T23:04:50.098000Z");
+      expect(responseJson["camera"]).toBe("sv1-searial-1");
+      expect(responseJson["results"]).toStrictEqual([modifiedResult]);
+    },
+  );
+});

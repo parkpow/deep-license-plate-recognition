@@ -62,8 +62,20 @@ export default {
         const CameraClass = findProcessor(processorSelection, request, data);
         console.debug(`CameraClass: ${CameraClass}`);
         if (CameraClass) {
-          const cameraData = new CameraClass(request, data);
-          console.debug(`CameraData Instance: ${cameraData}`);
+          let cameraData;
+          try {
+            cameraData = new CameraClass(request, data);
+            console.debug(`CameraData Instance: ${cameraData}`);
+          } catch (e) {
+            const errMsg =
+              processorSelection > -1
+                ? "Specified Processor Unable Process Camera Data"
+                : "Invalid Camera Data";
+            return new Response(
+              `Processor Error - ${processorSelection} - ${errMsg}`,
+              { status: 400 },
+            );
+          }
           return snapshot
             .uploadBase64(
               cameraData.imageBase64,
@@ -74,37 +86,47 @@ export default {
             .then(
               async (response) => new SnapshotResponse(await response.json()),
             )
-            .then(async (snapshotResponse) => {
-              console.debug(
-                `snapshotResponse.results: ${snapshotResponse.results}`,
-              );
+            .then(async (ssRes) => {
+              console.debug(`Snapshot results: ${ssRes.results}`);
               // check config to forward to ParkPow
               let parkPowForwardingEnabled = !!params.parkpowForwarding;
-              if (params.overwritePlate) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwritePlate(cameraData.plate);
-              }
-              if (params.overwriteOrientation) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwriteOrientation(
+              // Create camera result to forward if Snapshot empty
+              if (parkPowForwardingEnabled && ssRes.results.length === 0) {
+                ssRes.overwritePlate(cameraData.plate);
+                ssRes.overwriteOrientation(
                   cameraData.orientation,
                   cameraData.plate,
                 );
-              }
-              if (params.overwriteDirection) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwriteDirection(
+                ssRes.overwriteDirection(
                   cameraData.direction,
                   cameraData.plate,
                 );
+              } else {
+                if (params.overwritePlate) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwritePlate(cameraData.plate);
+                }
+                if (params.overwriteOrientation) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwriteOrientation(
+                    cameraData.orientation,
+                    cameraData.plate,
+                  );
+                }
+                if (params.overwriteDirection) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwriteDirection(
+                    cameraData.direction,
+                    cameraData.plate,
+                  );
+                }
               }
 
               let resData;
-              if (
-                parkPowForwardingEnabled &&
-                snapshotResponse.results.length > 0
-              ) {
-                const parkPow = new ParkPowApi(
+              // By default, the response should be Snapshot response
+              //  unless manually forwarded to ParkPow then it's ParkPow response
+              if (parkPowForwardingEnabled) {
+                let parkPow = new ParkPowApi(
                   env.PARKPOW_TOKEN,
                   env.PARKPOW_URL,
                   validInt(env.PARKPOW_RETRY_LIMIT, 5),
@@ -112,12 +134,12 @@ export default {
                 );
                 resData = await parkPow.logVehicle(
                   cameraData.imageBase64,
-                  snapshotResponse.result,
-                  snapshotResponse.cameraId,
-                  snapshotResponse.timestamp,
+                  ssRes.result,
+                  ssRes.cameraId,
+                  ssRes.timestamp,
                 );
               } else {
-                resData = snapshotResponse.data;
+                resData = ssRes.data;
               }
               // console.debug(`resString: ${resString}`)
               return new Response(JSON.stringify(resData), {
