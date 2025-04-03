@@ -16,10 +16,10 @@ import {
 
 import worker from "../src/index";
 
-import GenetecSamplePayload from "./Genetec.json";
-import GenetecSnapshotResponse from "./GenetecSnapshot.json";
-import SurvisionSamplePayload from "./Survision.json";
-import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
+import GenetecSamplePayload from "./assets/Genetec.json";
+import GenetecSnapshotResponse from "./assets/GenetecSnapshot.json";
+import SurvisionSamplePayload from "./assets/Survision.json";
+import SurvisionSnapshotResponse from "./assets/SurvisionSnapshot.json";
 import {
   WORKER_REQUEST_INPUT,
   SURVISION_HEADERS_DEFAULT,
@@ -78,12 +78,10 @@ describe("Overwrite Parameters", async () => {
         });
       const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
       let req = createJsonUploadRequest(url, GenetecSamplePayload, {});
-      // Create an empty context to pass to `worker.fetch()`
       let ctx = createExecutionContext();
       let response = await worker.fetch(req, env, ctx);
-      // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
       await waitOnExecutionContext(ctx);
-      //expect(await response.status).toBe(200);
+      expect(await response.status).toBe(200);
       const responseJson = await response.json();
       expect(responseJson["time"]).toBe("2024-10-24T17:29:26Z");
       expect(responseJson["camera"]).toBe("G637821011231200521C - Camera");
@@ -91,7 +89,7 @@ describe("Overwrite Parameters", async () => {
     },
   );
 
-  const nonEmptyResult1 = {
+  const overwrittenPlateResult = {
     box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
     plate: "MW818WM",
     region: { code: "fr", score: 0.816 },
@@ -145,7 +143,7 @@ describe("Overwrite Parameters", async () => {
     direction: 81,
     direction_score: 0.999,
   };
-  const nonEmptyResult2 = {
+  const overwrittenDirectionResult = {
     box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
     plate: "mw818wm",
     region: { code: "fr", score: 0.816 },
@@ -199,7 +197,7 @@ describe("Overwrite Parameters", async () => {
     direction: "Unknown",
     direction_score: 0.999,
   };
-  const nonEmptyResult3 = {
+  const overwrittenOrientationResult = {
     box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
     plate: "mw818wm",
     region: { code: "fr", score: 0.816 },
@@ -240,9 +238,9 @@ describe("Overwrite Parameters", async () => {
 
   const overwriteParamNonEmpty = [
     // param, input, expectedResult
-    ["overwrite_plate", 1, nonEmptyResult1],
-    ["overwrite_direction", 1, nonEmptyResult2],
-    ["overwrite_orientation", 1, nonEmptyResult3],
+    ["overwrite_plate", 1, overwrittenPlateResult],
+    ["overwrite_direction", 1, overwrittenDirectionResult],
+    ["overwrite_orientation", 1, overwrittenOrientationResult],
   ];
   test.each(overwriteParamNonEmpty)(
     "Non-Empty results Param: %s",
@@ -264,12 +262,10 @@ describe("Overwrite Parameters", async () => {
         SurvisionSamplePayload,
         SURVISION_HEADERS_DEFAULT,
       );
-      // Create an empty context to pass to `worker.fetch()`
       let ctx = createExecutionContext();
       let response = await worker.fetch(req, env, ctx);
-      // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
       await waitOnExecutionContext(ctx);
-      //expect(await response.status).toBe(200);
+      expect(await response.status).toBe(200);
       const responseJson = await response.json();
       expect(responseJson["time"]).toBe("2024-10-17T23:04:50.098000Z");
       expect(responseJson["camera"]).toBe("sv1-searial-1");

@@ -80,6 +80,6 @@ ROLLBAR_TOKEN= # optional
 - Open a browser tab at http://localhost:8787/ to see your worker in action
 - Test with curl
     ```shell
-  	curl -vX POST http://localhost:8787/ -d @test/Survision.txt --header "Content-Type: application/json" --header "survision-serial-number: sv1-searial-1"
-    curl -vX POST http://localhost:8787/ -d @test/Genetec.txt --header "Content-Type: application/json"
+  	curl -vX POST http://localhost:8787/ -d @test/assets/Survision.json --header "Content-Type: application/json" --header "survision-serial-number: sv1-searial-1"
+    curl -vX POST http://localhost:8787/ -d @test/assets/Genetec.json --header "Content-Type: application/json"
     ```

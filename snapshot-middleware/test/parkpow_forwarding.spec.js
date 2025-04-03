@@ -8,13 +8,13 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import worker from "../src/index";
 
-import GenetecSamplePayload from "./Genetec.json";
-import GenetecSnapshotResponse from "./GenetecSnapshot.json";
-import GenetecResultParkPow from "./GenetecResultParkPow.json";
-import SurvisionSamplePayload from "./Survision.json";
-import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
-import SurvisionSnapshotResponseX2 from "./SurvisionSnapshotX2.json";
-import SurvisionParkPowResponse from "./SurvisionParkPow.json";
+import GenetecSamplePayload from "./assets/Genetec.json";
+import GenetecSnapshotResponse from "./assets/GenetecSnapshot.json";
+import GenetecResultParkPow from "./assets/GenetecResultParkPow.json";
+import SurvisionSamplePayload from "./assets/Survision.json";
+import SurvisionSnapshotResponse from "./assets/SurvisionSnapshot.json";
+import SurvisionSnapshotResponseX2 from "./assets/SurvisionSnapshotX2.json";
+import SurvisionParkPowResponse from "./assets/SurvisionParkPow.json";
 
 import {
   WORKER_REQUEST_INPUT,
@@ -55,10 +55,8 @@ describe("ParkPow Forwarding", () => {
       SurvisionSamplePayload,
       SURVISION_HEADERS_DEFAULT,
     );
-    // Create an empty context to pass to `worker.fetch()`
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
-    // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
     expect(await response.json()).toStrictEqual(SurvisionParkPowResponse);
@@ -81,10 +79,8 @@ describe("ParkPow Forwarding", () => {
       SurvisionSamplePayload,
       SURVISION_HEADERS_DEFAULT,
     );
-    // Create an empty context to pass to `worker.fetch()`
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
-    // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
     expect(await response.json()).toStrictEqual(SurvisionParkPowResponse);
@@ -100,14 +96,10 @@ describe("ParkPow Forwarding", () => {
       .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
       .reply(200, GenetecResultParkPow);
-
     const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
-
     const req = createJsonUploadRequest(url, GenetecSamplePayload, {});
-    // Create an empty context to pass to `worker.fetch()`
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
-    // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
     expect(await response.json()).toStrictEqual(GenetecResultParkPow);
@@ -135,10 +127,8 @@ describe("ParkPow Forwarding", () => {
       SurvisionSamplePayload,
       SURVISION_HEADERS_DEFAULT,
     );
-    // Create an empty context to pass to `worker.fetch()`
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
-    // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(429);
     expect(await response.json()).toStrictEqual(rateLimitResponse);

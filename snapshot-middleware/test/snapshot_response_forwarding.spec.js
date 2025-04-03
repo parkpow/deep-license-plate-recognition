@@ -15,7 +15,7 @@ import {
 
 import worker from "../src/index";
 
-import SurvisionSamplePayload from "./Survision.json";
+import SurvisionSamplePayload from "./assets/Survision.json";
 import {
   WORKER_REQUEST_INPUT,
   SURVISION_HEADERS_DEFAULT,
@@ -58,18 +58,16 @@ describe("Forwards snapshot response to user as worker response", async () => {
         .reply(status, mockSnapshotResponse)
         .times(times);
 
-      let req = createJsonUploadRequest(
+      const req = createJsonUploadRequest(
         WORKER_REQUEST_INPUT,
         SurvisionSamplePayload,
         SURVISION_HEADERS_DEFAULT,
-      ); // Create an empty context to pass to `worker.fetch()`
+      );
       let ctx = createExecutionContext();
       let response = await worker.fetch(req, env, ctx);
       // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
       await waitOnExecutionContext(ctx);
       expect(await response.status).toBe(status);
-      // By default, the response should be Snapshot response
-      //  unless manually forwarded to ParkPow then it's ParkPow response
       expect(await response.text()).toStrictEqual(mockSnapshotResponse);
     },
   );

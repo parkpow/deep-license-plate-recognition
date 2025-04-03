@@ -16,10 +16,10 @@ import {
 
 import worker from "../src/index";
 
-import GenetecSamplePayload from "./Genetec.json";
-import GenetecSnapshotResponse from "./GenetecSnapshot.json";
-import SurvisionSamplePayload from "./Survision.json";
-import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
+import GenetecSamplePayload from "./assets/Genetec.json";
+import GenetecSnapshotResponse from "./assets/GenetecSnapshot.json";
+import SurvisionSamplePayload from "./assets/Survision.json";
+import SurvisionSnapshotResponse from "./assets/SurvisionSnapshot.json";
 
 import { PROCESSOR_GENETEC } from "../src/cameras";
 import {
