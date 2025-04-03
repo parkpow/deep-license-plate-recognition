@@ -6,7 +6,6 @@ import {
 } from "cloudflare:test";
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import worker from "../src/rollbar";
-import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked

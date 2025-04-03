@@ -5,15 +5,12 @@ import {
   fetchMock,
 } from "cloudflare:test";
 import {
-  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-  MockInstance,
   test,
 } from "vitest";
 
@@ -23,7 +20,11 @@ import GenetecSamplePayload from "./Genetec.json";
 import GenetecSnapshotResponse from "./GenetecSnapshot.json";
 import SurvisionSamplePayload from "./Survision.json";
 import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
-import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
+import {
+  WORKER_REQUEST_INPUT,
+  SURVISION_HEADERS_DEFAULT,
+  createJsonUploadRequest,
+} from "./utils";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -36,26 +37,6 @@ afterEach(() => {
   fetchMock.assertNoPendingInterceptors();
   fetchMock.deactivate();
 });
-
-/**
- * Create Expected Request from cameras with relevant headers and payload
- * @param input
- * @param jsonData
- * @param extraHeaders
- * @returns {Request}
- */
-function createJsonUploadRequest(input, jsonData, extraHeaders = {}) {
-  const bodyJson = JSON.stringify(jsonData);
-  return new Request(input, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "content-length": bodyJson.length,
-      ...extraHeaders,
-    },
-    body: bodyJson,
-  });
-}
 
 describe("Overwrite Parameters", async () => {
   const overwriteParamEmpty = [
@@ -218,14 +199,50 @@ describe("Overwrite Parameters", async () => {
     direction: "Unknown",
     direction_score: 0.999,
   };
-
-  // const nonEmptyResult3 = {}
+  const nonEmptyResult3 = {
+    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
+    plate: "mw818wm",
+    region: { code: "fr", score: 0.816 },
+    score: 1,
+    candidates: [
+      { score: 1, plate: "mw818wm" },
+      { score: 0.864, plate: "mw81bwm" },
+      { score: 0.864, plate: "mw8i8wm" },
+      { score: 0.864, plate: "mwb18wm" },
+      { score: 0.728, plate: "mw8ibwm" },
+      { score: 0.728, plate: "mwb1bwm" },
+      { score: 0.728, plate: "mwbi8wm" },
+      { score: 0.593, plate: "mwbibwm" },
+    ],
+    dscore: 0.883,
+    vehicle: {
+      score: 0.414,
+      type: "Unknown",
+      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
+    },
+    model_make: [
+      { make: "generic", model: "Invalid", score: 0.761 },
+      { make: "generic", model: "Unknown", score: 0.008 },
+    ],
+    color: [
+      { color: "black", score: 0.426 },
+      { color: "white", score: 0.385 },
+      { color: "silver", score: 0.066 },
+    ],
+    orientation: [
+      { orientation: null, score: 0.685 },
+      { orientation: "Unknown", score: 0.246 },
+      { orientation: "Front", score: 0.07 },
+    ],
+    direction: 81,
+    direction_score: 0.999,
+  };
 
   const overwriteParamNonEmpty = [
     // param, input, expectedResult
     ["overwrite_plate", 1, nonEmptyResult1],
     ["overwrite_direction", 1, nonEmptyResult2],
-    // ['overwrite_orientation', 1, nonEmptyResult3], TODO uncomment when Survision.orientation is implemented
+    ["overwrite_orientation", 1, nonEmptyResult3],
   ];
   test.each(overwriteParamNonEmpty)(
     "Non-Empty results Param: %s",

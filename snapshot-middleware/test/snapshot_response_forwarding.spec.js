@@ -5,22 +5,22 @@ import {
   fetchMock,
 } from "cloudflare:test";
 import {
-  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
   describe,
   expect,
-  it,
-  vi,
-  MockInstance,
   test,
 } from "vitest";
 
 import worker from "../src/index";
 
 import SurvisionSamplePayload from "./Survision.json";
-import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
+import {
+  WORKER_REQUEST_INPUT,
+  SURVISION_HEADERS_DEFAULT,
+  createJsonUploadRequest,
+} from "./utils";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -34,27 +34,7 @@ afterEach(() => {
   fetchMock.deactivate();
 });
 
-/**
- * Create Expected Request from cameras with relevant headers and payload
- * @param input
- * @param jsonData
- * @param extraHeaders
- * @returns {Request}
- */
-function createJsonUploadRequest(input, jsonData, extraHeaders = {}) {
-  const bodyJson = JSON.stringify(jsonData);
-  return new Request(input, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "content-length": bodyJson.length,
-      ...extraHeaders,
-    },
-    body: bodyJson,
-  });
-}
-
-describe("forwards snapshot response to user as worker response", async () => {
+describe("Forwards snapshot response to user as worker response", async () => {
   const snapshotStatusCases = [
     [300, JSON.stringify({ detail: "Response 300" }), 1],
     [400, JSON.stringify({ detail: "Response 400" }), 1],

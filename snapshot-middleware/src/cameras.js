@@ -79,7 +79,11 @@ class Survision extends Camera {
     return this.data["anpr"]["decision"]["@plate"];
   }
   get orientation() {
-    alertForImplementation(JSON.stringify(this.data));
+    if (this.direction === PARKPOW_ORIENTATION_UNKNOWN) {
+      return null;
+    } else {
+      alertForImplementation(JSON.stringify(this.data));
+    }
   }
 
   get direction() {

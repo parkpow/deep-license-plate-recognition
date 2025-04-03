@@ -5,15 +5,12 @@ import {
   fetchMock,
 } from "cloudflare:test";
 import {
-  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-  MockInstance,
   test,
 } from "vitest";
 
@@ -25,7 +22,11 @@ import SurvisionSamplePayload from "./Survision.json";
 import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
 
 import { PROCESSOR_GENETEC } from "../src/cameras";
-import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
+import {
+  WORKER_REQUEST_INPUT,
+  SURVISION_HEADERS_DEFAULT,
+  createJsonUploadRequest,
+} from "./utils";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -38,26 +39,6 @@ afterEach(() => {
   fetchMock.assertNoPendingInterceptors();
   fetchMock.deactivate();
 });
-
-/**
- * Create Expected Request from cameras with relevant headers and payload
- * @param input
- * @param jsonData
- * @param extraHeaders
- * @returns {Request}
- */
-function createJsonUploadRequest(input, jsonData, extraHeaders = {}) {
-  const bodyJson = JSON.stringify(jsonData);
-  return new Request(input, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "content-length": bodyJson.length,
-      ...extraHeaders,
-    },
-    body: bodyJson,
-  });
-}
 
 describe("Snapshot Upload", () => {
   it("GET Response Error - Required POST", async () => {

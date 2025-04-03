@@ -27,5 +27,9 @@ export default defineWorkersConfig({
       PARKPOW_BASE_URL: "https://app.parkpow.com",
       // PARKPOW_BASE_URL: "http://0.0.0.0:8000"
     },
+    coverage: {
+      reporter: ["text", "json", "html"],
+      provider: "istanbul", // or 'v8'
+    },
   },
 });

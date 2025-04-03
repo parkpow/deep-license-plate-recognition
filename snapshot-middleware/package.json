@@ -8,16 +8,16 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "logs": "wrangler tail",
-    "test": "vitest"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
-     "error-stack-parser": "^2.1.4"
+    "error-stack-parser": "^2.1.4"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.8.8",
-    "wrangler": "^4.0.0",
-    "vitest": "3.0.9"
-
+    "@vitest/coverage-istanbul": "^3.0.9",
+    "vitest": "3.0.9",
+    "wrangler": "^4.0.0"
   },
   "type": "module"
 }

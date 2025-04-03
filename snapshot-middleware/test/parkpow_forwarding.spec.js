@@ -4,18 +4,7 @@ import {
   waitOnExecutionContext,
   fetchMock,
 } from "cloudflare:test";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  MockInstance,
-  test,
-} from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import worker from "../src/index";
 
@@ -27,7 +16,11 @@ import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
 import SurvisionSnapshotResponseX2 from "./SurvisionSnapshotX2.json";
 import SurvisionParkPowResponse from "./SurvisionParkPow.json";
 
-import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
+import {
+  WORKER_REQUEST_INPUT,
+  SURVISION_HEADERS_DEFAULT,
+  createJsonUploadRequest,
+} from "./utils";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -40,26 +33,6 @@ afterEach(() => {
   fetchMock.assertNoPendingInterceptors();
   fetchMock.deactivate();
 });
-
-/**
- * Create Expected Request from cameras with relevant headers and payload
- * @param input
- * @param jsonData
- * @param extraHeaders
- * @returns {Request}
- */
-function createJsonUploadRequest(input, jsonData, extraHeaders = {}) {
-  const bodyJson = JSON.stringify(jsonData);
-  return new Request(input, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "content-length": bodyJson.length,
-      ...extraHeaders,
-    },
-    body: bodyJson,
-  });
-}
 
 describe("ParkPow Forwarding", () => {
   /**
