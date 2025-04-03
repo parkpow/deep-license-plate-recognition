@@ -15,12 +15,17 @@ export default defineWorkersConfig({
             SNAPSHOT_TOKEN: "empty",
             SNAPSHOT_URL: "",
             ROLLBAR_TOKEN: "empty",
-            RETRY_DELAY: 10,
+            RETRY_DELAY: 0,
             PARKPOW_RETRY_LIMIT: 2,
             SNAPSHOT_RETRY_LIMIT: 2,
           },
         },
       },
+    },
+    env: {
+      SNAPSHOT_BASE_URL: "https://api.platerecognizer.com",
+      PARKPOW_BASE_URL: "https://app.parkpow.com",
+      // PARKPOW_BASE_URL: "http://0.0.0.0:8000"
     },
   },
 });

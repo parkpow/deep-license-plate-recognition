@@ -26,18 +26,8 @@ import SurvisionSamplePayload from "./Survision.json";
 import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
 import SurvisionSnapshotResponseX2 from "./SurvisionSnapshotX2.json";
 import SurvisionParkPowResponse from "./SurvisionParkPow.json";
-import { isMockActive, MockAgent, setDispatcher } from "cloudflare:mock-agent";
-import { validInt } from "../src/utils";
-import { PROCESSOR_GENETEC } from "../src/cameras";
 
-const WORKER_REQUEST_INPUT = "http://snapshot-middleware.platerecognizer.com";
-const SURVISION_HEADERS_DEFAULT = {
-  "survision-serial-number": "sv1-searial-1",
-};
-
-const SNAPSHOT_BASE_URL = "https://api.platerecognizer.com";
-// const PARKPOW_BASE_URL = "https://app.parkpow.com";
-const PARKPOW_BASE_URL = "http://0.0.0.0:8000";
+import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -77,12 +67,12 @@ describe("ParkPow Forwarding", () => {
    */
   it("Forwards Normal(non-empty results) Snapshot Response", async () => {
     fetchMock
-      .get(SNAPSHOT_BASE_URL)
+      .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
       .reply(200, SurvisionSnapshotResponse);
 
     fetchMock
-      .get(PARKPOW_BASE_URL)
+      .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
       .reply(200, SurvisionParkPowResponse);
 
@@ -103,12 +93,12 @@ describe("ParkPow Forwarding", () => {
 
   it("Forwards only the first Snapshot result if multiple", async () => {
     fetchMock
-      .get(SNAPSHOT_BASE_URL)
+      .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
       .reply(200, SurvisionSnapshotResponseX2);
 
     fetchMock
-      .get(PARKPOW_BASE_URL)
+      .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
       .reply(200, SurvisionParkPowResponse);
 
@@ -129,12 +119,12 @@ describe("ParkPow Forwarding", () => {
 
   it("Fallback to Camera results if Snapshot is empty.", async () => {
     fetchMock
-      .get(SNAPSHOT_BASE_URL)
+      .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
       .reply(200, GenetecSnapshotResponse);
 
     fetchMock
-      .get(PARKPOW_BASE_URL)
+      .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
       .reply(200, GenetecResultParkPow);
 
@@ -156,12 +146,12 @@ describe("ParkPow Forwarding", () => {
       status_code: 429,
     };
     fetchMock
-      .get(SNAPSHOT_BASE_URL)
+      .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
       .reply(200, SurvisionSnapshotResponse);
 
     fetchMock
-      .get(PARKPOW_BASE_URL)
+      .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
       .reply(429, JSON.stringify(rateLimitResponse))
       .times(3);

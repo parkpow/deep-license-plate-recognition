@@ -21,23 +21,11 @@ import worker from "../src/index";
 
 import GenetecSamplePayload from "./Genetec.json";
 import GenetecSnapshotResponse from "./GenetecSnapshot.json";
-import GenetecResultParkPow from "./GenetecResultParkPow.json";
 import SurvisionSamplePayload from "./Survision.json";
 import SurvisionSnapshotResponse from "./SurvisionSnapshot.json";
-import SurvisionSnapshotResponseX2 from "./SurvisionSnapshotX2.json";
-import SurvisionParkPowResponse from "./SurvisionParkPow.json";
-import { isMockActive, MockAgent, setDispatcher } from "cloudflare:mock-agent";
-import { validInt } from "../src/utils";
+
 import { PROCESSOR_GENETEC } from "../src/cameras";
-
-const WORKER_REQUEST_INPUT = "http://snapshot-middleware.platerecognizer.com";
-const SURVISION_HEADERS_DEFAULT = {
-  "survision-serial-number": "sv1-searial-1",
-};
-
-const SNAPSHOT_BASE_URL = "https://api.platerecognizer.com";
-// const PARKPOW_BASE_URL = "https://app.parkpow.com";
-const PARKPOW_BASE_URL = "http://0.0.0.0:8000";
+import { WORKER_REQUEST_INPUT, SURVISION_HEADERS_DEFAULT } from "./constants";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -133,7 +121,7 @@ describe("Snapshot Upload", () => {
       "Uploads Images In Request to Snapshot: - %s - ",
       async (camera, payload, headers, mockSnapshotResponse) => {
         fetchMock
-          .get(SNAPSHOT_BASE_URL)
+          .get(import.meta.env.SNAPSHOT_BASE_URL)
           .intercept({ path: "/v1/plate-reader/", method: "POST" })
           .reply(200, mockSnapshotResponse);
 
@@ -162,7 +150,7 @@ describe("Snapshot Upload", () => {
     };
 
     fetchMock
-      .get(SNAPSHOT_BASE_URL)
+      .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
       .reply(429, JSON.stringify(rateLimitResponse))
       .times(3);
