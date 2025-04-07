@@ -3,7 +3,7 @@ import { fetchWithRetry } from "./utils";
 export class SnapshotResponse {
   constructor(data) {
     this._data = data;
-    console.log(data);
+    console.debug(JSON.stringify(data));
   }
 
   /**
@@ -97,7 +97,9 @@ export class SnapshotResponse {
 }
 
 export class SnapshotApi {
-  constructor(token, sdkUrl = null) {
+  constructor(token, sdkUrl = null, retryLimit = 3, retryDelay = 2000) {
+    this.retryLimit = retryLimit;
+    this.retryDelay = retryDelay;
     if (token === null) {
       throw new Error("Snapshot API token is required for authentication.");
     } else {
@@ -143,6 +145,6 @@ export class SnapshotApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init);
+    return fetchWithRetry(url, init, this.retryLimit, this.retryDelay);
   }
 }

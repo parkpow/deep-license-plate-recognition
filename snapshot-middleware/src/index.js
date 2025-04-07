@@ -1,6 +1,6 @@
 import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
-import { InvalidIntValue, UnexpectedApiResponse } from "./exceptions";
+import { UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
 import { validInt } from "./utils";
 
@@ -45,11 +45,16 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
-      const cntLength = validInt(request.headers.get("content-length"));
-
+      const contentLength = request.headers.get("content-length");
+      const cntLength = validInt(contentLength, -1);
       if (contentType?.includes("application/json") && cntLength > 0) {
         const data = await request.json();
-        const snapshot = new SnapshotApi(env.SNAPSHOT_TOKEN, env.SNAPSHOT_URL);
+        const snapshot = new SnapshotApi(
+          env.SNAPSHOT_TOKEN,
+          env.SNAPSHOT_URL,
+          validInt(env.SNAPSHOT_RETRY_LIMIT, 5),
+          validInt(env.RETRY_DELAY, 2000),
+        );
         const params = requestParams(request);
         console.debug(`Params: ${JSON.stringify(params)}`);
         const processorSelection = validInt(params.processorSelection, -1);
@@ -57,58 +62,87 @@ export default {
         const CameraClass = findProcessor(processorSelection, request, data);
         console.debug(`CameraClass: ${CameraClass}`);
         if (CameraClass) {
-          const processorInstance = new CameraClass(request, data);
-          console.debug(`processorInstance: ${processorInstance}`);
+          let cameraData;
+          try {
+            cameraData = new CameraClass(request, data);
+            console.debug(`CameraData Instance: ${cameraData}`);
+          } catch (e) {
+            const errMsg =
+              processorSelection > -1
+                ? "Specified Processor Unable Process Camera Data"
+                : "Invalid Camera Data";
+            return new Response(
+              `Processor Error - ${processorSelection} - ${errMsg}`,
+              { status: 400 },
+            );
+          }
           return snapshot
             .uploadBase64(
-              processorInstance.imageBase64,
-              processorInstance.cameraId,
-              processorInstance.createdDate,
+              cameraData.imageBase64,
+              cameraData.cameraId,
+              cameraData.createdDate,
               params,
             )
             .then(
               async (response) => new SnapshotResponse(await response.json()),
             )
-            .then(async (snapshotResponse) => {
-              console.debug(
-                `snapshotResponse.results: ${snapshotResponse.results}`,
-              );
+            .then(async (ssRes) => {
+              console.debug(`Snapshot results: ${ssRes.results}`);
               // check config to forward to ParkPow
-let parkPowForwardingEnabled = !!params.parkpowForwarding;
-              if (params.overwritePlate) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwritePlate(processorInstance.plate);
-              }
-              if (params.overwriteOrientation) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwriteOrientation(
-                  processorInstance.orientation,
-                  processorInstance.plate,
+              let parkPowForwardingEnabled = !!params.parkpowForwarding;
+              // Create camera result to forward if Snapshot empty
+              if (parkPowForwardingEnabled && ssRes.results.length === 0) {
+                ssRes.overwritePlate(cameraData.plate);
+                ssRes.overwriteOrientation(
+                  cameraData.orientation,
+                  cameraData.plate,
                 );
-              }
-              if (params.overwriteDirection) {
-                parkPowForwardingEnabled = true;
-                snapshotResponse.overwriteDirection(
-                  processorInstance.direction,
-                  processorInstance.plate,
+                ssRes.overwriteDirection(
+                  cameraData.direction,
+                  cameraData.plate,
                 );
+              } else {
+                if (params.overwritePlate) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwritePlate(cameraData.plate);
+                }
+                if (params.overwriteOrientation) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwriteOrientation(
+                    cameraData.orientation,
+                    cameraData.plate,
+                  );
+                }
+                if (params.overwriteDirection) {
+                  parkPowForwardingEnabled = true;
+                  ssRes.overwriteDirection(
+                    cameraData.direction,
+                    cameraData.plate,
+                  );
+                }
               }
 
-              const res = { snapshot: snapshotResponse.result };
+              let resData;
+              // By default, the response should be Snapshot response
+              //  unless manually forwarded to ParkPow then it's ParkPow response
               if (parkPowForwardingEnabled) {
-                const parkPow = new ParkPowApi(
+                let parkPow = new ParkPowApi(
                   env.PARKPOW_TOKEN,
                   env.PARKPOW_URL,
+                  validInt(env.PARKPOW_RETRY_LIMIT, 5),
+                  validInt(env.RETRY_DELAY, 2000),
                 );
-                // include ParkPow response in final response
-                res["parkpow"] = await parkPow.logVehicle(
-                  processorInstance.imageBase64,
-                  snapshotResponse.result,
-                  snapshotResponse.cameraId,
-                  snapshotResponse.timestamp,
+                resData = await parkPow.logVehicle(
+                  cameraData.imageBase64,
+                  ssRes.result,
+                  ssRes.cameraId,
+                  ssRes.timestamp,
                 );
+              } else {
+                resData = ssRes.data;
               }
-              return new Response(JSON.stringify(res), {
+              // console.debug(`resString: ${resString}`)
+              return new Response(JSON.stringify(resData), {
                 headers: { "Content-Type": "application/json" },
               });
             })

@@ -1,0 +1,30 @@
+name: Test Snapshot Middleware
+
+on:
+  push:
+    # Run Action only when snapshot-middleware/* is pushed to
+    paths:
+      - 'snapshot-middleware/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: snapshot-middleware/package-lock.json
+
+    - name: Install dependencies
+      working-directory: snapshot-middleware
+      run: npm ci
+
+    - name: Run Tests
+      working-directory: snapshot-middleware
+      run: npm test

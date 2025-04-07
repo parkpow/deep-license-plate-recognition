@@ -21,25 +21,26 @@ class Camera {
 
   static get selectionId() {
     throw new Error("selectionId must be implemented in a subclass");
+  }
 
   /**
    * Get Plate from this.data
    */
   get plate() {
     throw new Error("plate getter must be implemented in a subclass");
-
+  }
   /**
    * Get Plate from this.data
    */
   get direction() {
     throw new Error("direction getter must be implemented in a subclass");
-
+  }
   /**
    * Get Plate from this.data
    */
   get orientation() {
     throw new Error("orientation getter must be implemented in a subclass");
-
+  }
   /**
    * Checks if the request or data(JSON payload) should be processed by this camera
    * @param request
@@ -47,6 +48,7 @@ class Camera {
    */
   static validRequest(request, data) {
     throw new Error("validRequest must be implemented in a subclass");
+  }
 }
 
 function alertForImplementation(dataString) {
@@ -77,7 +79,11 @@ class Survision extends Camera {
     return this.data["anpr"]["decision"]["@plate"];
   }
   get orientation() {
-    alertForImplementation(JSON.stringify(this.data));
+    if (this.direction === PARKPOW_ORIENTATION_UNKNOWN) {
+      return null;
+    } else {
+      alertForImplementation(JSON.stringify(this.data));
+    }
   }
 
   get direction() {

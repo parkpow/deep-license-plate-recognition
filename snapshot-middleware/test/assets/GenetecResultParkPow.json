@@ -1,0 +1,57 @@
+[
+  {
+    "id": 2830868,
+    "vehicle": {
+      "license_plate": "9HKA742",
+      "field1": null,
+      "field2": null,
+      "field3": null,
+      "field4": null,
+      "field5": null,
+      "field6": null
+    },
+    "start_cam": {
+      "code": "G637821011231200521C - Camera",
+      "name": "G637821011231200521C - Camera",
+      "type": 0,
+      "latitude": null,
+      "longitude": null,
+      "notes": ""
+    },
+    "end_cam": null,
+    "start_img": "http://0.0.0.0:8000/media/visits/2025/04/03/1/101/1046_2iI6Q_fa7ca982-0625-4603-a5e4-3c21b3a38a30.jpg",
+    "start_data": {
+      "box": null,
+      "direction": 90,
+      "region": null,
+      "plate": "9HKA742",
+      "dscore": 1,
+      "score": 0.9,
+      "vehicle": null,
+      "color": [],
+      "orientation": [
+        {
+          "orientation": "Rear",
+          "score": 0
+        }
+      ],
+      "model_make": []
+    },
+    "end_data": {},
+    "end_img": null,
+    "duration": null,
+    "status": "Created - New visit created",
+    "score": 0.9,
+    "start_date": "2024-10-24T20:29:26+03:00",
+    "start_img_plate": null,
+    "start_orientation": 1,
+    "start_direction": 90,
+    "end_date": null,
+    "end_img_plate": null,
+    "end_orientation": null,
+    "end_direction": null,
+    "last_spotted": "2024-10-24T20:29:26+03:00",
+    "org": 1,
+    "spot": null
+  }
+]
