@@ -19,7 +19,7 @@ afterEach(() => {
 
 const rollbarPayload = {
   data: {
-    environment: "production",
+    environment: "testing",
     body: {
       telemetry: [
         {
