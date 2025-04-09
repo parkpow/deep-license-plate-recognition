@@ -4,9 +4,19 @@ main = "src/index.js"
 compatibility_date = "2024-10-11"
 compatibility_flags = [ "nodejs_compat" ]
 upload_source_maps = true
-
 # logpush = true
 tail_consumers = [{service = "rollbar-error-handler"}]
+
+[vars]
+# SNAPSHOT_TOKEN=
+# PARKPOW_TOKEN=
+# ROLLBAR_TOKEN=
+ROLLBAR_ENV="production"
+SNAPSHOT_URL=""
+PARKPOW_URL=""
+SNAPSHOT_RETRY_LIMIT=5
+PARKPOW_RETRY_LIMIT=5
+RETRY_DELAY=2000
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/

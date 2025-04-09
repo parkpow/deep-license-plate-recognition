@@ -15,6 +15,7 @@ export default defineWorkersConfig({
             SNAPSHOT_TOKEN: "empty",
             SNAPSHOT_URL: "",
             ROLLBAR_TOKEN: "empty",
+            ROLLBAR_ENV: "testing",
             RETRY_DELAY: 0,
             PARKPOW_RETRY_LIMIT: 2,
             SNAPSHOT_RETRY_LIMIT: 2,

@@ -42,8 +42,8 @@ class Rollbar {
       frames: stackFrames,
       exception: {
         class: exception.name,
-        message: exception.message,
-        description: description,
+        message: description,
+        description: exception.message,
       },
     };
   }
@@ -102,7 +102,7 @@ class Rollbar {
 
 export default {
   async tail(events, env, ctx) {
-    const rollbar = new Rollbar(env.ROLLBAR_TOKEN, "production");
+    const rollbar = new Rollbar(env.ROLLBAR_TOKEN, env.ROLLBAR_ENV);
     for (const event of events) {
       if (event.exceptions.length) {
         ctx.waitUntil(
