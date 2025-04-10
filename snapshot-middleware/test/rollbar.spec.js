@@ -19,7 +19,7 @@ afterEach(() => {
 
 const rollbarPayload = {
   data: {
-    environment: "production",
+    environment: "testing",
     body: {
       telemetry: [
         {
@@ -45,8 +45,8 @@ const rollbarPayload = {
           ],
           exception: {
             class: "Error",
-            message: "Threw a sample exception",
-            description: "rollbar-error-handler",
+            message: "rollbar-error-handler",
+            description: "Threw a sample exception",
           },
         },
       ],
