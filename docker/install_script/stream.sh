@@ -68,6 +68,20 @@ echo "Token: $plate_recognizer_token"
 echo "License Key: $license_key"
 
 container_name="stream"
+
+# Check if the folder exists
+if [ ! -d "$container_name" ]; then
+    # Create the folder instead to prevent permission issues
+    mkdir "$container_name"
+    
+    echo "Directory '$container_name' created successfully."
+else
+    echo "Directory '$container_name' already exists."
+fi
+
+# Set permissions for the current user
+chmod 700 "$container_name"
+
 # Check if the container exists, and if so, stop and remove it
 if docker ps -a --format "{{.Names}}" | grep -q "$container_name"; then
     echo "Stopping and removing existing container: $container_name"
