@@ -69,15 +69,8 @@ echo "License Key: $license_key"
 
 container_name="stream"
 
-# Check if the folder exists
-if [ ! -d "$container_name" ]; then
-    # Create the folder instead to prevent permission issues
-    mkdir "$container_name"
-    
-    echo "Directory '$container_name' created successfully."
-else
-    echo "Directory '$container_name' already exists."
-fi
+# Create the folder instead if doesn't exist yet to prevent permission issues
+mkdir -p "$container_name"
 
 # Set permissions for the current user
 chmod 700 "$container_name"
@@ -92,11 +85,11 @@ fi
 if [ "$architecture" == "x86_64" ]; then
     pull_docker_image "platerecognizer/alpr-stream"
     docker_command="docker run -t -d --restart="unless-stopped"  --name stream -v $path_stream/stream:/user-data --user $(id -u):$(id -g) -e LICENSE_KEY=$license_key -e TOKEN=$plate_recognizer_token platerecognizer/alpr-stream"
-    
+
 elif [ "$architecture" == "armv7l" ] || [ "$architecture" == "aarch64" ] || [ "$architecture" == "armv7hf" ]; then
     pull_docker_image "platerecognizer/alpr-stream:raspberry"
     docker_command="docker run -t -d --restart="unless-stopped" --name stream -v $path_stream/stream:/user-data --user $(id -u):$(id -g) -e LICENSE_KEY=$license_key -e TOKEN=$plate_recognizer_token platerecognizer/alpr-stream:raspberry"
-    
+
 else
     echo "Unsupported architecture: $architecture"
     exit 1
