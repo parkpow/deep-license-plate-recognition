@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 def parse_arguments():
@@ -37,10 +38,13 @@ def get_disk_usage(path):
     return usage.total, usage.used, usage.free
 
 def get_percentages(directory):
-        total, used, free = get_disk_usage(directory)
-        return (used / total) * 100, (free / total) * 100
+    """Returns disk usage (used and free) stats in percentages: (used, free) in %."""
+    total, used, free = get_disk_usage(directory)
+    if total == 0:
+        return 0.0, 0.0
+    return (used / total) * 100, (free / total) * 100
 
-def delete_oldest_files(directory, target_free_percent):
+def delete_oldest_files(directory, target_free_percent, batch_size=10):
     directory_path = Path(directory)
     all_files = sorted(
         directory_path.rglob("*.jpg"),
@@ -48,21 +52,28 @@ def delete_oldest_files(directory, target_free_percent):
     )
 
     _, current_free_percent = get_percentages(directory)
-
     print(f"Current free space: {current_free_percent:.2f}%")
+
+    files_deleted = 0
     
     for file_path in all_files:
         if current_free_percent >= target_free_percent:
             print(f"Reached target free space: {current_free_percent:.2f}%")
             break
-        
         try:
+            file_size = file_path.stat().st_size
             file_path.unlink()
-            print(f"Deleted: {file_path}")
-            _, current_free_percent = get_percentages(directory)
+            print(f"Deleted: {file_path} ({file_size} bytes)")
+            files_deleted += 1
         except OSError as e:
             print(f"Error deleting file {file_path}: {e.strerror}")
 
+        if files_deleted % batch_size == 0:
+            _, current_free_percent = get_percentages(directory)
+            
+    _, current_free_percent = get_percentages(directory)
+    print(f"Final free space after deletion: {current_free_percent:.2f}%")
+    
 def main():
     args = parse_arguments()
 
