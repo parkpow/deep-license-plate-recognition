@@ -53,7 +53,9 @@ In another terminal, you can query Stream status.
  # {"active": false, "cameras": {}}
 ```
 
-## Remove Stream Images
+# Remove Stream Images
+
+## By Time
 
 This script runs nightly to remove images that are over xx hours in Stream folder. However, if you wouldn't want to save images locally at all, you may refer to this [guide](https://guides.platerecognizer.com/docs/stream/faq#how-do-i-not-save-vehicle-or-plates-images-in-my-localstreamfolder-when-forwarding-webhook-data).
 
@@ -115,3 +117,77 @@ For Windows, run this in command promt or powershell:
 ```ps
 schtasks /delete /tn RemoveStreamImages /f
 ```
+
+## By Disk Space Percentage
+
+This script automatically deletes the oldest images in the Stream folder to free up disk space when the disk usage exceeds a certain threshold.
+The script checks if disk usage is above a trigger percentage (y%) and deletes images until it reaches a target free space percentage (x%).
+
+Make sure to have this `remove_images_space_percentage.py` script inside the Stream folder.
+
+_Notes:_
+
+1. Don't forget to update the `--target_free` (desired free space %) and `--trigger_usage` (disk usage % that triggers cleanup).
+
+2. Both `--target_free` and `--trigger_usage` must be integers between 1 and 99.
+3. The `--directory` to clean. Defaults to the current directory (.).
+
+### Schedule running of script
+
+For Linux:
+
+_Note:_ Make sure cron is installed.
+
+```bash
+sudo sh -c 'echo "*/10 * * * * root <path_to_python_interpreter> <path_to_script> --target_free 20 --trigger_usage 80 --directory /path/to/stream" >> /etc/crontab'
+
+#Example: Run the script every 10 minutes. If disk usage is above 80%, it will delete oldest images until free space is at least 20%.
+
+sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
+
+#Example: Run the script daily at midnight.
+
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
+
+#To log script output and errors:
+
+sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream >> /home/user/stream/free_up_disk_space.log 2>&1" >> /etc/crontab'
+```
+
+For Windows:
+
+1. Create a scheduled task in Command Prompt or PowerShell:
+
+```ps
+schtasks /create /sc <frequency> /tn FreeUpDiskSpace /tr "<path_to_python_interpreter> <path_to_script> --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st <start_time>
+```
+
+Example: Run daily at midnight.
+```ps
+schtasks /create /sc daily /tn FreeUpDiskSpace /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st 00:00
+```
+
+Then, open Task Scheduler → find your new task → right-click Properties → Actions tab → click Edit, and set the Start in (optional) path to your Stream folder.
+
+### Uninstall
+
+To uninstall the scheduled task:
+
+For Linux, run:
+```bash
+sudo sed -i '/free_up_disk_space/d' /etc/crontab
+```
+
+For Windows, run:
+
+```ps
+schtasks /delete /tn FreeUpDiskSpace /f
+```
+
+## Important Reminders:
+
+- The scripts only delete .jpg files.
+
+- The script deletes the oldest files first (FIFO).
+
+- You can always test the script manually before fully automating to avoid accidental data loss.
