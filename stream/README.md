@@ -55,17 +55,23 @@ In another terminal, you can query Stream status.
 
 # Remove Stream Images
 
+
+
 ## By Time
 
 This script runs nightly to remove images that are over xx hours in Stream folder. However, if you wouldn't want to save images locally at all, you may refer to this [guide](https://guides.platerecognizer.com/docs/stream/faq#how-do-i-not-save-vehicle-or-plates-images-in-my-localstreamfolder-when-forwarding-webhook-data).
 
 Make sure to have this remove_images.py script inside the Stream folder.
 
+Format: `python script.py --age --threshold <integer> --directory /path/to/stream`
+
 _Notes:_
 
 _1. Don't forget to update the `--threshold` (time duration in hours) to remove images older than xx hours._
 
 _2. `--threshold` should be an integer between `1` and `23 `(hours)._
+
+_3. `--directory` Stream working directory, default value = `.` 
 
 ### Schedule running of script
 
@@ -74,16 +80,16 @@ For Linux:
 _Note: Make sure cron is installed._
 
 ```bash
-sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --threshold 23" >> /etc/crontab'
+sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --age --threshold 23" >> /etc/crontab'
 
 # Example: This runs the script daily at midnight and removes images older than 23 hours.
-sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23" >> /etc/crontab'
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --age --threshold 23" >> /etc/crontab'
 
 # Incase you would want to log script errors to a file.
-sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --threshold 23 >> <path_to_log_file> 2>&1" >> /etc/crontab'
+sudo sh -c 'echo "0 0 * * * root <path_to_python_interpreter> <path_to_script> --age --threshold 23 >> <path_to_log_file> 2>&1" >> /etc/crontab'
 
 # Example: This logs the script errors to /home/user/stream/remove_images.log.
-sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --threshold 23 >> /home/user/stream/remove_images.log 2>&1" >> /etc/crontab'
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --age --threshold 23 >> /home/user/stream/remove_images.log 2>&1" >> /etc/crontab'
 
 ```
 
@@ -92,10 +98,10 @@ For Windows:
 1. Run this in a command promt or powershell to add the script to Windows Task Scheduler.
 
 ```ps
-schtasks /create /sc <frequency> /tn RemoveStreamImages /tr "<path_to_python_interpreter> <path_to_script> --threshold 10" /st <start_time>
+schtasks /create /sc <frequency> /tn RemoveStreamImages /tr "<path_to_python_interpreter> <path_to_script> --age --threshold 10" /st <start_time>
 
 # Example: This runs the script daily at midnight and removes images older than 10 hours.
-schtasks /create /sc daily /tn RemoveStreamImages /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\remove_images.py --threshold 10" /st 00:00
+schtasks /create /sc daily /tn RemoveStreamImages /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\remove_images.py --age --threshold 10" /st 00:00
 
 ```
 
@@ -123,14 +129,16 @@ schtasks /delete /tn RemoveStreamImages /f
 This script automatically deletes the oldest images in the Stream folder to free up disk space when the disk usage exceeds a certain threshold.
 The script checks if disk usage is above a trigger percentage (y%) and deletes images until it reaches a target free space percentage (x%).
 
-Make sure to have this `remove_images_space_percentage.py` script inside the Stream folder.
+Make sure to have this `remove_images.py` script inside the Stream folder.
+
+`python script.py --usage --target_free <integer> --trigger_usage <integer> --directory /path/to/images`
 
 _Notes:_
 
-1. Don't forget to update the `--target_free` (desired free space %) and `--trigger_usage` (disk usage % that triggers cleanup).
+_1. Don't forget to update the `--target_free` (desired free space %) and `--trigger_usage` (disk usage % that triggers cleanup).
 
-2. Both `--target_free` and `--trigger_usage` must be integers between 1 and 99.
-3. The `--directory` to clean. Defaults to the current directory (.).
+_2. Both `--target_free` and `--trigger_usage` must be integers between 1 and 99.
+_3. `--directory` Stream working directory, default value = `.` 
 
 ### Schedule running of script
 
@@ -139,19 +147,19 @@ For Linux:
 _Note:_ Make sure cron is installed.
 
 ```bash
-sudo sh -c 'echo "*/10 * * * * root <path_to_python_interpreter> <path_to_script> --target_free 20 --trigger_usage 80 --directory /path/to/stream" >> /etc/crontab'
+sudo sh -c 'echo "*/10 * * * * root <path_to_python_interpreter> <path_to_script> --usage --target_free 20 --trigger_usage 80 --directory /path/to/stream" >> /etc/crontab'
 
 #Example: Run the script every 10 minutes. If disk usage is above 80%, it will delete oldest images until free space is at least 20%.
 
-sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
+sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/remove_images.py --usage --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
 
 #Example: Run the script daily at midnight.
 
-sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
+sudo sh -c 'echo "0 0 * * * root /usr/bin/python3 /home/user/stream/remove_images.py --usage --target_free 20 --trigger_usage 80 --directory /home/user/stream" >> /etc/crontab'
 
 #To log script output and errors:
 
-sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory /home/user/stream >> /home/user/stream/free_up_disk_space.log 2>&1" >> /etc/crontab'
+sudo sh -c 'echo "*/10 * * * * root /usr/bin/python3 /home/user/stream/remove_images.py --usage --target_free 20 --trigger_usage 80 --directory /home/user/stream >> /home/user/stream/free_up_disk_space.log 2>&1" >> /etc/crontab'
 ```
 
 For Windows:
@@ -159,12 +167,12 @@ For Windows:
 1. Create a scheduled task in Command Prompt or PowerShell:
 
 ```ps
-schtasks /create /sc <frequency> /tn FreeUpDiskSpace /tr "<path_to_python_interpreter> <path_to_script> --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st <start_time>
+schtasks /create /sc <frequency> /tn FreeUpDiskSpace /tr "<path_to_python_interpreter> <path_to_script> --usage --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st <start_time>
 ```
 
 Example: Run daily at midnight.
 ```ps
-schtasks /create /sc daily /tn FreeUpDiskSpace /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\free_up_disk_space.py --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st 00:00
+schtasks /create /sc daily /tn FreeUpDiskSpace /tr "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe C:\PlateRecognizer\Stream\remove_images.py --usage --target_free 20 --trigger_usage 80 --directory C:\PlateRecognizer\Stream" /st 00:00
 ```
 
 Then, open Task Scheduler → find your new task → right-click Properties → Actions tab → click Edit, and set the Start in (optional) path to your Stream folder.
@@ -175,13 +183,13 @@ To uninstall the scheduled task:
 
 For Linux, run:
 ```bash
-sudo sed -i '/free_up_disk_space/d' /etc/crontab
+sudo sed -i '/remove_images/d' /etc/crontab
 ```
 
 For Windows, run:
 
 ```ps
-schtasks /delete /tn FreeUpDiskSpace /f
+schtasks /delete /tn RemoveStreamImages /f
 ```
 
 ## Important Reminders:
