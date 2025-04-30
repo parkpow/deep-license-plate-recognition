@@ -62,11 +62,28 @@ def process_request(
         logging.info(f"No config for camera {camera_id}, dropping.")
         return "Dropped", 200
 
+    valid_results = _filter_results_by_direction(results, entry, camera_id)
+
+    if not valid_results:
+        logging.info(f"All results for camera {camera_id} are out of range, dropping.")
+        return "Dropped", 200
+
+    json_data["results"] = valid_results
+
+    return _forward_to_destination(json_data, entry["Destination"])
+
+
+def _filter_results_by_direction(
+    results: list[dict[str, Any]], entry: dict[str, Any], camera_id: str
+) -> list[dict[str, Any]]:
     s, e = entry["StartDOT"], entry["EndDOT"]
     valid_results = []
 
     for result in results:
         direction = result.get("direction")
+        if direction is None:
+            logging.warning(f"No direction found in result for camera {camera_id}")
+            continue
         try:
             direction = int(direction)
         except (TypeError, ValueError):
@@ -85,17 +102,17 @@ def process_request(
                 f"Result with direction {direction} out of range {s}–{e} for camera {camera_id}, dropping."
             )
 
-    if not valid_results:
-        logging.info(f"All results for camera {camera_id} are out of range, dropping.")
-        return "Dropped", 200
+    return valid_results
 
-    json_data["results"] = valid_results
-    dest = entry["Destination"]
+
+def _forward_to_destination(
+    json_data: dict[str, Any], destination: str
+) -> tuple[str, int]:
     try:
-        resp = requests.post(dest, json=json_data, timeout=5)
+        resp = requests.post(destination, json=json_data, timeout=5)
         resp.raise_for_status()
-        logging.info(f"Forwarded to {dest}")
+        logging.info(f"Forwarded to {destination}")
         return "Forwarded", 200
     except requests.RequestException as ex:
-        logging.error(f"Failed to forward to {dest}: {ex}")
+        logging.error(f"Failed to forward to {destination}: {ex}")
         return "Failed to forward", 503
