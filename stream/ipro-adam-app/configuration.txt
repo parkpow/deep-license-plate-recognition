@@ -1,0 +1,62 @@
+############################################
+# Configuration File for ADAM application  #
+# 追加アプリコンフィギュレーションファイル #
+############################################
+
+#------------------------------------
+# Application name information
+# アプリケーション名関連情報
+#------------------------------------
+#### Application Program File Name
+#### アプリ実行ファイル名
+APPLICATION	pyAddInfo
+
+#### Application Version Name (7 characters or less)
+#### アプリバージョン名(半角7文字以内)
+APPVERSION	V1.1
+
+#### Application Name(Number at the end of the Tag name is Region code (Country code))
+#### アプリ名(数字はリージョンコード、UTF-8で記述)
+APPNAME0	Platerecognizer Stream
+
+#-------------------------------------
+# Resource Information
+# リソース関連情報
+#-------------------------------------
+#### Required ROM (Flash memory) size for this application
+#### アプリが必要とするROM(Flashメモリ)使用量(KB)
+ROMSIZE		700000
+
+#### Required RAM (temporary files and heap) size for this application
+#### アプリが必要とするRAM(tmpファイル+ヒープ)使用量(KB)
+RAMSIZE		200000
+
+#### Required CPU use rate for this application
+#### アプリが必要とするCPU使用率(%)
+CPURATE     5
+
+#--------------------------------------
+# Script files Information
+# スクリプトファイル情報
+#--------------------------------------
+#### Installer script file name (omissible)
+#### インストーラスクリプトファイル指定(省略可)
+INSTALLER	install.sh
+
+#### Updater script file name (omissible)
+#### アップデータスクリプトファイル指定(省略可)
+UPDATER		update.sh
+
+#### Uninstaller script file name (omissible)
+#### アンインストーラスクリプトファイル指定(省略可)
+# UNINSTALLER	uninstall.sh
+
+#--------------------------------------
+# License information
+# ライセンス関連情報
+#--------------------------------------
+#### License registration function ID(8 digit hexadecimal value)
+#### ライセンス登録機能ID(16進8桁数値)
+#### During development, set any value between 0000FF01 to 0000FFFF.
+#### 開発時には、0000FF01から0000FFFFの間の値を設定してください。
+FUNCID		0000FFA0

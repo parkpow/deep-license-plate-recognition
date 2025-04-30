@@ -1,0 +1,315 @@
+{
+  "$schema-template": "4.0.0",
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.1",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+              "iprocamsdk": {
+                "username": "$CONTAINER_REGISTRY_USERNAME_iprocamsdk",
+                "password": "$CONTAINER_REGISTRY_PASSWORD_iprocamsdk",
+                "address": "iprocamsdk.azurecr.io"
+              }
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.4",
+              "createOptions": {}
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.4",
+              "createOptions": {
+                "HostConfig": {
+                  "PortBindings": {
+                    "5671/tcp": [
+                      {
+                        "HostPort": "5671"
+                      }
+                    ],
+                    "8883/tcp": [
+                      {
+                        "HostPort": "8883"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "modules": {
+          "additional_info_sample_app": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "${MODULES.additional_info_sample_app}",
+              "createOptions": {
+                "AttachStderr": true,
+                "AttachStdin": true,
+                "AttachStdout": true,
+                "Cmd": null,
+                "Domainname": "",
+                "Entrypoint": null,
+                "HostConfig": {
+                  "AutoRemove": false,
+                  "Binds": null,
+                  "BlkioDeviceReadBps": null,
+                  "BlkioDeviceReadIOps": null,
+                  "BlkioDeviceWriteBps": null,
+                  "BlkioDeviceWriteIOps": null,
+                  "BlkioWeight": 0,
+                  "BlkioWeightDevice": [],
+                  "CapAdd": null,
+                  "CapDrop": [
+                    "net_raw"
+                  ],
+                  "Capabilities": null,
+                  "Cgroup": "",
+                  "CgroupParent": "",
+                  "ContainerIDFile": "",
+                  "CpuCount": 0,
+                  "CpuPercent": 0,
+                  "CpuPeriod": 0,
+                  "CpuQuota": 0,
+                  "CpuRealtimePeriod": 0,
+                  "CpuRealtimeRuntime": 0,
+                  "CpuShares": 0,
+                  "CpusetCpus": "",
+                  "CpusetMems": "",
+                  "DeviceCgroupRules": null,
+                  "DeviceRequests": null,
+                  "Devices": [
+                    {
+                      "PathOnHost": "/dev/cavalry",
+                      "PathInContainer": "/dev/cavalry",
+                      "CgroupPermissions": "mrw"
+                    },
+                    {
+                      "PathOnHost": "/dev/iav",
+                      "PathInContainer": "/dev/iav",
+                      "CgroupPermissions": "mrw"
+                    }
+                  ],
+                  "Dns": [],
+                  "DnsOptions": [],
+                  "DnsSearch": [],
+                  "ExtraHosts": null,
+                  "GroupAdd": null,
+                  "IOMaximumBandwidth": 0,
+                  "IOMaximumIOps": 0,
+                  "IpcMode": "host",
+                  "Isolation": "",
+                  "KernelMemory": 0,
+                  "KernelMemoryTCP": 0,
+                  "Links": null,
+                  "LogConfig": {
+                    "Config": {},
+                    "Type": ""
+                  },
+                  "MaskedPaths": null,
+                  "Memory": 52428800,
+                  "MemoryReservation": 0,
+                  "MemorySwap": 0,
+                  "MemorySwappiness": -1,
+                  "Mounts": [
+                    {
+                      "Target": "/ai_data",
+                      "Source": "additional_info_sample_app",
+                      "Type": "volume",
+                      "ReadOnly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/usr/share/lib",
+                      "Source": "/mnt/system/adam/bin/share/lib/ipro",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/lib/firmware",
+                      "Source": "/lib/firmware",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/dev/shm/CAdam",
+                      "Source": "/dev/shm/CAdam",
+                      "Type": "bind",
+                      "Readonly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/tmp/avsc",
+                      "Source": "/tmp/avsc",
+                      "Type": "bind",
+                      "ReadOnly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/tmp/sysba",
+                      "Source": "/tmp/sysba",
+                      "Type": "bind",
+                      "ReadOnly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/etc/localtime",
+                      "Source": "/tmp/tz/localtime",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/tmp/ipc_sock",
+                      "Source": "/tmp/ipc_sock",
+                      "Type": "bind",
+                      "ReadOnly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/tmp/capability",
+                      "Source": "/tmp/capability",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/tmp/fw_tmp",
+                      "Source": "/tmp/fw_tmp",
+                      "Type": "bind",
+                      "ReadOnly": false,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/mnt/system/stats/uptime_total",
+                      "Source": "/mnt/system/stats/uptime_total",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    },
+                    {
+                      "BindOptions": {
+                        "NonRecursive": true
+                      },
+                      "Target": "/lib/python3.7",
+                      "Source": "/lib/python3.7",
+                      "Type": "bind",
+                      "ReadOnly": true,
+                      "Consistency": "default"
+                    }
+                  ],
+                  "NanoCpus": 0,
+                  "NetworkMode": "default",
+                  "OomKillDisable": false,
+                  "OomScoreAdj": 0,
+                  "PidMode": "",
+                  "PidsLimit": 0,
+                  "PortBindings": {},
+                  "Privileged": false,
+                  "PublishAllPorts": false,
+                  "ReadonlyPaths": null,
+                  "ReadonlyRootfs": true,
+                  "SecurityOpt": [
+                    "no-new-privileges",
+                    "label=type:ipro-container.process"
+                  ],
+                  "ShmSize": 0,
+                  "Tmpfs": {
+                    "/tmp/local": "rw,noexec,nosuid,gid=1000,uid=1000"
+                  },
+                  "UTSMode": "",
+                  "Ulimits": null,
+                  "UsernsMode": "",
+                  "VolumeDriver": "",
+                  "VolumesFrom": null
+                },
+                "Labels": {
+                  "com.i-pro.app-type": "i-PRO",
+                  "com.i-pro.device-category": "CV5x-A",
+                  "com.i-pro.device-vendor": "i-PRO"
+                },
+                "OnBuild": null,
+                "OpenStdin": true,
+                "StdinOnce": true,
+                "Tty": false,
+                "User": "1000:1000",
+                "Volumes": {},
+                "Env": [
+                  "LD_LIBRARY_PATH=/usr/share/lib",
+                  "CADAM_APP_TYPE=i-PRO",
+                  "CADAM_LOG_LEVEL=6",
+                  "APPLICATION_NAME=pyAddInfo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.1",
+        "routes": {
+          "additional_info_sample_appToIoTHub": "FROM /messages/modules/additional_info_sample_app/outputs/* INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    },
+    "additional_info_sample_app": {
+      "properties.desired": {
+        "aplField": {},
+        "scheduleField": ""
+      }
+    }
+  }
+}

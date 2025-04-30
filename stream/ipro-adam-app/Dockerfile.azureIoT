@@ -1,0 +1,28 @@
+FROM iprocamsdk.azurecr.io/sdk/containeradam/env/cadamenv:1.0.0 AS build-env
+
+WORKDIR /app
+COPY . ./
+WORKDIR /iprosdk
+# mv libraries for Python3.7 to lib directory
+RUN mv /iprosdk/lib/aarch64-linux-gnu_CV5XCAZ/libForPython3.7/* /iprosdk/lib/aarch64-linux-gnu_CV5XCAZ
+RUN chmod +x setup_env.sh
+RUN /bin/bash -c "source setup_env.sh ambaCV5XCAZipro && \
+    cd /app && \
+    make clean && \
+    make"
+
+
+# Application environment (arm64v8)
+FROM iprocamsdk.azurecr.io/sdk/containeradam/env/cadamappbase:1.0.0 AS aplbase
+RUN useradd -ms /bin/bash moduleuser
+WORKDIR /app
+COPY --chown=moduleuser:moduleuser --from=build-env /app/configuration.txt /app/
+COPY --chown=moduleuser:moduleuser --from=build-env /app/data/ /app/data/
+COPY --chown=moduleuser:moduleuser --from=build-env /app/setup/ /app/setup/
+COPY --chown=moduleuser:moduleuser --from=build-env /app/bin/ /app/bin/
+COPY --chown=moduleuser:moduleuser --from=build-env /app/conf/ /app/conf/
+COPY --chown=moduleuser:moduleuser --from=build-env /app/python/ /app/python/
+
+USER moduleuser
+
+CMD ["/usr/share/lib/cadamClient"]

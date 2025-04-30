@@ -1,0 +1,169 @@
+services:
+  adam:
+    image: "stream-adam:1.1"
+    command: /app/bin/pyAddInfo
+    environment:
+      - LD_LIBRARY_PATH=/usr/share/lib:/usr/share/common
+      - CADAM_APP_TYPE=i-PRO
+      - CADAM_LOG_LEVEL=6
+      - APPLICATION_NAME=pyAddInfo
+    networks:
+      - nw-frontend
+    restart: no
+#     deploy:
+#       resources:
+#         limits:
+# #          cpus: "1.00"
+#           memory: "52428800"
+#     mem_reservation: "52428800"
+
+    read_only: true
+    user:
+      1000:1000
+    cap_drop:
+      - "net_raw"
+    security_opt:
+      - "label=type:ipro-container.process"
+      - "no-new-privileges"
+
+    devices:
+      - "/dev/cavalry:/dev/cavalry:mrw"
+      - "/dev/iav:/dev/iav:mrw"
+    volumes:
+      - type: volume
+        source: adam
+        target: "/ai_data"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/usr/share/lib"
+        source: "/mnt/system/adam/bin/share/lib/extdocker"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/usr/share/common"
+        source: "/mnt/system/adam/bin/share/lib/common"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/lib/python3.7"
+        source: "/lib/python3.7"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/lib/firmware"
+        source: "/lib/firmware"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/dev/shm/Adam"
+        source: "/dev/shm/Adam"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/dev/shm/Adamapp"
+        source: "/dev/shm/Adamapp"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/tmp/avsc"
+        source: "/tmp/avsc"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/tmp/sysba"
+        source: "/tmp/sysba"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/etc/localtime"
+        source: "/tmp/tz/localtime"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/tmp/ipc_sock"
+        source: "/tmp/ipc_sock"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/tmp/capability"
+        source: "/tmp/capability"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/tmp/fw_tmp"
+        source: "/tmp/fw_tmp"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/mnt/system/stats/uptime_total"
+        source: "/mnt/system/stats/uptime_total"
+        read_only: true
+        consistency: default
+      - type: bind
+        target: "/var/log/adam"
+        source: "/var/log/adam"
+        read_only: false
+        consistency: default
+      - type: bind
+        target: "/tmp/pflog_mask_shmid"
+        source: "/tmp/pflog_mask_shmid"
+        read_only: false
+        consistency: default
+    tmpfs:
+      - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
+
+    labels:
+      com.i-pro.app-type: "ext"
+      com.i-pro.device-category: "CV5x-A"
+      com.i-pro.device-vendor: "i-PRO"
+
+    init: true
+    ipc: host
+
+  sdk:
+    image: "alpr-stream:arm-lite"
+    networks:
+      - nw-frontend
+    restart: no
+    volumes:
+      - type: volume
+        source: adam
+        target: "/ai_data"
+        read_only: false
+        consistency: default
+
+      - type: volume
+        source: sdk
+        target: "/user-data"
+        read_only: false
+        consistency: default
+
+    tmpfs:
+      - /var/cache/nginx:rw,noexec,nosuid,gid=1000,uid=1000
+      - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
+    environment:
+      - TOKEN=4805bee1222ce8_UPDATE_ME
+      - LICENSE_KEY=UPDATE_ME
+
+    read_only: true
+    user:
+      1000:1000
+    cap_drop:
+      - "net_raw"
+    security_opt:
+      - "label=type:ipro-container.process"
+      - "no-new-privileges"
+    labels:
+      com.i-pro.app-type: "ext"
+      com.i-pro.device-category: "CV5x-A"
+      com.i-pro.device-vendor: "i-PRO"
+
+volumes:
+  adam:
+  sdk:
+
+
+networks:
+  nw-frontend:
+    driver: bridge
