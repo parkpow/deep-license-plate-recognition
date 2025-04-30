@@ -13,3 +13,4 @@ env.txt
 output/
 
 .env
+dot_config.csv

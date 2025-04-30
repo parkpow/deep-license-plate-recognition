@@ -1,4 +1,3 @@
 CameraID,StartDOT,EndDOT,Destination
 camera-1,200,300,https://webhook.site/e563ed64-b2e7-4a9a-a5f9-91e7b47c3c50
-camera-2,110,250,https://example.com/webhook/parking-lot
-camera-3,315,45,https://example.com/webhook/night-shift
+camera-2,110,250,https://webhook.site/e563ed64-b2e7-4a9a-a5f9-91e7b47c3c50
