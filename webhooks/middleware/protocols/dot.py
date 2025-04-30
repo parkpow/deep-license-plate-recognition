@@ -68,7 +68,7 @@ def process_request(
         logging.info(f"All results for camera {camera_id} are out of range, dropping.")
         return "Dropped", 200
 
-    json_data["results"] = valid_results
+    json_data["data"]["results"] = valid_results
 
     return _forward_to_destination(json_data, entry["Destination"])
 
