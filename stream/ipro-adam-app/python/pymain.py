@@ -11,7 +11,6 @@
 # import numpy as np;
 # import cv2;
 # import threading;
-import hello
 import libAdamApiPython
 
 # if print() output is delay, enalbe the following lines.
@@ -126,8 +125,6 @@ def startProcessing():
 if __name__ == "__main__":
     print("Start: main thread")
     # 	adam.setPrintLevel(0xffffffff)
-
-    hello.hello()
 
     libAdamApiPython.adam_set_stop_callback(stopCB)
     libAdamApiPython.adam_set_http_callback(httpCB)
