@@ -1,0 +1,45 @@
+{
+	"preferenceVersion":{"major":"1","minor":"0"},
+	"preference":[
+
+		{
+			"prefName":"ID",
+			"prefType":"Integer",
+			"appApiAccess":"ReadWrite",
+			"webApiAccess":"ReadWrite",
+			"defaultValue":"30583"
+		},
+
+		{
+			"prefName":"H.26X",
+			"prefType":"Boolean",
+			"appApiAccess":"ReadWrite",
+			"webApiAccess":"ReadWrite",
+			"defaultValue":"TRUE"
+		},
+
+		{
+			"prefName":"JPEG",
+			"prefType":"Boolean",
+			"appApiAccess":"ReadWrite",
+			"webApiAccess":"ReadWrite",
+			"defaultValue":"FALSE"
+		},
+
+		{
+			"prefName":"Audio",
+			"prefType":"Boolean",
+			"appApiAccess":"ReadWrite",
+			"webApiAccess":"ReadWrite",
+			"defaultValue":"FALSE"
+		},
+
+		{
+			"prefName":"Additional Info",
+			"prefType":"String",
+			"appApiAccess":"ReadWrite",
+			"webApiAccess":"ReadWrite",
+			"defaultValue":"Additional Info test"
+		}
+	]
+}

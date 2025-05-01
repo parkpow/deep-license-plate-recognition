@@ -1,0 +1,6 @@
+container/
+build.sh
+*.ext
+*.zip
+!*/*.zip
+Dockerfile*
