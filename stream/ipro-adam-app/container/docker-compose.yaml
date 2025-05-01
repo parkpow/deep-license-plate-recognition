@@ -143,8 +143,8 @@ services:
       - /var/cache/nginx:rw,noexec,nosuid,gid=1000,uid=1000
       - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
     environment:
-      - TOKEN=4805bee1222ce8_UPDATE_ME
-      - LICENSE_KEY=UPDATE_ME
+      - TOKEN=
+      - LICENSE_KEY=
 
     read_only: true
     user:
