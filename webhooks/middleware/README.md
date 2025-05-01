@@ -9,7 +9,14 @@ Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integration
    ```bash
    docker build -t webhook-middleware .
 
-2. **Run the Docker Container**:
+2. **Run the Middleware**:
+   - If your stream service is already running and you want just the middleware to run:
+
    ```bash
    docker run --env-file .env -p 8002:8002 webhook-middleware
+   ```
+
+   - If your stream service is not running and you want to run both the middleware and the stream service:
+   ```bash
+   docker-compose up
    ```

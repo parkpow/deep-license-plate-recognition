@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  stream:
+    image: platerecognizer/alpr-stream
+    container_name: stream
+    restart: unless-stopped
+    privileged: true
+    group_add:
+      - video
+    volumes:
+      - "/opt/stream:/user-data" # Adjust the path as needed
+    environment:
+      - LICENSE_KEY=${STREAM_LICENSE_KEY}  # Add the LICENSE_KEY from environment variable
+      - TOKEN=${STREAM_API_TOKEN}  # Add the TOKEN from environment variable
+
+  middleware:
+    image: webhook-middleware
+    container_name: dot_middleware
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./dot_config.csv:/app/dot_config.csv:ro
