@@ -1,5 +1,5 @@
 export interface PlateCandidate {
-  plate: string;
+  value: string;
   score: number;
 }
 
@@ -108,6 +108,9 @@ export interface WebhookDataType1 {
     target: string;
   };
   receivedAt?: string;
+  image: {
+    url: string;
+  };
 }
 
 export interface WebhookDataType2 {
@@ -126,6 +129,9 @@ export interface WebhookDataType2 {
     target: string;
   };
   receivedAt?: string;
+  image: {
+    url: string;
+  };
 }
 
 export type WebhookData = WebhookDataType1 | WebhookDataType2;

@@ -75,7 +75,7 @@ export function PlateDetailsModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             License Plate Details
-            <Badge variant="outline" className="ml-2">
+            <Badge variant="outline" className="ml-2 uppercase">
               {plateNumber}
             </Badge>
             {plateScore && (

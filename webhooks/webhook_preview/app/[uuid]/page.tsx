@@ -293,9 +293,9 @@ export default function WebhookDataPage() {
                       `${baseUrl}/api/webhook/${uuid}`,
                     );
                     toast({
-                      title: "Copiado!",
+                      title: "Copy!",
                       description:
-                        "URL do webhook copiada para a área de transferência.",
+                        "URL of the webhook copied to the clipboard.",
                     });
                   }
                 }}

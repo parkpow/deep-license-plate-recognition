@@ -1,45 +1,52 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Input } from "@/components/ui/input"
-import { UniversalPlateCard } from "@/components/universal-plate-card"
-import { PlateDetailsModal } from "@/components/plate-details-modal"
-import type { WebhookData } from "@/types/webhook"
-import { Search } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { UniversalPlateCard } from "@/components/universal-plate-card";
+import { PlateDetailsModal } from "@/components/plate-details-modal";
+import type { WebhookData } from "@/types/webhook";
+import { Search } from "lucide-react";
 
 interface LicensePlateSidebarProps {
-  data: WebhookData[]
-  searchTerm: string
-  onSearchChange: (term: string) => void
+  data: WebhookData[];
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
 }
 
-export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: LicensePlateSidebarProps) {
-  const [selectedPlate, setSelectedPlate] = useState<WebhookData | null>(null)
-  const [lastDataLength, setLastDataLength] = useState(data.length)
-  const [newPlateId, setNewPlateId] = useState<string | null>(null)
-  const prevDataRef = useRef<WebhookData[]>([])
+export function LicensePlateSidebar({
+  data,
+  searchTerm,
+  onSearchChange,
+}: LicensePlateSidebarProps) {
+  const [selectedPlate, setSelectedPlate] = useState<WebhookData | null>(null);
+  const [newPlateId, setNewPlateId] = useState<string | null>(null);
+  const prevDataRef = useRef<WebhookData[]>([]);
 
   // Filter and sort plates (newest first)
   const filteredData = data
     .filter((item) => {
       // Check if item and item.data exist
       if (!item || !item.data) {
-        return false
+        return false;
       }
 
       // Check if results array exists and has items
-      if (!item.data.results || !Array.isArray(item.data.results) || item.data.results.length === 0) {
-        return false
+      if (
+        !item.data.results ||
+        !Array.isArray(item.data.results) ||
+        item.data.results.length === 0
+      ) {
+        return false;
       }
 
-      const firstResult = item.data.results[0]
+      const firstResult = item.data.results[0];
 
       // Get plate number for filtering
-      let plateText = "Unknown Plate"
+      let plateText = "Unknown Plate";
 
       // Handle Type 1 format
       if (firstResult.plate && typeof firstResult.plate === "string") {
-        plateText = firstResult.plate
+        plateText = firstResult.plate;
       }
       // Handle Type 2 format
       else if (
@@ -47,48 +54,42 @@ export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: Licens
         typeof firstResult.plate === "object" &&
         firstResult.plate.props?.plate?.[0]?.value
       ) {
-        plateText = firstResult.plate.props.plate[0].value
+        plateText = firstResult.plate.props.plate[0].value;
       }
 
       // If search term is empty, show all plates (including "Unknown Plate")
       if (!searchTerm) {
-        return true
+        return true;
       }
 
       // Otherwise, filter by the search term
-      return plateText.toLowerCase().includes(searchTerm.toLowerCase())
+      return plateText.toLowerCase().includes(searchTerm.toLowerCase());
     })
     .sort((a, b) => {
       // Sort by receivedAt timestamp (newest first)
-      const timeA = a.receivedAt ? new Date(a.receivedAt).getTime() : 0
-      const timeB = b.receivedAt ? new Date(b.receivedAt).getTime() : 0
-      return timeB - timeA
-    })
+      const timeA = a.receivedAt ? new Date(a.receivedAt).getTime() : 0;
+      const timeB = b.receivedAt ? new Date(b.receivedAt).getTime() : 0;
+      return timeB - timeA;
+    });
 
-  // Detect new plates and activate animation
   useEffect(() => {
-    // If we have more data than before, a new plate was added
-    if (data.length > lastDataLength && data.length > 0) {
-      // Find the most recent plate
-      const sortedData = [...data].sort((a, b) => {
-        const timeA = a.receivedAt ? new Date(a.receivedAt).getTime() : 0
-        const timeB = b.receivedAt ? new Date(b.receivedAt).getTime() : 0
-        return timeB - timeA
-      })
+    if (data.length > prevDataRef.current.length) {
+      // Encontrar a placa que está no data mas não estava antes
+      const previousTimestamps = new Set(
+        prevDataRef.current.map((d) => d.receivedAt),
+      );
+      const newEntry = data.find((d) => !previousTimestamps.has(d.receivedAt));
 
-      // Generate a unique ID for the new plate (using timestamp)
-      const newId = `plate-${Date.now()}`
-      setNewPlateId(newId)
-
-      // Remove highlight after 2 seconds
-      setTimeout(() => {
-        setNewPlateId(null)
-      }, 2000)
+      if (newEntry?.receivedAt) {
+        setNewPlateId(newEntry.receivedAt); // use algo único e rastreável
+        setTimeout(() => {
+          setNewPlateId(null);
+        }, 2000);
+      }
     }
 
-    setLastDataLength(data.length)
-    prevDataRef.current = data
-  }, [data, lastDataLength])
+    prevDataRef.current = data;
+  }, [data]);
 
   return (
     <>
@@ -105,7 +106,8 @@ export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: Licens
             />
           </div>
           <div className="text-xs text-muted-foreground mt-1 text-right">
-            {filteredData.length} {filteredData.length === 1 ? "plate" : "plates"}
+            {filteredData.length}{" "}
+            {filteredData.length === 1 ? "plate" : "plates"}
           </div>
         </div>
 
@@ -114,16 +116,20 @@ export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: Licens
           {filteredData.length === 0 ? (
             <div className="flex items-center justify-center h-full text-center p-4">
               <p className="text-muted-foreground">
-                {data.length > 0 ? "No plates match your search" : "No plate data available"}
+                {data.length > 0
+                  ? "No plates match your search"
+                  : "No plate data available"}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               {filteredData.map((item, index) => {
                 // Generate a unique ID for each plate
-                const plateId = `plate-${index}-${item.receivedAt || Date.now()}`
+                const plateId = `plate-${index}-${
+                  item.receivedAt || Date.now()
+                }`;
                 // Check if this is the new plate
-                const isNewPlate = index === 0 && newPlateId !== null
+                const isNewPlate = item.receivedAt === newPlateId;
 
                 return (
                   <UniversalPlateCard
@@ -132,7 +138,7 @@ export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: Licens
                     onClick={() => setSelectedPlate(item)}
                     isNew={isNewPlate}
                   />
-                )
+                );
               })}
             </div>
           )}
@@ -140,8 +146,12 @@ export function LicensePlateSidebar({ data, searchTerm, onSearchChange }: Licens
       </div>
 
       {selectedPlate && (
-        <PlateDetailsModal data={selectedPlate} isOpen={!!selectedPlate} onClose={() => setSelectedPlate(null)} />
+        <PlateDetailsModal
+          data={selectedPlate}
+          isOpen={!!selectedPlate}
+          onClose={() => setSelectedPlate(null)}
+        />
       )}
     </>
-  )
+  );
 }

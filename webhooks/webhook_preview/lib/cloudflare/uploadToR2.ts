@@ -23,7 +23,7 @@ export async function uploadToR2(file: File, prefix = "uploads") {
     ContentType: file.type,
   });
 
-  const test = await s3Client.send(command);
+  await s3Client.send(command);
 
   return {
     url: `https://${process.env.CLOUDFLARE_R2_PUBLIC_DOMAIN}/${key}`,

@@ -6,7 +6,6 @@ import {
   getTimestamp,
   formatDate,
   getRegion,
-  getDirection,
   getVehicleOrientation,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
@@ -26,7 +25,6 @@ export function UniversalPlateCard({
   const plateNumber = getPlateNumber(data);
   const timestamp = formatDate(getTimestamp(data));
   const region = getRegion(data);
-  const direction = getDirection(data);
   const orientation = getVehicleOrientation(data);
 
   // Determine if this is a vehicle without a plate

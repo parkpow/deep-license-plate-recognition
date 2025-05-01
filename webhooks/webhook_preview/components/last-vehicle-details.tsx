@@ -17,7 +17,7 @@ import {
   getImageurl,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
-import { Car, Camera, Clock, Map, Tag } from "lucide-react";
+import { Car, Camera, Clock, Tag } from "lucide-react";
 
 interface LastVehicleDetailsProps {
   data: WebhookData;

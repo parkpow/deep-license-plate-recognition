@@ -2,6 +2,7 @@ import { deleteFromR2 } from "@/lib/cloudflare/deleteFromR2";
 import { uploadToR2 } from "@/lib/cloudflare/uploadToR2";
 import { findImageKeysByWebhookUUID } from "@/lib/image-to-remove";
 import { prisma } from "@/lib/prisma";
+import { WebhookData } from "@/types/webhook";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -47,11 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     const contentType = request.headers.get("content-type") || "";
-    let data: any;
+    let data: WebhookData | string | null;
     let imageUrl: string | undefined;
 
     if (contentType.includes("application/json")) {
       data = await request.json();
+      console.log(data);
     } else if (contentType.includes("text")) {
       data = await request.text();
     } else if (contentType.includes("form")) {
@@ -68,24 +70,6 @@ export async function POST(request: NextRequest) {
     } else {
       data = await request.text(); // fallback
     }
-
-    // const webhook = await prisma.webhook.findUnique({ where: { uuid } });
-
-    // if (!webhook) {
-    //   return NextResponse.json({ error: "Webhook not found" }, { status: 404 });
-    // }
-
-    // // Verifica se já atingiu o limite
-    // const currentCount = await prisma.webhookRequest.count({
-    //   where: { webhookId: webhook.id },
-    // });
-
-    // if (currentCount >= MAX_WEBHOOK_REQUESTS) {
-    //   return NextResponse.json(
-    //     { error: "Request limit reached for this webhook" },
-    //     { status: 429 },
-    //   );
-    // }
 
     const webhookItem = {
       ...data,
@@ -160,10 +144,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Map the requests to the expected format
-    const webhookData = webhook.requests.map((request) => ({
-      ...request.data,
-      image: request.image,
-    }));
+    const webhookData = webhook.requests.map((request) => {
+      const isObject =
+        typeof request.data === "object" &&
+        request.data !== null &&
+        !Array.isArray(request.data);
+      return {
+        ...(isObject ? (request.data as object) : { rawData: request.data }),
+        image: request.image,
+      };
+    });
 
     return NextResponse.json(webhookData);
   } catch (error) {

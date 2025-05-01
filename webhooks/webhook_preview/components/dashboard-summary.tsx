@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import type { WebhookData } from "@/types/webhook";
-import { useEffect, useState } from "react";
 
 interface DashboardSummaryProps {
   data: WebhookData[];
@@ -13,40 +12,12 @@ interface DashboardSummaryProps {
   loading: boolean;
 }
 
-function getLocalStorageSize() {
-  if (typeof window === "undefined") return 0; // SSR safe
-
-  let total = 0;
-  for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
-      const value = localStorage.getItem(key);
-      total += key.length + (value?.length || 0);
-    }
-  }
-  return total / 1024; // em KB
-}
-
 export function DashboardSummary({
   data,
   onRefresh,
   onTestData,
   loading,
 }: DashboardSummaryProps) {
-  const [usedSpace, setUsedSpace] = useState<number | null>(null);
-
-  useEffect(() => {
-    const getLocalStorageSize = () => {
-      let total = 0;
-      for (let x in localStorage) {
-        if (!localStorage.hasOwnProperty(x)) continue;
-        total += localStorage[x]?.length || 0;
-      }
-      return (total * 2) / 1024; // em KB
-    };
-
-    setUsedSpace(getLocalStorageSize());
-  }, [data]);
-
   const uniquePlates = new Set(
     data
       .map((item) => {
@@ -122,18 +93,6 @@ export function DashboardSummary({
             </div>
             <div className="text-xl font-bold truncate">{lastDetection}</div>
           </div>
-          {/* <div className="flex-1 bg-yellow-50 p-3 rounded-lg">
-            <div className="text-xs text-yellow-600 font-medium">
-              LocalStorage Usage
-            </div>
-            <div className="text-sm font-bold">
-              {usedSpace !== null ? (
-                <p>{usedSpace.toFixed(2)} KB / ~5120 KB</p>
-              ) : (
-                <p>Loading...</p>
-              )}
-            </div>
-          </div> */}
         </div>
       </CardContent>
     </Card>

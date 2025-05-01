@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { WebhookData, isType1, isType2 } from "@/types/webhook";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -42,25 +43,26 @@ export function formatDate(dateString: string) {
   }
 }
 
-export function getPlateNumber(data: any): string {
+export function getPlateNumber(data: WebhookData): string {
   try {
     // Check if data has the expected structure
     if (!data?.data?.results?.[0]) {
       return "Unknown Plate";
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.plate && typeof firstResult.plate === "string") {
-      // If plate is empty or null, return "NO PLATE"
-      return firstResult.plate.trim() === "" ? "NO PLATE" : firstResult.plate;
+    if (isType1(data)) {
+      const result = data.data.results[0];
+      if (result.plate && typeof result.plate === "string") {
+        return result.plate.trim() === "" ? "NO PLATE" : result.plate;
+      }
     }
 
-    // Handle Type 2 format
-    if (firstResult.plate?.props?.plate?.[0]?.value) {
-      const plateValue = firstResult.plate.props.plate[0].value;
-      return plateValue.trim() === "" ? "NO PLATE" : plateValue;
+    if (isType2(data)) {
+      const result = data.data.results[0];
+      if (result.plate?.props?.plate?.[0]?.value) {
+        const plateValue = result.plate.props.plate[0].value;
+        return plateValue.trim() === "" ? "NO PLATE" : plateValue;
+      }
     }
 
     // If we get here, there's no valid plate
@@ -71,23 +73,16 @@ export function getPlateNumber(data: any): string {
   }
 }
 
-export function getPlateScore(data: any): number | null {
+export function getPlateScore(data: WebhookData): number | null {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return null;
+    if (isType1(data)) {
+      const result = data.data.results[0];
+      return result.score ?? null;
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.score !== undefined) {
-      return firstResult.score;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.plate?.score !== undefined) {
-      return firstResult.plate.score;
+    if (isType2(data)) {
+      const result = data.data.results[0];
+      return result.plate?.score ?? null;
     }
 
     return null;
@@ -97,23 +92,18 @@ export function getPlateScore(data: any): number | null {
   }
 }
 
-export function getRegion(data: any): string | null {
+export function getRegion(data: WebhookData): string | null {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return null;
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      return firstResult.region?.code?.toUpperCase() ?? null;
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.region?.code) {
-      return firstResult.region.code.toUpperCase();
-    }
-
-    // Handle Type 2 format
-    if (firstResult.plate?.props?.region?.[0]?.value) {
-      return firstResult.plate.props.region[0].value.toUpperCase();
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      return (
+        firstResult.plate?.props?.region?.[0]?.value?.toUpperCase() ?? null
+      );
     }
 
     return null;
@@ -123,23 +113,16 @@ export function getRegion(data: any): string | null {
   }
 }
 
-export function getRegionScore(data: any): number | null {
+export function getRegionScore(data: WebhookData): number | null {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return null;
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      return firstResult.region?.score ?? null;
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.region?.score !== undefined) {
-      return firstResult.region.score;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.plate?.props?.region?.[0]?.score !== undefined) {
-      return firstResult.plate.props.region[0].score;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      return firstResult.plate?.props?.region?.[0]?.score ?? null;
     }
 
     return null;
@@ -149,18 +132,16 @@ export function getRegionScore(data: any): number | null {
   }
 }
 
-export function getDirection(data: any): number | null {
+export function getDirection(data: WebhookData): number | null {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return null;
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      return firstResult.direction ?? null;
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle both Type 1 and Type 2 formats
-    if (firstResult.direction !== null && firstResult.direction !== undefined) {
-      return firstResult.direction;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      return firstResult.direction ?? null;
     }
 
     return null;
@@ -170,23 +151,20 @@ export function getDirection(data: any): number | null {
   }
 }
 
-export function getVehicleOrientation(data: any): string | null {
+export function getVehicleOrientation(data: WebhookData): string | null {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return null;
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.orientation?.[0]?.orientation) {
+        return firstResult.orientation[0].orientation;
+      }
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.orientation?.[0]?.orientation) {
-      return firstResult.orientation[0].orientation;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.vehicle?.props?.orientation?.[0]?.value) {
-      return firstResult.vehicle.props.orientation[0].value;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.props?.orientation?.[0]?.value) {
+        return firstResult.vehicle.props.orientation[0].value;
+      }
     }
 
     return null;
@@ -196,18 +174,20 @@ export function getVehicleOrientation(data: any): string | null {
   }
 }
 
-export function getVehicleType(data: any): string {
+export function getVehicleType(data: WebhookData): string {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return "Unknown Vehicle";
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.type) {
+        return firstResult.vehicle.type;
+      }
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle both Type 1 and Type 2 formats
-    if (firstResult.vehicle?.type) {
-      return firstResult.vehicle.type;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.type) {
+        return firstResult.vehicle.type;
+      }
     }
 
     return "Unknown Vehicle";
@@ -217,23 +197,20 @@ export function getVehicleType(data: any): string {
   }
 }
 
-export function getVehicleMake(data: any): string {
+export function getVehicleMake(data: WebhookData): string {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return "Unknown Make";
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.model_make?.[0]?.make) {
+        return firstResult.model_make[0].make;
+      }
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.model_make?.[0]?.make) {
-      return firstResult.model_make[0].make;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.vehicle?.props?.make_model?.[0]?.make) {
-      return firstResult.vehicle.props.make_model[0].make;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.props?.make_model?.[0]?.make) {
+        return firstResult.vehicle.props.make_model[0].make;
+      }
     }
 
     return "Unknown Make";
@@ -243,23 +220,20 @@ export function getVehicleMake(data: any): string {
   }
 }
 
-export function getVehicleModel(data: any): string {
+export function getVehicleModel(data: WebhookData): string {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return "Unknown Model";
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.model_make?.[0]?.model) {
+        return firstResult.model_make[0].model;
+      }
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.model_make?.[0]?.model) {
-      return firstResult.model_make[0].model;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.vehicle?.props?.make_model?.[0]?.model) {
-      return firstResult.vehicle.props.make_model[0].model;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.props?.make_model?.[0]?.model) {
+        return firstResult.vehicle.props.make_model[0].model;
+      }
     }
 
     return "Unknown Model";
@@ -269,23 +243,20 @@ export function getVehicleModel(data: any): string {
   }
 }
 
-export function getVehicleColor(data: any): string {
+export function getVehicleColor(data: WebhookData): string {
   try {
-    // Check if data has the expected structure
-    if (!data?.data?.results?.[0]) {
-      return "Unknown Color";
+    if (isType1(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.color?.[0]?.color) {
+        return firstResult.color[0].color;
+      }
     }
 
-    const firstResult = data.data.results[0];
-
-    // Handle Type 1 format
-    if (firstResult.color?.[0]?.color) {
-      return firstResult.color[0].color;
-    }
-
-    // Handle Type 2 format
-    if (firstResult.vehicle?.props?.color?.[0]?.value) {
-      return firstResult.vehicle.props.color[0].value;
+    if (isType2(data)) {
+      const firstResult = data.data.results[0];
+      if (firstResult.vehicle?.props?.color?.[0]?.value) {
+        return firstResult.vehicle.props.color[0].value;
+      }
     }
 
     return "Unknown Color";
@@ -295,7 +266,7 @@ export function getVehicleColor(data: any): string {
   }
 }
 
-export function getCameraId(data: any): string {
+export function getCameraId(data: WebhookData): string {
   try {
     return data?.data?.camera_id || "Unknown Camera";
   } catch (error) {
@@ -304,7 +275,7 @@ export function getCameraId(data: any): string {
   }
 }
 
-export function getTimestamp(data: any): string {
+export function getTimestamp(data: WebhookData): string {
   try {
     return data?.data?.timestamp || "Unknown Time";
   } catch (error) {
@@ -313,7 +284,7 @@ export function getTimestamp(data: any): string {
   }
 }
 
-export function getImageurl(data: any): string {
+export function getImageurl(data: WebhookData): string | null {
   try {
     return data?.image?.url || null;
   } catch (error) {

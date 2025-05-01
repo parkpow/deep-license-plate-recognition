@@ -1,5 +1,3 @@
-import { getBaseUrl } from "@/lib/utils";
-
 interface EmptyStateProps {
   uuid: string;
 }

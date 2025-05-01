@@ -1,3 +1,5 @@
+import { WebhookData } from "@/types/webhook";
+
 type Client = {
   id: string;
   res: Response;
@@ -18,7 +20,7 @@ export function removeClient(uuid: string, clientId: string) {
   );
 }
 
-export function sendEvent(uuid: string, data: any) {
+export function sendEvent(uuid: string, data: WebhookData) {
   const current = clients.get(uuid) || [];
   current.forEach((client) => {
     try {
