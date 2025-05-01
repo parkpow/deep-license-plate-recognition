@@ -1,6 +1,7 @@
 import csv
 import logging
-import time
+import os
+from io import BytesIO
 from typing import Any
 
 import requests
@@ -39,10 +40,10 @@ def _load_config() -> list[dict[str, Any]]:
 
 def _get_config() -> list[dict[str, Any]]:
     global _config_cache, _last_load
-    now = time.time()
-    if now - _last_load > 60 * 30:
+    file_mtime = os.path.getmtime("dot_config.csv")
+    if file_mtime > _last_load:
         _config_cache = _load_config()
-        _last_load = now
+        _last_load = file_mtime
     return _config_cache
 
 
@@ -70,7 +71,7 @@ def process_request(
 
     json_data["data"]["results"] = valid_results
 
-    return _forward_to_destination(json_data, entry["Destination"])
+    return _forward_to_destination(json_data, entry["Destination"], upload_file)
 
 
 def _filter_results_by_direction(
@@ -106,10 +107,17 @@ def _filter_results_by_direction(
 
 
 def _forward_to_destination(
-    json_data: dict[str, Any], destination: str
+    json_data: dict[str, Any], destination: str, upload_file: bytes | None = None
 ) -> tuple[str, int]:
     try:
-        resp = requests.post(destination, json=json_data, timeout=5)
+        send_file = os.getenv("SEND_FILE")
+        if send_file and upload_file is not None:
+            upload_file = BytesIO(upload_file)  # type: ignore
+            resp = requests.post(
+                destination, json=json_data, files={"upload": upload_file}, timeout=5
+            )
+        else:
+            resp = requests.post(destination, json=json_data, timeout=5)
         resp.raise_for_status()
         logging.info(f"Forwarded to {destination}")
         return "Forwarded", 200
