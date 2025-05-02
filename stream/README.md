@@ -63,7 +63,7 @@ This script runs nightly to remove images that are over xx hours in Stream folde
 
 Make sure to have this remove_images.py script inside the Stream folder.
 
-Format: `python script.py --age --threshold <integer> --directory /path/to/stream`
+Format: `python remove_images.py --age --threshold <integer> --directory /path/to/stream`
 
 _Notes:_
 
@@ -131,7 +131,7 @@ The script checks if disk usage is above a trigger percentage (y%) and deletes i
 
 Make sure to have this `remove_images.py` script inside the Stream folder.
 
-`python script.py --usage --target_free <integer> --trigger_usage <integer> --directory /path/to/images`
+`python remove_images.py --usage --target_free <integer> --trigger_usage <integer> --directory /path/to/images`
 
 _Notes:_
 
