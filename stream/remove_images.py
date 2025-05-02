@@ -57,7 +57,7 @@ def get_percentages(directory):
     """Returns disk usage (used and free) stats in percentages: (used, free) in %."""
     total, used, free = get_disk_usage(directory)
     if total == 0:
-        return 0.0, 0.0
+        raise ValueError(f"Invalid disk usage: total space is zero for directory '{directory}'")
     return (used / total) * 100, (free / total) * 100
 
 def delete_image(file_path):
