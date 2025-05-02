@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import os
 from io import BytesIO
@@ -51,7 +52,7 @@ def process_request(
     json_data: dict[str, Any], upload_file: bytes | None = None
 ) -> tuple[str, int]:
     data = json_data.get("data", {})
-    camera_id = data.get("camera_id") or data.get("CameraID")
+    camera_id = data.get("camera_id")
     results = data.get("results", [])
 
     if not results:
@@ -111,15 +112,19 @@ def _forward_to_destination(
 ) -> tuple[str, int]:
     try:
         send_file = os.getenv("SEND_FILE")
+        camera_id = json_data["data"]["camera_id"]
         if send_file and upload_file is not None:
             upload_file = BytesIO(upload_file)  # type: ignore
             resp = requests.post(
-                destination, json=json_data, files={"upload": upload_file}, timeout=5
+                destination,
+                data=json.dumps(json_data),
+                files={"upload": upload_file},
+                timeout=5,
             )
         else:
-            resp = requests.post(destination, json=json_data, timeout=5)
+            resp = requests.post(destination, data=json.dumps(json_data), timeout=5)
         resp.raise_for_status()
-        logging.info(f"Forwarded to {destination}")
+        logging.info(f"Forwarded {camera_id} to {destination}")
         return "Forwarded", 200
     except requests.RequestException as ex:
         logging.error(f"Failed to forward to {destination}: {ex}")
