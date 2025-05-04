@@ -21,8 +21,15 @@ def crop_image(image_data, crop_box):
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+
+    if not all_files:
+        logging.error("No files uploaded.")
+        return "No files uploaded.", 400
+
+    upload_file = all_files.get("upload")
+
     if not upload_file:
         logging.error("No file uploaded.")
         return "No file uploaded.", 400

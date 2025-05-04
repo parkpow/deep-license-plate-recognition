@@ -49,7 +49,7 @@ def _get_config() -> list[dict[str, Any]]:
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
@@ -72,7 +72,7 @@ def process_request(
 
     json_data["data"]["results"] = valid_results
 
-    return _forward_to_destination(json_data, entry["Destination"], upload_file)
+    return _forward_to_destination(json_data, entry["Destination"], all_files)
 
 
 def _filter_results_by_direction(
@@ -108,21 +108,30 @@ def _filter_results_by_direction(
 
 
 def _forward_to_destination(
-    json_data: dict[str, Any], destination: str, upload_file: bytes | None = None
+    json_data: dict[str, Any],
+    destination: str,
+    all_files: dict[str, bytes] | None = None,
 ) -> tuple[str, int]:
     try:
         send_file = os.getenv("SEND_FILE")
         camera_id = json_data["data"]["camera_id"]
-        if send_file and upload_file is not None:
-            upload_file = BytesIO(upload_file)  # type: ignore
+        if send_file and all_files is not None:
+            files_to_send = {}
+            for file_name, file_content in all_files.items():
+                files_to_send[file_name] = (file_name, BytesIO(file_content))
+
+            data = {"json": json.dumps(json_data)}
+
             resp = requests.post(
                 destination,
-                data=json.dumps(json_data),
-                files={"upload": upload_file},
+                data=data,
+                files=files_to_send,
                 timeout=5,
             )
         else:
-            resp = requests.post(destination, data=json.dumps(json_data), timeout=5)
+            resp = requests.post(
+                destination, data={"json": json.dumps(json_data)}, timeout=5
+            )
         resp.raise_for_status()
         logging.info(f"Forwarded {camera_id} to {destination}")
         return "Forwarded", 200

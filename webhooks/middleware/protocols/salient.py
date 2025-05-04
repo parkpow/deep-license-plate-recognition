@@ -45,7 +45,7 @@ def notify_salient(
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
     username = os.getenv("VMS_USERNAME")
     password = os.getenv("VMS_PASSWORD")

@@ -12,7 +12,7 @@ logging.basicConfig(
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
     url = os.getenv("REST_SERVICE_URL", "")
 

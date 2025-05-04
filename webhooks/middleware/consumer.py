@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from flask import Flask, jsonify, request
-from waitress import serve
+from waitress import serve  # type: ignore
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -49,11 +49,7 @@ def handle_webhook():
         else:
             return jsonify({"error": "Missing JSON data in multipart form"}), 400
 
-        upload_file = request.files.get("upload")
-        if upload_file:
-            upload_file = upload_file.read()
-        else:
-            upload_file = None
+        uploaded_files = request.files
     else:
         try:
             if request.content_type == "application/json":
@@ -64,12 +60,15 @@ def handle_webhook():
                     json_data = json.loads(raw_data)
                 else:
                     return jsonify({"error": "Missing JSON data"}), 400
-            upload_file = None
+            uploaded_files = {}
         except json.JSONDecodeError:
             return jsonify({"error": "Invalid JSON format"}), 400
 
     try:
-        response, status_code = middleware.process_request(json_data, upload_file)
+        files = {}
+        for file in uploaded_files:
+            files[file] = uploaded_files[file].read()
+        response, status_code = middleware.process_request(json_data, files)
         return jsonify({"message": response}), status_code
     except Exception as e:
         logging.error(f"Error processing the request: {e}")
