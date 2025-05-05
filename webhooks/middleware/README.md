@@ -20,3 +20,11 @@ Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integration
    ```bash
    docker-compose up
    ```
+   **Environment Variables Setup:**
+   Make sure to set the required environment variables in the `.env` file. A sample `.env` file is provided in the repository.
+
+   In addition to the standard variables, you need to set these specific variables for the middleware to run using docker-compose:
+   ```
+   STREAM_LICENSE_KEY=your_license_key_here
+   STREAM_API_TOKEN=your_api_token_here
+   ```
