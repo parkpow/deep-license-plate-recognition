@@ -103,7 +103,7 @@ def parkpow_check_license(license_plate: str) -> bool:
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
     server_host = os.getenv("SERVER_HOST")
     login = os.getenv("LOGIN")

@@ -56,8 +56,12 @@ def forward_to_SOAP_service(json_data, image):
 
 
 def process_request(
-    json_data: dict[str, Any], upload_file: bytes | None = None
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+    if not all_files:
+        return "No files uploaded.", 400
+
+    upload_file = all_files.get("upload")
     image_base64 = None
     if upload_file:
         image_base64 = base64.b64encode(upload_file).decode("utf-8")
