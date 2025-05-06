@@ -53,13 +53,18 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes("application/json")) {
       data = await request.json();
-      console.log(data);
     } else if (contentType.includes("text")) {
       data = await request.text();
     } else if (contentType.includes("form")) {
       const formData = await request.formData();
       const rawData = formData.get("json");
-      const imageFile = formData.get("upload");
+      let imageFile: File | null = null;
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          imageFile = value;
+          break;
+        }
+      }
 
       data = rawData ? JSON.parse(rawData.toString()) : null;
 
