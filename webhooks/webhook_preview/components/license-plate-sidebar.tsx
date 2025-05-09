@@ -74,14 +74,13 @@ export function LicensePlateSidebar({
 
   useEffect(() => {
     if (data.length > prevDataRef.current.length) {
-      // Encontrar a placa que está no data mas não estava antes
       const previousTimestamps = new Set(
         prevDataRef.current.map((d) => d.receivedAt),
       );
       const newEntry = data.find((d) => !previousTimestamps.has(d.receivedAt));
 
       if (newEntry?.receivedAt) {
-        setNewPlateId(newEntry.receivedAt); // use algo único e rastreável
+        setNewPlateId(newEntry.receivedAt);
         setTimeout(() => {
           setNewPlateId(null);
         }, 2000);

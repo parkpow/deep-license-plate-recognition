@@ -127,6 +127,62 @@ http://localhost:3000
 
 ---
 
+## 7. Running with Docker
+
+You can also run the entire application using Docker Compose, which will set up both the application and the PostgreSQL database in containers.
+
+### Prerequisites
+
+- Docker and Docker Compose installed on your system
+- Make sure the environment variables in the docker-compose.yml file are properly configured for your environment, including the Cloudflare R2 credentials and the webhook request limit (as described in step 3).
+
+### Steps to Run with Docker
+
+1. **Build and start the containers:**
+
+- In your terminal, navigate to the root of the project and run the command below.
+
+```bash
+docker-compose up -d --build
+```
+
+This command builds the Docker images and starts the containers in detached mode.
+
+2. **Check the logs to ensure everything is running correctly:**
+
+```bash
+docker-compose logs -f
+```
+
+3. **Access the application:**
+
+The application will be available at:
+
+```
+http://localhost:3000
+```
+
+### Important Notes for Docker Deployment
+
+- The `docker-compose.yml` file is configured to pass environment variables to both the build process and runtime environment.
+- The PostgreSQL data is persisted in a Docker volume named `postgres_data`.
+
+### Stopping the Docker Containers
+
+To stop the running containers:
+
+```bash
+docker-compose down
+```
+
+To stop the containers and remove the volumes (this will delete all database data):
+
+```bash
+docker-compose down -v
+```
+
+---
+
 ## Usage
 
 1. Visit the homepage to generate a new webhook URL

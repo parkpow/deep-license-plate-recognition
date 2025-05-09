@@ -24,7 +24,6 @@ export async function findImageKeysByWebhookUUID(
     .map((req) => req.image?.url)
     .filter(Boolean) as string[];
 
-  // Extraindo apenas o "key" do caminho da URL pública
   const baseURL = `https://${process.env.CLOUDFLARE_R2_PUBLIC_DOMAIN}/`;
 
   const keys = urls.map((url) => url.replace(baseURL, ""));

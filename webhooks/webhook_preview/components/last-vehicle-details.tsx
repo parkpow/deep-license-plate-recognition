@@ -64,9 +64,7 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Coluna 1: Plate + Infos */}
           <div>
-            {/* Plate Number centralizado */}
             <div className="mb-6 flex justify-center">
               <div className="bg-gray-800 text-white px-8 py-4 rounded-lg shadow-lg">
                 <div className="text-xs text-gray-300 mb-1 text-center">
@@ -78,9 +76,7 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
               </div>
             </div>
 
-            {/* Grid dos blocos de info: 2 colunas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Plate Info */}
               <div className="p-4 border rounded-lg shadow-sm bg-muted/50">
                 <div className="flex items-start gap-2 mb-2">
                   <Tag className="h-5 w-5 text-primary mt-0.5" />
@@ -97,7 +93,6 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
                 </div>
               </div>
 
-              {/* Vehicle Info */}
               <div className="p-4 border rounded-lg shadow-sm bg-muted/50">
                 <div className="flex items-start gap-2 mb-2">
                   <Car className="h-5 w-5 text-primary mt-0.5" />
@@ -114,7 +109,6 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
                 </div>
               </div>
 
-              {/* Camera Info */}
               <div className="p-4 border rounded-lg shadow-sm bg-muted/50">
                 <div className="flex items-start gap-2 mb-2">
                   <Camera className="h-5 w-5 text-primary mt-0.5" />

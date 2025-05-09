@@ -8,7 +8,7 @@ import type { NextRequest } from "next/server";
 
 // Get the maximum number of webhook requests from environment variable or default to 50
 const MAX_WEBHOOK_REQUESTS = Number.parseInt(
-  process.env.NEXT_PUBLIC_MAX_WEBHOOK_REQUESTS || "50",
+  process.env.MAX_WEBHOOK_REQUESTS || "100",
   10,
 );
 
@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
     } else if (contentType.includes("form")) {
       const formData = await request.formData();
       const rawData = formData.get("json");
-      let imageFile: File | null = null;
+      let imageFile = null;
       for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
+        if (value instanceof Blob) {
           imageFile = value;
           break;
         }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
       data = rawData ? JSON.parse(rawData.toString()) : null;
 
-      if (imageFile && imageFile instanceof File) {
+      if (imageFile) {
         const uploadResult = await uploadToR2(imageFile, "webhooks");
         imageUrl = uploadResult.url;
       }

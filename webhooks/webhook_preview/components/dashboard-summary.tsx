@@ -77,9 +77,7 @@ export function DashboardSummary({
             <div className="text-xs text-blue-600 font-medium">
               Total Plates
             </div>
-            <div className="text-xl font-bold">
-              {data.length} / {process.env.NEXT_PUBLIC_MAX_WEBHOOK_REQUESTS}
-            </div>
+            <div className="text-xl font-bold">{data.length}</div>
           </div>
           <div className="flex-1 bg-green-50 p-3 rounded-lg">
             <div className="text-xs text-green-600 font-medium">
