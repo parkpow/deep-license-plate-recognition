@@ -2,39 +2,39 @@
 
 FROM node:18-alpine AS base
 
-# Instala dependências necessárias
+# Install necessary dependencies
 RUN apk add --no-cache libc6-compat
 
-# Configura pnpm
+# Configure pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Define o diretório de trabalho
+# Set working directory
 WORKDIR /app
 
 # Build
 FROM base AS builder
 
-# Configura pnpm e ambiente
+# Configure pnpm and environment
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 
-# Copia arquivos de configuração
+# Copy configuration files
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 
-# Instala dependências
+# Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --no-frozen-lockfile
 
-# Gera cliente Prisma
+# Generate Prisma client
 RUN pnpm prisma generate
 
-# Copia arquivos do projeto
+# Copy project files
 COPY . .
 
-# Build da aplicação
+# Build the application
 RUN pnpm build
 
 # Runner
@@ -42,7 +42,7 @@ FROM base AS runner
 
 WORKDIR /app
 
-# Cria usuário não-root
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
