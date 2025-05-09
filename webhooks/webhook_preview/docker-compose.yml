@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_WEBHOOK_REQUESTS=150
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/webhook_preview
+      - NODE_ENV=production
+      - CLOUDFLARE_R2_ACCOUNT_ID=XXXXXXX
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=XXXXXXX
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=XXXXXXX
+      - CLOUDFLARE_R2_BUCKET_NAME=example_image
+      - CLOUDFLARE_R2_PUBLIC_DOMAIN=s3.example.com.br
+    networks:
+      - webhook-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node server.js"
+  db:
+    image: postgres:15-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=webhook_preview
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - webhook-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  webhook-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
