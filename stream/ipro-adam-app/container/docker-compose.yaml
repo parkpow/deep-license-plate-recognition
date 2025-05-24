@@ -110,6 +110,14 @@ services:
         source: "/tmp/pflog_mask_shmid"
         read_only: false
         consistency: default
+
+      # TODO Test SD Card Mounts
+      # - type: bind
+      #   target: "/mnt/sdcard"
+      #   source: "/mnt/sda/adamapp/stream"
+      #   read_only: false
+      #   consistency: default
+
     tmpfs:
       - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
 
@@ -140,11 +148,15 @@ services:
         consistency: default
 
     tmpfs:
-      - /var/cache/nginx:rw,noexec,nosuid,gid=1000,uid=1000
       - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
-    environment:
-      - TOKEN=
-      - LICENSE_KEY=
+
+    command: cat /ai_data/stream.env
+# TODO read config from /ai_data/stream.env
+#    environment:
+#      - TOKEN=4805bee1222ce8_UPDATE_ME
+#      - LICENSE_KEY=UPDATE_ME
+#      - LOGGING=UPDATE_ME
+
 
     read_only: true
     user:

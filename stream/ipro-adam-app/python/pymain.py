@@ -1,28 +1,38 @@
-#
-# file        pymain.py
-# brief       Application (Python Version)
-# author      Panasonic
-# date        2021-01-08
-# version     1.0
-# Copyright    (C) COPYRIGHT 2021 Panasonic Corporation
-#              (C) COPYRIGHT 2022 i-PRO Co., Ltd.
-#
+# import threading;
+import time
+
+# debug
+import traceback
 
 # import numpy as np;
 # import cv2;
-# import threading;
 import libAdamApiPython
 
 # if print() output is delay, enalbe the following lines.
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 # sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 
+
+def debugDbg(str):
+    # libAdamApiPython.adam_debug_print(libAdamApiPython.ADAM_LV_DBG, "[DBG] {}".format(str))
+    print(f"[DBG] {str}")
+
+
+def debugErr(str):
+    # libAdamApiPython.adam_debug_print(libAdamApiPython.ADAM_LV_ERR, "[ERR] {}".format(str))
+    print(f"[ERR] {str}")
+
+
 loop = None
-id = -1
-isH26 = False
-isJpeg = False
-isAudio = False
-addInfo = ""
+license_key = memoryview(b"")
+token = memoryview(b"")
+stream_log_level = 10
+
+
+# Store pref names as constants
+LICENSE_KEY_PREF = "LICENSE_KEY"
+TOKEN_PREF = "TOKEN"
+LOGGING_PREF = "LOGGING"
 
 
 def stopCB():
@@ -31,33 +41,122 @@ def stopCB():
     loop.exit()
 
 
+ADAM_HTTP_REQ_TYPE_GET = 0
+ADAM_HTTP_REQ_TYPE_POST = 1
+
+
+def create_respone_header(body, status=200):
+    len(body)
+    assert len(str(status)) == 3, "status code must be 3 digits"
+    header = f"HTTP/1.1 {status} OK\r\n" "Content-Type: text/html\r\n"
+
+    return header
+
+
 def httpCB(reqType, reqData):
+    global license_key
+    global token
+    global stream_log_level
+
     print("HTTP callback: type=%d" % reqType)
-    body = b"body"
-    header = "header"
-    return (header, body)
+    debugDbg("HTTP callback: reqType=%d" % reqType)
+
+    # body = b'body'
+    # header = "header"
+    # return (header, body)
+
+    # Html key words to be replaced
+    template_literals = [
+        "@pInstallID",
+        "@LICENSE_KEY_PREF",
+        "@TOKEN_PREF",
+        "@LOGGING_PREF_10",
+        "@LOGGING_PREF_20",
+        "@LOGGING_PREF_30",
+        "@LOGGING_PREF_40",
+        "@LOGGING_PREF_50",
+    ]
+
+    try:
+        # get data directory
+        appPath = libAdamApiPython.adam_get_app_data_dir_path()
+        with open(f"{appPath}/index.html") as fp:
+            htmlData = fp.read()
+
+        print("reqType:%d" % reqType)
+        debugDbg("call httpCB: reqType=%d" % reqType)
+        if reqType == ADAM_HTTP_REQ_TYPE_GET:
+            debugDbg("Show html")
+            # load AppPref
+            loadPref()
+        elif reqType == ADAM_HTTP_REQ_TYPE_POST:
+            debugDbg("Edit html")
+            # set AppPref
+            setPref(reqData.decode("utf-8"))
+        else:
+            debugErr("call httpCB: reqType=%d" % reqType)
+
+        # set AppPref parameter
+        context = []
+        # Get App Install ID
+        install_id = "%08X" % libAdamApiPython.InstallId
+        context.append(install_id)
+        context.append(license_key.tobytes().decode("utf-8"))
+        context.append(token.tobytes().decode("utf-8"))
+        context.extend(get_stream_log_level_context(stream_log_level))
+
+        debugDbg(f"Context: {context}")
+
+        # replace parameters in html
+        cnt = 0
+        for keywd in template_literals:
+            htmlData = htmlData.replace(keywd, context[cnt])
+            cnt += 1
+        header = create_respone_header(htmlData)
+
+    except Exception as e:
+        debugErr(f"httpCB Exception: {e}")
+        htmlData = f"Server Error: {traceback.format_exc()}"
+        header = create_respone_header(htmlData, 500)
+
+    body = bytes(htmlData, "utf-8")
+    return header, body
+
+
+def get_stream_log_level_context(stream_log_level: str) -> list:
+    """
+    Genereate selected attribute for stream log level options.
+    """
+    selected = 'selected="selected"'
+    unselected = ""
+    enum_values = ["10", "20", "30", "40", "50"]
+    context = []
+
+    for i, _value in enumerate(enum_values):
+        if stream_log_level == enum_values[i]:
+            context.append(selected)
+        else:
+            context.append(unselected)
+
+    return context
 
 
 def appPrefCB(prefTuple):
-
-    global id
-    global isH26
-    global isJpeg
-    global isAudio
-    global addInfo
+    global license_key
+    global token
+    global stream_log_level
 
     libAdamApiPython.adam_lock_appPref()
 
-    if prefTuple == "ID":
-        id = libAdamApiPython.adam_get_appPref("ID")
-    elif prefTuple == "H.26X":
-        isH26 = libAdamApiPython.adam_get_appPref("H.26X")
-    elif prefTuple == "JPEG":
-        isJpeg = libAdamApiPython.adam_get_appPref("JPEG")
-    elif prefTuple == "Audio":
-        isAudio = libAdamApiPython.adam_get_appPref("Audio")
-    elif prefTuple == "Additional Info":
-        addInfo = libAdamApiPython.adam_get_appPref("Additional Info")
+    if prefTuple == LICENSE_KEY_PREF:
+        license_key = memoryview(
+            libAdamApiPython.adam_get_appPref(LICENSE_KEY_PREF).encode()
+        )
+    elif prefTuple == TOKEN_PREF:
+        token = memoryview(libAdamApiPython.adam_get_appPref(TOKEN_PREF).encode())
+
+    elif prefTuple == LOGGING_PREF:
+        stream_log_level = libAdamApiPython.adam_get_appPref(LOGGING_PREF)
     else:
         print("Undefined AppPrefName: %s" % prefTuple)
 
@@ -65,47 +164,71 @@ def appPrefCB(prefTuple):
 
 
 def loadPref():
-    global id
-    global isH26
-    global isJpeg
-    global isAudio
-    global addInfo
+    global license_key
+    global token
+    global stream_log_level
 
     libAdamApiPython.adam_lock_appPref()
-
-    id = libAdamApiPython.adam_get_appPref("ID")  # int
-    isH26 = libAdamApiPython.adam_get_appPref("H.26X")  # bool
-    isJpeg = libAdamApiPython.adam_get_appPref("JPEG")  # bool
-    isAudio = libAdamApiPython.adam_get_appPref("Audio")  # bool
-    addInfo = memoryview(
-        libAdamApiPython.adam_get_appPref("Additional Info").encode()
-    )  # char
+    license_key = memoryview(
+        libAdamApiPython.adam_get_appPref(LICENSE_KEY_PREF).encode()
+    )
+    token = memoryview(libAdamApiPython.adam_get_appPref(TOKEN_PREF).encode())
+    stream_log_level = libAdamApiPython.adam_get_appPref(LOGGING_PREF)
 
     libAdamApiPython.adam_unlock_appPref()
 
+    debugDbg("loadPref adam_get_appPref")
+    debugDbg(f"  license_key:{license_key}")
+    debugDbg(f"  token:{token}")
+    debugDbg(f"  stream_log_level :{stream_log_level}")
+
+
+def setPref(pref_str):
+    global license_key
+    global token
+    global stream_log_level
+
+    debugDbg(f"Set Pref: {pref_str}")
+    pref = pref_str.split(",")
+    license_key_pref = pref[0]
+    token_pref = pref[1]
+    stream_log_level_pref = pref[2]
+
+    license_key = memoryview(license_key_pref.encode())
+    license_token = memoryview(token_pref.encode())
+    stream_log_level = int(stream_log_level_pref)
+
+    debugDbg("setPref adam_set_appPref")
+    debugDbg(f"  license_key:{license_key}")
+    debugDbg(f"  license_token:{license_token}")
+    debugDbg(f"  stream_log_level :{stream_log_level}")
+
+    libAdamApiPython.adam_lock_appPref()
+    libAdamApiPython.adam_set_appPref({LICENSE_KEY_PREF: license_key_pref})
+    libAdamApiPython.adam_set_appPref({TOKEN_PREF: token_pref})
+    libAdamApiPython.adam_set_appPref({LOGGING_PREF: stream_log_level})
+    libAdamApiPython.adam_unlock_appPref()
+
+    debugDbg("Writing stream credentials to /ai_data/stream.env")
+
+    # Write to /ai_data/stream.env
+    env_file_path = "/ai_data/stream.env"
+    with open(env_file_path, "w") as env_file:
+        env_file.write(f"LICENSE_KEY={license_key_pref}\n")
+        env_file.write(f"TOKEN={token_pref}\n")
+        env_file.write(f"LOGGING={stream_log_level_pref}\n")
+
 
 def procPref():
-    global id
-    global isH26
-    global isJpeg
-    global isAudio
-    global addInfo
-
-    len(addInfo)
-    stream = 0
-    if isH26:
-        stream += libAdamApiPython.ADAM_STREAM_H26X
-    if isJpeg:
-        stream += libAdamApiPython.ADAM_STREAM_JPEG
-    if isAudio:
-        stream += libAdamApiPython.ADAM_STREAM_AUDIO
+    global license_key
+    global token
+    global stream_log_level
 
     level = libAdamApiPython.ADAM_LV_INF
     libAdamApiPython.adam_debug_print(
-        level, ("id=%d, addInfo=%s, stream=%d" % (id, addInfo, stream))
+        level,
+        f"PLATEREC - license_key={license_key}, token={token}, stream_log_level=stream_log_level",
     )
-
-    libAdamApiPython.adam_additional_info_set(id, addInfo, stream)
 
 
 def startProcessing():
@@ -117,7 +240,7 @@ def startProcessing():
     procPref()
 
     loop.dispatch()
-    # 	time.sleep(2)
+    time.sleep(360)
     del loop
     print("Finish: Process")
 
