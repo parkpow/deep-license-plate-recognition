@@ -1,0 +1,358 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<head>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="Content-Style-Type" content="text/css">
+    <meta http-equiv="Content-Script-Type" content="text/javascript">
+    <meta name="viewport" content="width=device-width">
+    <meta name="copyright" content="ParkPow">
+    <title>Platerecognizer Stream on i-PRO</title>
+
+    <script type="text/javascript">
+        window.resizeTo(1200, 900)
+    </script>
+
+    <style type="text/css">
+        body {
+            margin: 20px;
+            font-family: Verdana, Arial, sans-serif;
+        }
+
+        h1 {
+            font-weight: normal;
+            font-size: 150%;
+        }
+
+        input[type="button"],
+        input[type="submit"],
+        input[type="file"] {
+            padding: 3px;
+            font-size: 100%;
+        }
+
+        button {
+            padding: 3px;
+            font-size: 100%;
+        }
+
+        table {
+            margin-top: 15px;
+            color: #666;
+            border: 2px solid #666;
+            border-collapse: separate;
+            border-spacing: 1px;
+        }
+
+        th {
+            color: #444;
+            padding: 5px;
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #666;
+            background-color: lightblue;
+        }
+
+        td {
+            padding: 2px 5px;
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+        }
+
+        dl {
+            margin-top: 30px;
+        }
+
+        dt {
+            width: 260px;
+            float: left;
+        }
+
+        dd {
+            margin: 0 0 5px 100px;
+        }
+
+        .table2 {
+            color: #000000;
+            border: none;
+            margin-left: 100px;
+        }
+
+        .td2 {
+            border: none;
+            padding: 10px 15px;
+        }
+
+        #product_name {
+            width: 150px;
+        }
+
+        #product_price {
+            width: 150px;
+        }
+
+        #product_number {
+            width: 100px;
+        }
+
+        .slide {
+            display: none;
+        }
+
+        .clear {
+            width: 80px;
+        }
+
+        .price,
+        .number {
+            text-align: right;
+        }
+
+        #error {
+            color: #FF0000;
+            font-weight: bold;
+        }
+
+        #sendDataFunc div {
+            padding: 5px;
+            margin: 5px;
+        }
+
+        #sendDataFunc input[type=text] {
+            width: 80px;
+        }
+
+        #sendDataFunc textarea {
+            width: 700px;
+            height: 120px;
+        }
+
+        table#setPrefList input[type=text] {
+            width: 500px;
+        }
+
+        table#setPrefList input[type=number] {
+            width: 80px;
+        }
+
+        #divExecAdamApi textarea {
+            width: 700px;
+        }
+
+        #updateFile,
+        #installFile {
+            display: none;
+        }
+
+        #preferenceFile_ {
+            display: none;
+        }
+
+        #systemRestarting {
+            vertical-align: middle;
+            font-size: 150%;
+            text-align: center;
+            line-height: 200%;
+            margin: 0 auto;
+        }
+
+        .btn {
+            width: 90px;
+        }
+
+        progress {
+            width: 200px;
+        }
+
+        .titlename {
+            font-weight: normal;
+            font-size: 150%;
+            text-align: left;
+        }
+
+        .titleversion {
+            font-style: italic;
+            padding: 0.5em 10px 0;
+        }
+
+        .titlebar {
+            background-color: lightblue;
+            padding: 5px 10px 2px;
+        }
+
+        .getAppList {
+            font-size: 120%;
+        }
+
+        button img.icon {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            vertical-align: middle;
+            margin: 0 10px 0 0;
+        }
+
+        table.loglist tr td:nth-of-type(2) {
+            text-align: right;
+        }
+
+        table.loglist tr td:nth-of-type(4) {
+            text-align: left;
+        }
+    </style>
+
+    <script type="text/javascript">
+        const SendType = {
+            Post: "POST",
+            Get: "GET"
+        }
+        const CommType = {
+            Sync: false,
+            aSync: true
+        }
+
+        let param1 = "methodName=sendDataToAdamApplication&installId=@pInstallID&s_appDataType=1&s_appData=";
+
+        function HtmlComm_actInit() {
+            HtmlComm_xhr = HtmlComm_crtXMLHttpRequest();
+            if (HtmlComm_xhr == null) {
+            }
+            HtmlComm_xhr.onreadystatechange = HtmlComm_CommState;
+            return;
+        }
+        function HtmlComm_crtXMLHttpRequest() {
+            try {
+                return new XMLHttpRequest();
+            } catch (e) { }
+            try {
+                return new ActiveXObject('MSXML2.XMLHTTP.6.0');
+            } catch (e) { }
+            try {
+                return new ActiveXObject('MSXML2.XMLHTTP.3.0');
+            } catch (e) { }
+            try {
+                return new ActiveXObject('MSXML2.XMLHTTP');
+            } catch (e) { }
+            return null;
+        }
+        function HtmlComm_CommState() {
+            switch (HtmlComm_xhr.readyState) {
+                case 0:
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    break;
+                case 4:
+                    if (HtmlComm_xhr.status != 0) {
+                        if (HtmlComm_xhr.status == 200) {
+                            giresponse = HtmlComm_xhr.responseText;
+                            console.log("msg : " + giresponse);
+							location.reload();
+                        }
+                        else {
+                            giresponse = HtmlComm_xhr.responseText;
+                            alert("errorcode" + HtmlComm_xhr.status + ": Reception error" + giresponse);
+                        }
+                    }
+                    else {
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        function HtmlComm_actOpen(Type, Sync, xhr_tmp, url) {
+            xhr_tmp.open(Type, url, Sync);
+            if (Type == SendType.Get) {
+                xhr_tmp.responseType = 'arraybuffer';
+                xhr_tmp.setRequestHeader('Pragma', 'no-cache');
+                xhr_tmp.setRequestHeader('Cache-Control', 'no-cachache');
+            } else if (Type == SendType.Post) {
+                xhr_tmp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            }
+        }
+        function HtmlComm_actSend(SendData_tmp, xhr_tmp) {
+            if (SendData_tmp == "") {
+                try {
+                    xhr_tmp.send(null);
+                } catch (e) {
+                }
+            }
+            else {
+                try {
+                    xhr_tmp.send(SendData_tmp);
+                } catch (e) {
+                }
+            }
+        }
+
+        function saveChanges() {
+            let licenseKey = document.getElementById("licenseKey").value;
+            let licenseToken = document.getElementById("licenseToken").value;
+            let logLevel = document.getElementById("logLevel").value;
+
+            let SendData_setting = licenseKey + "," + licenseToken + "," + logLevel;
+            HtmlComm_actInit();
+            if (HtmlComm_xhr != null) {
+                HtmlComm_actOpen(SendType.Post, CommType.aSync, HtmlComm_xhr, "/cgi-bin/adam.cgi");
+                HtmlComm_actSend(param1 + btoa(SendData_setting), HtmlComm_xhr);
+                giloadflag = 1;
+            }
+            else {
+                console.log("error : HtmlComm_actInit");
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="appPrefsFunc" style="display: block;">
+        <div>
+            <h2>Platerecognizer Stream on i-PRO</h2>
+            <table id="setPrefList">
+                <thead>
+                    <tr>
+                        <th id="bm_prefName">Configuration</th>
+                        <th id="bm_value">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="tr_int">
+                        <td>License Key</td>
+                        <td>
+                            <input id="licenseKey" type="text" value="@LICENSE_KEY_PREF">
+                        </td>
+                    </tr>
+                    <tr id="tr_str">
+                        <td>Token</td>
+                        <td>
+                            <input id="licenseToken" type="text" maxlength="255" value="@TOKEN_PREF">
+                        </td>
+                    </tr>
+                    <tr id="tr_enum">
+                        <td>Logging</td>
+                        <td>
+                            <select id="logLevel">
+                                <option value="10" @LOGGING_PREF_10>10 DEBUG</option>
+                                <option value="20" @LOGGING_PREF_20>20 INFO</option>
+                                <option value="30" @LOGGING_PREF_30>30 WARN</option>
+                                <option value="40" @LOGGING_PREF_40>40 ERROR</option>
+                                <option value="50" @LOGGING_PREF_50>50 CRITICAL</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <table class="table2" id="btntable">
+            <td class="td2">
+                <button type="button" value="Save Changes" onclick="saveChanges()">Save Changes</button>
+            </td>
+        </table>
+        <tr>
+        </tr>
+    </div>
+</body>
