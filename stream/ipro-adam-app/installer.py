@@ -79,33 +79,36 @@ def upload_adam_app(ext_file_path):
         # total = monitor.len
         progress_bar.update(monitor.bytes_read - progress_bar.n)
 
-    try:
-        # Construct the multipart body
-        encoder = MultipartEncoder(
-            fields={
-                "methodName": "installApplication",
-                "applicationPackage": (
-                    os.path.basename(ext_file_path),
-                    open(ext_file_path, "rb"),
-                    "application/octet-stream",
-                ),
-            }
-        )
-        # Wrap encoder with a monitor for progress tracking
-        monitor = MultipartEncoderMonitor(encoder, progress_callback)
-        headers = {"Content-Type": monitor.content_type}
-        response = make_request(
-            "POST", use_install_url=True, data=monitor, headers=headers
-        )
+    with open(ext_file_path, "rb") as fp:
+        try:
+            # Construct the multipart body
+            encoder = MultipartEncoder(
+                fields={
+                    "methodName": "installApplication",
+                    "applicationPackage": (
+                        os.path.basename(ext_file_path),
+                        fp,
+                        "application/octet-stream",
+                    ),
+                }
+            )
+            # Wrap encoder with a monitor for progress tracking
+            monitor = MultipartEncoderMonitor(encoder, progress_callback)
+            headers = {"Content-Type": monitor.content_type}
+            response = make_request(
+                "POST", use_install_url=True, data=monitor, headers=headers
+            )
 
-        if response.status_code == 204:
-            print("Application Installed!!!")
-            print(response.headers)
-        else:
-            print(f"Application Install Failed - status code: {response.status_code}")
-            print(response.text)
-    except Exception:
-        raise
+            if response.status_code == 204:
+                print("Application Installed!!!")
+                print(response.headers)
+            else:
+                print(
+                    f"Application Install Failed - status code: {response.status_code}"
+                )
+                print(response.text)
+        except Exception:
+            raise
 
 
 def uninstall(install_id):
@@ -186,7 +189,6 @@ if __name__ == "__main__":
         required=False,
     )
     # Add skip param to skip directly to upload
-    parser.print_usage()
     args = parser.parse_args()
     if username != args.username:
         username = args.username
