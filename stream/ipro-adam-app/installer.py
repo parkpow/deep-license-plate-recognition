@@ -144,9 +144,9 @@ if __name__ == "__main__":
         epilog="Upload Adam APP to i-PRO with Progress",
     )
 
-    camera_url = "http://92.168.30.108:80"
-    username = "platerec"
-    password = ""
+    camera_url = "http://CAMERA_IP:80"
+    username = "CAMERA_USERNAME"
+    password = "CAMERA_PASSWORD"
     ext_file = "/tmp/app-build-dir/stream-adam_1.1.ext"
     installed_app_name = "Platerecognizer Stream"
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     installed_application = list_applications(args.app_name)
     print(f"Installed application: {installed_application}")
     if installed_application:
-        app_install_id = application["appInfo"]["installId"]
+        app_install_id = installed_application["appInfo"]["installId"]
         # Start Application
         start(app_install_id)
 
