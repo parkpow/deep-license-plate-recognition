@@ -216,5 +216,3 @@ if __name__ == "__main__":
         app_install_id = installed_application["appInfo"]["installId"]
         # Start Application
         start(app_install_id)
-
-    # TODO Monitor - get status and logs
