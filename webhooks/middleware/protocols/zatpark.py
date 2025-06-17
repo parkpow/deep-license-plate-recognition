@@ -47,10 +47,16 @@ def process_request(
     ) -> tuple[str, int]:
 
 
+    if not all_files:
+        logging.error("No files dictionary provided. 'upload' and 'plate_img' are required.")
+        return "No files uploaded.", 400
+
     upload_file = all_files.get("upload")
     plate_img = all_files.get("plate_img")
     
-    if not all_files or "upload" not in all_files or "plate_img" not in all_files:
+    if not upload_file or not plate_img:
+        logging.error("Both 'upload' and 'plate_img' files must be provided. They are required.")
+        return "Required files ('upload' or 'plate_img') are missing.", 400
         logging.error("Both 'upload' and 'plate_img' must be provided. They are required.")
         return "No files uploaded.", 400
 
