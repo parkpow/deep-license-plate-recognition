@@ -121,5 +121,6 @@ def process_request(
 
         return "Request received and successfully processed.", 200
     except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to send request: {str(e)}")
-        return f"Failed to process request: {str(e)}", 500
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to send request to Zatpark service: {str(e)}")
+        return "An error occurred while communicating with the external Zatpark service.", 500
