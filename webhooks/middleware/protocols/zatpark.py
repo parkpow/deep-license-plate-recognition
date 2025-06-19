@@ -75,7 +75,11 @@ def process_request(
     if plate_img:
         imagens['plate'] = base64.b64encode(plate_img).decode("utf-8")
 
-    region, plate, score, orientation, camera_id, header, timestamp, timestamp_local = extract_data_plate(json_data)
+    try:
+        region, plate, score, orientation, camera_id, header, timestamp, timestamp_local = extract_data_plate(json_data)
+    except (ValueError, KeyError, IndexError) as e:
+        logging.error(f"Failed to extract necessary data from JSON payload: {e}")
+        return f"Invalid or incomplete JSON data: {e}", 400
 
     mac_address = header.get("mac_address")
     camera_name = header.get("camera_name") or camera_id
