@@ -43,7 +43,7 @@ def extract_data_plate(json_data: dict) -> tuple[
 
     # This block handles the 'vehicle' detection_mode
     if isinstance(plate, dict) and "props" in plate:
-        plate_props = data_results["plate"]["props"]
+        plate_props = plate["props"]
         vehicle_props = data_results.get("vehicle", {}).get("props", {})
 
         plate = plate_props.get("plate", [{}])[0].get("value")
