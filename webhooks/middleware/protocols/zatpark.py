@@ -14,51 +14,60 @@ if not service_url:
     )
     exit(1)
 
+def convert_to_timestamp(time_string: str) -> int:
+    try:
+        if "T" in time_string and time_string.endswith("Z"):
+            time_string = time_string.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(time_string)
+        else:
+            dt = datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S.%f%z")
+        return int(dt.timestamp())
+    except Exception as e:
+        raise ValueError(f"Invalid time format: {time_string}") from e
 
-def convert_to_timestamp_microseconds(time_string):
-    datetime_object = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-    timestamp_microseconds = int(datetime_object.timestamp() * 1000000)
-    return timestamp_microseconds
-
-
-def extract_data_plate(json_data: dict) -> tuple[str | None, str | None]:
-    plate = json_data["data"]["results"][0]["plate"]
-    region = json_data["data"]["results"][0].get("region", {}).get("code")
-    score = json_data["data"]["results"][0].get("score")
-    orientation = json_data["data"]["results"][0].get("orientation", [{}])[0].get("orientation")
-    camera_id = json_data["data"]["camera_id"]
+def extract_data_plate(json_data: dict) -> tuple[
+    str | None, str | None, float | None, str | None, str | None, dict[str, str], int, int
+]:
+    data_results = json_data["data"]["results"][0]
+        
+    plate = data_results.get("plate")
+    region = data_results.get("region", {}).get("code")
+    score = data_results.get("score")
+    orientation = data_results.get("orientation", [{}])[0].get("orientation")
     
+    # Common data extraction
+    camera_id = json_data["data"]["camera_id"]
+    timestamp_local = convert_to_timestamp(json_data["data"]["timestamp_local"])
+    timestamp = convert_to_timestamp(json_data["data"]["timestamp"])
     header = json_data.get("webhook_header", {})
 
+    # This block handles the 'vehicle' detection_mode
+    if isinstance(plate, dict) and "props" in plate:
+        plate_props = data_results["plate"]["props"]
+        vehicle_props = data_results.get("vehicle", {}).get("props", {})
 
-    if plate and type(plate) != str:
-        plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
-        orientation = json_data["data"]["results"][0]["vehicle"]["props"]["orientation"][0]["value"]
-        region = json_data["data"]["results"][0]["plate"]["props"]["region"][0]["value"]
-        score = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["score"]
-        camera_id = json_data["data"]["camera_id"]
-        header = json_data.get("webhook_header", {})
+        plate = plate_props.get("plate", [{}])[0].get("value")
+        score = plate_props.get("plate", [{}])[0].get("score")
+        region = plate_props.get("region", [{}])[0].get("value")
+        orientation = vehicle_props.get("orientation", [{}])[0].get("value")
 
-    return region, plate, score, orientation, camera_id, header
+    return region, plate, score, orientation, camera_id, header, timestamp, timestamp_local
 
 
 def process_request(
      json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
     ) -> tuple[str, int]:
 
-
     if not all_files:
-        logging.error("No files dictionary provided. 'upload' and 'plate_img' are required.")
+        logging.error("No files dictionary provided. 'vehicle' and 'plate' image_type are required.")
         return "No files uploaded.", 400
-
+    
     upload_file = all_files.get("upload")
     plate_img = all_files.get("plate_img")
     
     if not upload_file or not plate_img:
-        logging.error("Both 'upload' and 'plate_img' files must be provided. They are required.")
-        return "Required files ('upload' or 'plate_img') are missing.", 400
-        logging.error("Both 'upload' and 'plate_img' must be provided. They are required.")
-        return "No files uploaded.", 400
+        logging.error("Both image_type are required,  vehicle and plate.")
+        return "Required files ('vehicle' or 'plate') are missing.", 400
 
     imagens = {}
     if upload_file:
@@ -66,7 +75,7 @@ def process_request(
     if plate_img:
         imagens['plate'] = base64.b64encode(plate_img).decode("utf-8")
 
-    region, plate, score, orientation, camera_id, header = extract_data_plate(json_data)
+    region, plate, score, orientation, camera_id, header, timestamp, timestamp_local = extract_data_plate(json_data)
 
     mac_address = header.get("mac_address")
     camera_name = header.get("camera_name") or camera_id
@@ -89,8 +98,8 @@ def process_request(
                 "MAC": mac_address,
                 "cameraName": camera_name,
                 "timeStamp": {
-                    "Time": int(datetime.now().timestamp()),
-                    "LocalTime": int(datetime.now().timestamp())
+                    "Time": timestamp,
+                    "LocalTime": timestamp_local
                 },
                 "confidence": int(score * 100),
                 "motion": "toward" if orientation == "Front" else "Away",
