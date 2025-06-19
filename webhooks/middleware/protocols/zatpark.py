@@ -22,7 +22,7 @@ def convert_to_timestamp(time_string: str) -> int:
         else:
             dt = datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S.%f%z")
         return int(dt.timestamp())
-    except Exception as e:
+    except (ValueError, TypeError) as e:
         raise ValueError(f"Invalid time format: {time_string}") from e
 
 def extract_data_plate(json_data: dict) -> tuple[
