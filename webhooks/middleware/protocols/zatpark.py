@@ -28,7 +28,14 @@ def convert_to_timestamp(time_string: str) -> int:
 def extract_data_plate(json_data: dict) -> tuple[
     str | None, str | None, float | None, str | None, str | None, dict[str, str], int, int
 ]:
-    data_results = json_data["data"]["results"][0]
+    
+    data_section = json_data.get("data", {})
+    results = data_section.get("results")
+
+    if not results or not isinstance(results, list) or not results:
+        raise ValueError("Missing or invalid 'results' data in JSON payload.")
+
+    data_results = results[0] 
         
     plate = data_results.get("plate")
     region = data_results.get("region", {}).get("code")
@@ -36,10 +43,23 @@ def extract_data_plate(json_data: dict) -> tuple[
     orientation = data_results.get("orientation", [{}])[0].get("orientation")
     
     # Common data extraction
-    camera_id = json_data["data"]["camera_id"]
-    timestamp_local = convert_to_timestamp(json_data["data"]["timestamp_local"])
-    timestamp = convert_to_timestamp(json_data["data"]["timestamp"])
+    camera_id = data_section.get("camera_id")
     header = json_data.get("webhook_header", {})
+
+    timestamp_str = data_section.get("timestamp")
+    timestamp_local_str = data_section.get("timestamp_local")
+
+    try:
+        timestamp = convert_to_timestamp(timestamp_str) if timestamp_str else None
+    except ValueError:
+        logging.warning(f"Invalid format for 'timestamp': {timestamp_str}")
+        timestamp = None
+
+    try:
+        timestamp_local = convert_to_timestamp(timestamp_local_str) if timestamp_local_str else None
+    except ValueError:
+        logging.warning(f"Invalid format for 'timestamp_local': {timestamp_local_str}")
+        timestamp_local = None
 
     # This block handles the 'vehicle' detection_mode
     if isinstance(plate, dict) and "props" in plate:
@@ -124,7 +144,6 @@ def process_request(
             logging.warning(f"Response is not a valid JSON. Content: {response.text}")
 
         return "Request received and successfully processed.", 200
-    except requests.exceptions.RequestException as e:
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to send request to Zatpark service: {str(e)}")
         return "An error occurred while communicating with the external Zatpark service.", 500
