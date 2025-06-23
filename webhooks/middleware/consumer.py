@@ -65,6 +65,18 @@ def handle_webhook():
             return jsonify({"error": "Invalid JSON format"}), 400
 
     try:
+
+        webhook_header = {
+            "mac_address": request.headers.get("mac-address"),
+            "camera_name": request.headers.get("camera-name"),
+            "serial_number": request.headers.get("serial-number"),
+        }
+
+        webhook_header = {k: v for k, v in webhook_header.items() if v is not None}
+        
+        if webhook_header and isinstance(json_data, dict):
+            json_data["webhook_header"] = webhook_header
+
         files = {}
         for file in uploaded_files:
             files[file] = uploaded_files[file].read()
