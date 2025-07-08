@@ -50,7 +50,7 @@ STATIC_MAPPING = Vehicle Tags:test01
   - Example: `Vehicle Tags:Block`
     - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in Parkpow.
 
-## How to Use (Docker Only)
+## How to Use
 
 ### Prerequisites
 
@@ -62,7 +62,7 @@ STATIC_MAPPING = Vehicle Tags:test01
 
     ```bash
     git clone <YOUR_REPOSITORY_URL>
-    cd parkpow-auto-file-import-tool
+    cd parkpow\\auto-file-import-tool
     ```
 
 2.  **Build the Docker image:**
