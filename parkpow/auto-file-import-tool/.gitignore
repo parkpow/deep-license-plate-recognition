@@ -108,6 +108,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Application data
-data/*
-!data/config.ini
+!data/output/
