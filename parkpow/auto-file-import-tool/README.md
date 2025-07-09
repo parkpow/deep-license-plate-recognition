@@ -62,7 +62,7 @@ STATIC_MAPPING = Vehicle Tags:test01
 
     ```bash
     git clone <YOUR_REPOSITORY_URL>
-    cd parkpow\\auto-file-import-tool
+    cd parkpow/auto-file-import-tool
     ```
 
 2.  **Build the Docker image:**
