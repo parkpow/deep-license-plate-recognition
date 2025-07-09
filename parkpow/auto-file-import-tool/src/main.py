@@ -90,11 +90,11 @@ def main():
     remove_csv_path = os.path.join(OUTPUT_FOLDER, "to_remove.csv")
 
     # Filter rows for addition
-    rows_to_add = []
-    for row in current_formatted_rows:
-        # Assuming license_plate is at index 3 based on HEADERS
-        if len(row) > HEADERS.index("license_plate") and row[HEADERS.index("license_plate")] in plates_to_add:
-            rows_to_add.append(row)
+    lp_index = HEADERS.index("license_plate")
+    rows_to_add = [
+        row for row in current_formatted_rows
+        if len(row) > lp_index and row[lp_index] in plates_to_add
+    ]
     
     # Create rows for removal (only license_plate is needed for removal API)
     rows_to_remove = []
