@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -euo pipefail
 CONFIG_FILE="/app/data/config.ini"
 
 # Function to read a value from the .ini file
