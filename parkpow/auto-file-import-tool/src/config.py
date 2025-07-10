@@ -1,39 +1,28 @@
 import configparser
 import re
 import os
+import sys
 
 CONFIG_FILE = 'data/config.ini'
+file_name = os.path.basename(CONFIG_FILE)
 
 _cached_config_values = None
 
-def get_default_config_string(): 
-    """Returns the default configuration as a string."""
-    return '''
-[DEFAULT]
-CRON_SCHEDULE = */60 * * * *
 
-[API]
-API_URL = http://YOUR_PARKPOW_IP:8000/api/v1/import-vehicles/
-AUTH_TOKEN = YOU_PARKPOW_TOKEN
-
-[MAPPING]
-INPUT_COLUMN_MAPPING = Column0:license_plate
-STATIC_MAPPING = Vehicle Tags:test01
-'''
-
-def _initialize_config_file_if_not_exists(): # Made internal and more descriptive
+def _initialize_config_file_if_not_exists():
     """
-    Initializes the configuration file. If config.ini does not exist,
-    it creates it with default values.
+    Initializes the configuration directory. If config.ini does not exist,
+    it informs the user to create it and exits the program.
     """
     config_dir = os.path.dirname(CONFIG_FILE)
     if config_dir:
         os.makedirs(config_dir, exist_ok=True)
 
     if not os.path.exists(CONFIG_FILE):
-        print(f"'{CONFIG_FILE}' not found. Creating a default configuration file.")
-        with open(CONFIG_FILE, 'w') as f:
-            f.write(get_default_config_string().strip())
+        print(f"ERROR: The configuration file '{file_name}' was not found.")
+        print("Please create this file with the necessary configurations.")
+        print("Refer to the README.md file for a configuration example.")
+        sys.exit(1) # Exits the program with an error code
 
 def parse_static_mapping(mapping_str: str) -> dict:
     """Parses a string of key:value pairs into a dictionary."""
@@ -69,41 +58,77 @@ def parse_column_mapping(mapping_str: str) -> dict:
 def load_config() -> dict:
     """
     Loads configuration values from the config.ini file.
-    Creates the default file if it does not exist.
+    Requires the file to exist and validates required parameters.
     Caches and returns the loaded values for subsequent calls.
     """
     global _cached_config_values
 
     if _cached_config_values is not None:
-        return _cached_config_values # Return cached values if already loaded
+        return _cached_config_values
 
-    _initialize_config_file_if_not_exists() # Ensure the file exists before trying to read
+    _initialize_config_file_if_not_exists()
 
     config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
+    try:
+        config.read(CONFIG_FILE)
+    except Exception as e:
+        print(f"ERROR: Could not read the configuration file '{CONFIG_FILE}'. Please check its syntax or permissions.")
+        print(f"Error details: {e}")
+        sys.exit(1)
 
     app_config = {}
+    missing_parameters = []
 
-    # Configuration sections
-    app_config['CRON_SCHEDULE'] = config.get('DEFAULT', 'CRON_SCHEDULE', fallback='0 6 * * *')
-    app_config['API_URL'] = config.get('API', 'API_URL')
-    app_config['AUTH_TOKEN'] = config.get('API', 'AUTH_TOKEN')
-    
-    # Adding 'PATHS' as a valid section for fallback
-    app_config['UPLOAD_FOLDER'] = config.get('PATHS', 'UPLOAD_FOLDER', fallback='data/upload')
-    app_config['PROCESSED_FOLDER'] = config.get('PATHS', 'PROCESSED_FOLDER', fallback='data/processed')
-    app_config['OUTPUT_FOLDER'] = config.get('PATHS', 'OUTPUT_FOLDER', fallback='data/output')
-    app_config['LOGS_FOLDER'] = config.get('PATHS', 'LOGS_FOLDER', fallback='data/logs')
+    expected_config_options = [
+        ('CRON', 'CRON_SCHEDULE', str, '0 6 * * *', True),
+        ('API', 'API_URL', str, None, True),
+        ('API', 'AUTH_TOKEN', str, None, True),
+        ('PATHS', 'UPLOAD_FOLDER', str, 'data/upload', False),
+        ('PATHS', 'PROCESSED_FOLDER', str, 'data/processed', False),
+        ('PATHS', 'OUTPUT_FOLDER', str, 'data/output', False),
+        ('PATHS', 'LOGS_FOLDER', str, 'data/logs', False),
+        ('CSV', 'MAX_ROWS_PER_FILE', int, 45000, False),
+    ]
 
-    app_config['MAX_ROWS_PER_FILE'] = config.getint('CSV', 'MAX_ROWS_PER_FILE', fallback=45000)
+    for section, option, data_type, fallback_value, is_required in expected_config_options:
+        # Main reading logic (remains the same)
+        if config.has_option(section, option):
+            try:
+                if data_type == int:
+                    value = config.getint(section, option)
+                elif data_type == bool:
+                    value = config.getboolean(section, option)
+                else:
+                    value = config.get(section, option)
 
-    # Dynamic mappings
-    input_column_mapping_str = config.get('MAPPING', 'INPUT_COLUMN_MAPPING', fallback='')
-    static_mapping_str = config.get('MAPPING', 'STATIC_MAPPING', fallback='')
+                if is_required and isinstance(value, str) and not value.strip():
+                    missing_parameters.append(f"[{section}] {option} (REQUIRED, but is empty)")
+                else:
+                    app_config[option] = value
+            except ValueError as e:
+                missing_parameters.append(f"[{section}] {option} (Invalid value or incorrect format: {e})")
+        else:
+            if is_required:
+                missing_parameters.append(f"[{section}] {option} (REQUIRED, but not found in the file)")
+            else:
+                app_config[option] = fallback_value
 
-    app_config['INPUT_COLUMN_MAPPING'] = parse_column_mapping(input_column_mapping_str)
-    app_config['STATIC_MAPPING'] = parse_static_mapping(static_mapping_str)
-    
-    _cached_config_values = app_config 
+    if config.has_section('COLUMN_MAPPING'):
+        app_config['COLUMN_MAPPING'] = dict(config.items('COLUMN_MAPPING'))
+    else:
+        app_config['COLUMN_MAPPING'] = {}
+
+    if config.has_section('EXTRA_COLUMNS'):
+        app_config['EXTRA_COLUMNS'] = dict(config.items('EXTRA_COLUMNS'))
+    else:
+        app_config['EXTRA_COLUMNS'] = {}
+
+    if missing_parameters:
+        print(f"ERROR: The configuration file '{CONFIG_FILE}' is missing or has incorrect values for the following parameters:")
+        for param in missing_parameters:
+            print(f"- {param}")
+        sys.exit(1)
+
+    _cached_config_values = app_config
     return app_config
 

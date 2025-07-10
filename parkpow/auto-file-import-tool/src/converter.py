@@ -1,13 +1,13 @@
 import csv
 import logging
 from datetime import datetime
-
+import re 
 from src.config import load_config 
 
 config_values = load_config()
 
-INPUT_COLUMN_MAPPING = config_values['INPUT_COLUMN_MAPPING']
-STATIC_MAPPING = config_values['STATIC_MAPPING']
+COLUMN_MAPPING = config_values['COLUMN_MAPPING']
+EXTRA_COLUMNS = config_values['EXTRA_COLUMNS']
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,8 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
     logger.info(f"Processing input file: {input_filename} for data extraction.")
 
     try:
-        lp_index = HEADERS.index("license_plate") 
+        lower_headers = [h.lower() for h in HEADERS]
+        lp_index = lower_headers.index("license_plate")
 
         with open(input_filename, "r") as f:
             # Skip the first line (header or datetime line)
@@ -60,25 +61,35 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
 
                 # Dynamic row creation
                 new_row = [""] * len(HEADERS)
+
+                for source_key, dest_header in COLUMN_MAPPING.items():
+                    match = re.match(r'source_col(\d+)', source_key, re.IGNORECASE)
+                    if not match:
+                        logger.warning(f"Skipping invalid key in [COLUMN_MAPPING]: {source_key}")
+                        continue
+                    
+                    source_index = int(match.group(1))
+
+
+                    try:
+                        # Case-insensitive check for destination header
+                        dest_index = lower_headers.index(dest_header.lower())
+                        if source_index < len(parts):
+                            new_row[dest_index] = parts[source_index]
+                    except ValueError:
+                        logger.warning(f"Header '{dest_header}' from [COLUMN_MAPPING] not found in target HEADERS.")
                 
-                # 1. Column mapping
-                for source_index, dest_header in INPUT_COLUMN_MAPPING.items():
-                    if dest_header in HEADERS and source_index < len(parts):
-                        dest_index = HEADERS.index(dest_header)
-                        new_row[dest_index] = parts[source_index]
-                
-                # 2. Static value mapping
-                for dest_header, static_value in STATIC_MAPPING.items():
-                    if dest_header in HEADERS:
-                        dest_index = HEADERS.index(dest_header)
+                for dest_header, static_value in EXTRA_COLUMNS.items():
+                    try:
+                        # Case-insensitive check for destination header
+                        dest_index = lower_headers.index(dest_header.lower())
                         new_row[dest_index] = static_value
+                    except ValueError:
+                        logger.warning(f"Header '{dest_header}' from [EXTRA_COLUMNS] not found in target HEADERS.")
 
+                # --- License Plate Extraction and Row Saving ---
+                license_plate = new_row[lp_index]
 
-                try:
-                    license_plate = new_row[lp_index]
-                except IndexError: 
-                    license_plate = ""
-                    logger.warning(f"new_row malformed, missing license plate at index {lp_index} for line: {line}")
                 
                 if license_plate:
                     license_plates_in_file.add(license_plate)
@@ -95,6 +106,8 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
     except Exception as e:
         logger.error(f"An unexpected error occurred during file processing: {e}", exc_info=True)
         return [], set()
+
+
 def write_csv_parts(base_name: str, headers: list, rows: list, max_rows: int):
     part = 1
     for i in range(0, len(rows), max_rows):

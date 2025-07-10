@@ -14,23 +14,26 @@ This project is an automated solution for importing data from files and adding o
 
 ## Configuration
 
-The system's configuration is done through the `data/config.ini` file. This file is **automatically created** with default values the first time the Docker container is run, inside the `data` folder on your host.
+The system's configuration is done through the `config.ini` file. This file is **automatically created** with default values the first time the Docker container is run, inside the `data` folder on your host.
 
 You can edit this file to adjust the ParkPow Auto File Import Tool's behavior.
 
-### Example `data/config.ini`
+### Example `config.ini`
 
 ```ini
-[DEFAULT]
+[CRON]
 CRON_SCHEDULE = */2 * * * *
 
 [API]
 API_URL = http://YOUR_PARKPOW_IP:8000/api/v1/import-vehicles/
 AUTH_TOKEN = YOU_PARKPOW_TOKEN
 
-[MAPPING]
-INPUT_COLUMN_MAPPING = Column0:license_plate
-STATIC_MAPPING = Vehicle Tags:test01
+[COLUMN_MAPPING]
+source_col0 = license_plate
+
+[EXTRA_COLUMNS]
+Vehicle Tags = Block
+
 ```
 
 ### Section Details
@@ -41,14 +44,19 @@ STATIC_MAPPING = Vehicle Tags:test01
 
 - **[API]**
 
-  - `API_URL`: [Parkpow API](https://app.parkpow.com/documentation/#tag/Vehicles/operation/Import%20Vehicles) for vehicle import.
+  - `API_URL`: [Parkpow API URL](https://app.parkpow.com/documentation/#tag/Vehicles/operation/Import%20Vehicles) for vehicle import.
   - `AUTH_TOKEN`: The authentication token required to access the Parkpow API.
 
-- **[MAPPING]**
-  - `INPUT_COLUMN_MAPPING`: Mapping of input CSV columns to desired field names for the API. Format: `Column<index>:<new_field_name>`. Ex: `Column0:license_plate,Column1:region`.
-  - `STATIC_MAPPING`: Mapping of static values to be added to each record sent to the API, regardless of the CSV content.
-  - Example: `Vehicle Tags:Block`
+- **[COLUMN_MAPPING]**
+
+  - Mapping of input file columns to desired field names for the API. Format: `source_col<index> = <taget_field_name>`. Ex: `source_col0 = license_plate`.
+
+- **[EXTRA_COLUMNS]**
+  - It is used to map columns in the destination spreadsheet that require fixed values. Format: `target_field_name = <value>`.
+  - Example: `Vehicle Tags = Block`
     - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in Parkpow.
+
+> You can check the template header by downloading the import template from your [Parkpow Cloud](<(https://app.parkpow.com/vehicles/export/template)>). For Parkpow On-Premise, go to the Vehicles menu, click on the Actions button, select Import, and then choose Download template.
 
 ## How to Use
 
@@ -116,14 +124,26 @@ All application and `cron` logs are stored in the `data/logs` folder on your hos
 
 The application allows flexibility in data mapping:
 
-- **`INPUT_COLUMN_MAPPING`**: If your input file has columns like `column_a`, `column_b`, but the API expects `field_x`, `field_y`, you can map them using column indices (starting from 0).
+- **`COLUMN_MAPPING`**: If your input file has columns like `column_a`, `column_b`, but the API CSV expects `field_x`, `field_y`, you can map them using column indices (starting from 0).
 
-  - Example: `Column0:license_plate,Column1:region`
-    - The first CSV column (index 0) will be mapped to `license_plate`.
-    - The second CSV column (index 1) will be mapped to `region`.
+  - Example:
+    ```ini
+    [COLUMN_MAPPING]
+    source_col0 = license_plate
+    source_col2 = region
+    ```
+    - The first file column (index 0) will be mapped to `license_plate`.
+    - The second file column (index 1) will be mapped to `region`.
 
-- **`STATIC_MAPPING`**: Allows adding fixed fields and values to each record sent to the API, regardless of the CSV content.
-  - Example: `Vehicle Tags:Block`
+- **`EXTRA_COLUMNS`**: Allows adding fixed fields and values to each record sent to the API, regardless of the CSV content.
+
+  - Example:
+
+    ```ini
+    [EXTRA_COLUMNS]
+    Vehicle Tags = Block
+    ```
+
     - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in Parkpow.
 
 ## Troubleshooting
