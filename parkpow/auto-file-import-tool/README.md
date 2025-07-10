@@ -142,5 +142,6 @@ The application allows flexibility in data mapping:
   - Check if the files are in the `data/upload` folder on your host.
   - Check the `CRON_SCHEDULE` in `data/config.ini` to ensure `cron` is scheduled to run.
   - Check the logs in `data/logs/app.log` and `data/logs/cron.log` for any errors during processing.
+  - **Note:** The system currently processes only the first file found in the `data/upload` folder during each run. If multiple files are present, only the oldest one will be processed.
 
 ---

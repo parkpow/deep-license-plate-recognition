@@ -4,7 +4,13 @@ import glob
 import time
 import logging
 
-from src.config import API_URL, AUTH_TOKEN, OUTPUT_FOLDER
+from src.config import load_config 
+
+config_values = load_config()
+
+API_URL = config_values['API_URL']
+AUTH_TOKEN = config_values['AUTH_TOKEN']
+OUTPUT_FOLDER = config_values['OUTPUT_FOLDER']
 
 logger = logging.getLogger(__name__)
 

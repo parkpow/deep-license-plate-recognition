@@ -2,7 +2,12 @@ import csv
 import logging
 from datetime import datetime
 
-from src.config import MAX_ROWS_PER_FILE, INPUT_COLUMN_MAPPING, STATIC_MAPPING
+from src.config import load_config 
+
+config_values = load_config()
+
+INPUT_COLUMN_MAPPING = config_values['INPUT_COLUMN_MAPPING']
+STATIC_MAPPING = config_values['STATIC_MAPPING']
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +29,14 @@ def detect_delimiter(line: str) -> str | None:
     return None  # Causes split() to use its default whitespace behavior
 
 def process_input_file(input_filename: str) -> tuple[list, set]:
-    """
-    Processes the input file, returns a list of formatted rows and a set of license plates.
-    """
     formatted_rows = []
     license_plates_in_file = set()
 
     logger.info(f"Processing input file: {input_filename} for data extraction.")
 
     try:
+        lp_index = HEADERS.index("license_plate") 
+
         with open(input_filename, "r") as f:
             # Skip the first line (header or datetime line)
             next(f, None)
@@ -69,14 +73,12 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
                         dest_index = HEADERS.index(dest_header)
                         new_row[dest_index] = static_value
 
-                # Extract license plate for tracking
-                license_plate = ""
-                lp_dest_header = "license_plate"
-                for src_idx, dest_hdr in INPUT_COLUMN_MAPPING.items():
-                    if dest_hdr == lp_dest_header:
-                        if src_idx < len(parts):
-                            license_plate = parts[src_idx]
-                        break
+
+                try:
+                    license_plate = new_row[lp_index]
+                except IndexError: 
+                    license_plate = ""
+                    logger.warning(f"new_row malformed, missing license plate at index {lp_index} for line: {line}")
                 
                 if license_plate:
                     license_plates_in_file.add(license_plate)
@@ -93,7 +95,6 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
     except Exception as e:
         logger.error(f"An unexpected error occurred during file processing: {e}", exc_info=True)
         return [], set()
-
 def write_csv_parts(base_name: str, headers: list, rows: list, max_rows: int):
     part = 1
     for i in range(0, len(rows), max_rows):

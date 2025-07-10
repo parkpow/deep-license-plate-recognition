@@ -6,9 +6,16 @@ import csv
 import glob
 
 from src.logger_setup import setup_logging
-from src.config import UPLOAD_FOLDER, PROCESSED_FOLDER, OUTPUT_FOLDER, MAX_ROWS_PER_FILE
 from src.converter import process_input_file, HEADERS, write_csv_parts
 from src.uploader import upload_all_parts
+from src.config import load_config 
+
+config_values = load_config()
+
+UPLOAD_FOLDER = config_values['UPLOAD_FOLDER']
+PROCESSED_FOLDER = config_values['PROCESSED_FOLDER']
+OUTPUT_FOLDER = config_values['OUTPUT_FOLDER']
+MAX_ROWS_PER_FILE = config_values['MAX_ROWS_PER_FILE']
 
 setup_logging() # Configure the root logger
 logger = logging.getLogger(__name__) # Get a logger for this module

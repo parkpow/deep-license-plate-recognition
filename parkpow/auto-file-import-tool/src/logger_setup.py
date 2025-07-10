@@ -2,7 +2,11 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
-from src.config import LOGS_FOLDER
+from src.config import load_config 
+
+config_values = load_config()
+
+LOGS_FOLDER = config_values['LOGS_FOLDER']
 
 LOG_FILE = os.path.join(LOGS_FOLDER, 'app.log')
 
