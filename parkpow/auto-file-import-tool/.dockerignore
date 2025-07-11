@@ -1,0 +1,8 @@
+**/.DS_Store
+
+**/.gitignore
+**/logs
+**/processed
+**/output
+**/upload
+Dockerfile
