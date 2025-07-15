@@ -150,13 +150,9 @@ services:
     tmpfs:
       - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
 
-    command: cat /ai_data/stream.env
-# TODO read config from /ai_data/stream.env
-#    environment:
-#      - TOKEN=4805bee1222ce8_UPDATE_ME
-#      - LICENSE_KEY=UPDATE_ME
-#      - LOGGING=UPDATE_ME
-
+    # read config from /ai_data/env-file.ini
+    environment:
+      - EXTRA_ENV_FILE=/ai_data/env-file.ini
 
     read_only: true
     user:

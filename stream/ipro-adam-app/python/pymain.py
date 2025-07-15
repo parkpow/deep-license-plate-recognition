@@ -209,14 +209,20 @@ def setPref(pref_str):
     libAdamApiPython.adam_set_appPref({LOGGING_PREF: stream_log_level})
     libAdamApiPython.adam_unlock_appPref()
 
-    debugDbg("Writing stream credentials to /ai_data/stream.env")
+    debugDbg("Writing stream credentials to /ai_data/env-file.ini")
 
     # Write to /ai_data/stream.env
-    env_file_path = "/ai_data/stream.env"
+    env_file_path = "/ai_data/env-file.ini"
+    env_vars = {
+        "TOKEN": token_pref,
+        "LICENSE_KEY": license_key_pref,
+        "LOGGING": stream_log_level_pref,
+    }
+
     with open(env_file_path, "w") as env_file:
-        env_file.write(f"LICENSE_KEY={license_key_pref}\n")
-        env_file.write(f"TOKEN={token_pref}\n")
-        env_file.write(f"LOGGING={stream_log_level_pref}\n")
+        env_file.write("[DEFAULT]\n")
+        for key, value in env_vars.items():
+            env_file.write(f"{key}={value}\n")
 
 
 def procPref():
