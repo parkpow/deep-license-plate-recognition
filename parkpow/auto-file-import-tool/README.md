@@ -14,7 +14,7 @@ This project is an automated solution for importing data from files and adding o
 
 ## Configuration
 
-The system's configuration is done through the `config.ini` file. This file is **automatically created** with default values the first time the Docker container is run, inside the `data` folder on your host.
+The system's configuration is done through the `config.ini` file. This file must be **manually created** by the user in the `data` folder on your host. An example `config.ini` content is provided below, which you should use as a starting point.
 
 You can edit this file to adjust the ParkPow Auto File Import Tool's behavior.
 
