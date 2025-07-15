@@ -21,4 +21,4 @@ RUN chmod +x /app/entrypoint.sh
 
 
 # Set the entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["bash", "/app/entrypoint.sh"]
