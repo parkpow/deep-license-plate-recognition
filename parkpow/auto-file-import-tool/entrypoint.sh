@@ -11,7 +11,7 @@ get_config_value() {
 PYTHONPATH=/app python -c "import src.config; src.config.load_config()" || exit 1
 
 # Read paths from config.ini
-CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 2 * * *')
+CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 6 * * *')
 UPLOAD_FOLDER=$(get_config_value 'PATHS' 'UPLOAD_FOLDER' 'data/upload')
 PROCESSED_FOLDER=$(get_config_value 'PATHS' 'PROCESSED_FOLDER' 'data/processed')
 OUTPUT_FOLDER=$(get_config_value 'PATHS' 'OUTPUT_FOLDER' 'data/output')
