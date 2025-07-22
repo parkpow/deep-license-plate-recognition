@@ -8,10 +8,10 @@ get_config_value() {
 }
 
 # First, run the Python script to ensure config and directories are created
-python -c "from src.config import initialize_config; initialize_config()"
+PYTHONPATH=/app python -c "import src.config; src.config.load_config()" || exit 1
 
 # Read paths from config.ini
-CRON_SCHEDULE_FROM_INI=$(get_config_value 'DEFAULT' 'CRON_SCHEDULE' '0 2 * * *')
+CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 6 * * *')
 UPLOAD_FOLDER=$(get_config_value 'PATHS' 'UPLOAD_FOLDER' 'data/upload')
 PROCESSED_FOLDER=$(get_config_value 'PATHS' 'PROCESSED_FOLDER' 'data/processed')
 OUTPUT_FOLDER=$(get_config_value 'PATHS' 'OUTPUT_FOLDER' 'data/output')
@@ -33,7 +33,7 @@ CRON_FILE="/tmp/crontab_entry"
 
 # The command to be executed by cron
 # It changes to /app, sets PYTHONPATH, and then runs the Python script
-CRON_COMMAND="cd /app && export PYTHONPATH=/app:$PYTHONPATH && /usr/local/bin/python -m src.main >> ${CRON_LOG_FILE} 2>&1"
+CRON_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.main >> ${CRON_LOG_FILE} 2>&1"
 
 echo "${CRON_SCHEDULE_FROM_INI} ${CRON_COMMAND}" > "${CRON_FILE}"
 
