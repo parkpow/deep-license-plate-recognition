@@ -8,7 +8,7 @@ get_config_value() {
 }
 
 # First, run the Python script to ensure config and directories are created
-python -c "import sys; sys.path.append('/app'); import src.config; src.config.load_config()"
+PYTHONPATH=/app python -c "import src.config; src.config.load_config()" || exit 1
 
 # Read paths from config.ini
 CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 2 * * *')
