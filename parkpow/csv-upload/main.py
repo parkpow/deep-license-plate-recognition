@@ -29,6 +29,8 @@ CAMERA_TOKEN = "$(camera)"
 
 
 class ParkPowApi:
+    RETRY_STATUS_CODE = [429, 500, 502, 504]
+
     def __init__(self, token, sdk_url=None):
         if token is None:
             raise Exception("ParkPow TOKEN is required if using Cloud API")
@@ -48,8 +50,9 @@ class ParkPowApi:
                 response = self.session.post(self.api_base + endpoint, json=data)
                 lgr.debug(f"response: {response}")
                 if response.status_code < 200 or response.status_code > 300:
-                    if response.status_code == 429:
-                        time.sleep(1)
+                    if response.status_code in ParkPowApi.RETRY_STATUS_CODE:
+                        lgr.debug("Retrying request after 3 seconds")
+                        time.sleep(3)
                     else:
                         logging.error(response.text)
                         raise Exception("Error logging vehicle")
@@ -79,27 +82,28 @@ class ParkPowApi:
         )
         lgr.debug(f"Checking parkpow visits Params: {params}")
         try:
-            response = self.session.get(self.api_base + endpoint, params=params)
-            lgr.debug(f"Response : {response}")
-            if response.status_code < 200 or response.status_code > 300:
-                if response.status_code == 429:
-                    time.sleep(1)
+            while True:
+                response = self.session.get(self.api_base + endpoint, params=params)
+                lgr.debug(f"Response : {response}")
+                if response.status_code < 200 or response.status_code > 300:
+                    if response.status_code in ParkPowApi.RETRY_STATUS_CODE:
+                        lgr.debug("Retrying request after 3 seconds")
+                        time.sleep(3)
+                    else:
+                        lgr.error(response.text)
+                        raise Exception(f"Error logging vehicle: {response}")
                 else:
-                    lgr.error(response.text)
-                    raise Exception(f"Error logging vehicle: {response}")
-            else:
-                response = response.json()
-                lgr.debug(f"Visits: {response}")
-                if response["estimated_count"] > 0 and response["results"]:
-                    for visit in response["results"]:
-                        lgr.debug(f"Visit: {json.dumps(visit)}")
-                        # start_data = visit["start_data"]
-                        vp = visit["vehicle"]["license_plate"]
-                        v_cam = visit["start_cam"]["code"]
-                        if vp == plate and v_cam == camera_id:
-                            return True
-
-            return False
+                    response = response.json()
+                    lgr.debug(f"Visits: {response}")
+                    if response["estimated_count"] > 0 and response["results"]:
+                        for visit in response["results"]:
+                            lgr.debug(f"Visit: {json.dumps(visit)}")
+                            # start_data = visit["start_data"]
+                            vp = visit["vehicle"]["license_plate"]
+                            v_cam = visit["start_cam"]["code"]
+                            if vp == plate and v_cam == camera_id:
+                                return True
+                return False
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
 
