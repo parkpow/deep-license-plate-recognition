@@ -7,11 +7,12 @@ import json
 import logging
 import os
 import sys
-import time
 from pathlib import Path
 
 import requests
 from configobj import ConfigObj
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
 
@@ -29,6 +30,9 @@ CAMERA_TOKEN = "$(camera)"
 
 
 class ParkPowApi:
+    RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
+    MAX_RETRIES = 100
+
     def __init__(self, token, sdk_url=None):
         if token is None:
             raise Exception("ParkPow TOKEN is required if using Cloud API")
@@ -38,24 +42,31 @@ class ParkPowApi:
             self.api_base = "https://app.parkpow.com/api/v1/"
 
         lgr.debug(f"Api Base: {self.api_base}")
+        retries = Retry(
+            total=ParkPowApi.MAX_RETRIES,
+            backoff_factor=1,
+            status_forcelist=ParkPowApi.RETRY_STATUS_CODES,
+            allowed_methods=["GET", "POST"],
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+
         self.session = requests.Session()
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         self.session.headers = {"Authorization": "Token " + token}
 
     def log_vehicle_api(self, data):
         endpoint = "log-vehicle/"
         try:
-            while True:
-                response = self.session.post(self.api_base + endpoint, json=data)
-                lgr.debug(f"response: {response}")
-                if response.status_code < 200 or response.status_code > 300:
-                    if response.status_code == 429:
-                        time.sleep(1)
-                    else:
-                        logging.error(response.text)
-                        raise Exception("Error logging vehicle")
-                else:
-                    res_json = response.json()
-                    return res_json
+            response = self.session.post(self.api_base + endpoint, json=data)
+            lgr.debug(f"response: {response}")
+            if response.status_code < 200 or response.status_code > 300:
+                response.raise_for_status()
+            else:
+                res_json = response.json()
+                return res_json
+
+            lgr.error(f"Request unsuccessful after {ParkPowApi.MAX_RETRIES} retries")
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
 
@@ -82,11 +93,7 @@ class ParkPowApi:
             response = self.session.get(self.api_base + endpoint, params=params)
             lgr.debug(f"Response : {response}")
             if response.status_code < 200 or response.status_code > 300:
-                if response.status_code == 429:
-                    time.sleep(1)
-                else:
-                    lgr.error(response.text)
-                    raise Exception(f"Error logging vehicle: {response}")
+                response.raise_for_status()
             else:
                 response = response.json()
                 lgr.debug(f"Visits: {response}")
@@ -98,7 +105,6 @@ class ParkPowApi:
                         v_cam = visit["start_cam"]["code"]
                         if vp == plate and v_cam == camera_id:
                             return True
-
             return False
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
