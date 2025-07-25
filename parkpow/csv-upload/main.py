@@ -30,6 +30,7 @@ CAMERA_TOKEN = "$(camera)"
 
 class ParkPowApi:
     RETRY_STATUS_CODE = [429, 500, 502, 504]
+    MAX_RETRIES = 500
 
     def __init__(self, token, sdk_url=None):
         if token is None:
@@ -46,19 +47,20 @@ class ParkPowApi:
     def log_vehicle_api(self, data):
         endpoint = "log-vehicle/"
         try:
-            while True:
+            for attempt in range(ParkPowApi.MAX_RETRIES):
                 response = self.session.post(self.api_base + endpoint, json=data)
                 lgr.debug(f"response: {response}")
                 if response.status_code < 200 or response.status_code > 300:
                     if response.status_code in ParkPowApi.RETRY_STATUS_CODE:
-                        lgr.debug("Retrying request after 3 seconds")
-                        time.sleep(3)
+                        lgr.debug(f"Retrying request in 3 seconds. Attempt {attempt}")
+                        time.sleep(5)
                     else:
                         logging.error(response.text)
                         raise Exception("Error logging vehicle")
                 else:
                     res_json = response.json()
                     return res_json
+            lgr.error(f"Request unsuccessful after {ParkPowApi.MAX_RETRIES} retries")
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
 
@@ -82,13 +84,13 @@ class ParkPowApi:
         )
         lgr.debug(f"Checking parkpow visits Params: {params}")
         try:
-            while True:
+            for attempt in range(ParkPowApi.MAX_RETRIES):
                 response = self.session.get(self.api_base + endpoint, params=params)
                 lgr.debug(f"Response : {response}")
                 if response.status_code < 200 or response.status_code > 300:
                     if response.status_code in ParkPowApi.RETRY_STATUS_CODE:
-                        lgr.debug("Retrying request after 3 seconds")
-                        time.sleep(3)
+                        lgr.debug(f"Retrying request in 3 seconds. Attempt {attempt}")
+                        time.sleep(5)
                     else:
                         lgr.error(response.text)
                         raise Exception(f"Error logging vehicle: {response}")
@@ -104,6 +106,7 @@ class ParkPowApi:
                             if vp == plate and v_cam == camera_id:
                                 return True
                 return False
+            lgr.error(f"Request unsuccessful after {ParkPowApi.MAX_RETRIES} retries")
         except requests.RequestException as e:
             lgr.error("Error", exc_info=e)
 
