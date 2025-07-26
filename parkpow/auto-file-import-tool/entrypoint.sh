@@ -12,30 +12,35 @@ PYTHONPATH=/app python -c "import src.config; src.config.load_config()" || exit 
 
 # Read paths from config.ini
 CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 6 * * *')
+CRON_SCHEDULE_CHECKER_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE_CHECKER' '*/5 * * * *')
 UPLOAD_FOLDER=$(get_config_value 'PATHS' 'UPLOAD_FOLDER' 'data/upload')
 PROCESSED_FOLDER=$(get_config_value 'PATHS' 'PROCESSED_FOLDER' 'data/processed')
 OUTPUT_FOLDER=$(get_config_value 'PATHS' 'OUTPUT_FOLDER' 'data/output')
 LOGS_FOLDER=$(get_config_value 'PATHS' 'LOGS_FOLDER' 'data/logs')
+ERROR_FOLDER=$(get_config_value 'PATHS' 'ERROR_FOLDER' 'data/error')
 CRON_LOG_FILE="/app/${LOGS_FOLDER}/cron.log"
 
 # Ensure all necessary directories exist
-mkdir -p "/app/${UPLOAD_FOLDER}" "/app/${PROCESSED_FOLDER}" "/app/${OUTPUT_FOLDER}" "/app/${LOGS_FOLDER}"
+mkdir -p "/app/${UPLOAD_FOLDER}" "/app/${PROCESSED_FOLDER}" "/app/${OUTPUT_FOLDER}" "/app/${LOGS_FOLDER}" "/app/${ERROR_FOLDER}"
 
 echo "--------------------------------------------------"
 echo "  ParkPow Auto File Import Tool Container Started!"
 echo "--------------------------------------------------"
-echo "  Cron Schedule: ${CRON_SCHEDULE_FROM_INI}"
+echo "  Cron Schedule (Main): ${CRON_SCHEDULE_FROM_INI}"
+echo "  Cron Schedule (Checker): ${CRON_SCHEDULE_CHECKER_FROM_INI}"
 echo "  Monitoring logs in ${CRON_LOG_FILE}"
 echo "--------------------------------------------------"
 
 # Create a temporary crontab file
 CRON_FILE="/tmp/crontab_entry"
 
-# The command to be executed by cron
-# It changes to /app, sets PYTHONPATH, and then runs the Python script
-CRON_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.main >> ${CRON_LOG_FILE} 2>&1"
+# The command to be executed by cron for main process
+CRON_MAIN_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.main >> ${CRON_LOG_FILE} 2>&1"
+echo "${CRON_SCHEDULE_FROM_INI} ${CRON_MAIN_COMMAND}" > "${CRON_FILE}"
 
-echo "${CRON_SCHEDULE_FROM_INI} ${CRON_COMMAND}" > "${CRON_FILE}"
+# The command to be executed by cron for checker process
+CRON_CHECKER_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python run_checker.py >> ${CRON_LOG_FILE} 2>&1"
+echo "${CRON_SCHEDULE_CHECKER_FROM_INI} ${CRON_CHECKER_COMMAND}" >> "${CRON_FILE}"
 
 # Install the new crontab, replacing any existing one
 crontab "${CRON_FILE}"
