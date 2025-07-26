@@ -55,7 +55,25 @@ def upload_file(filepath: str, remove: bool) -> dict:
         try:
             data = response.json()
             task_id = data.get("task_id")
-            logger.info(f"Successfully uploaded: {filepath} -> task_id={task_id}")
+            if task_id:
+                # Construct the new filename
+                directory, old_filename = os.path.split(filepath)
+                name, ext = os.path.splitext(old_filename)
+                new_filename = f"{name}_{task_id}{ext}"
+                new_filepath = os.path.join(directory, new_filename)
+
+                # Rename the file
+                try:
+                    os.rename(filepath, new_filepath)
+                    logger.info(f"Successfully uploaded and renamed: {old_filename} to {new_filename} -> task_id={task_id}")
+                    # Update the filepath in the return dictionary
+                    filepath = new_filepath
+                except OSError as e:
+                    logger.error(f"Error renaming file {filepath} to {new_filepath}: {e}")
+                    # Proceed with the original filepath if rename fails
+            else:
+                logger.info(f"Successfully uploaded: {filepath} (no task_id returned)")
+
             return {
                 "file": filepath,
                 "status": "success",

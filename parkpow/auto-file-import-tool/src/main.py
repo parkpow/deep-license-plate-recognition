@@ -139,12 +139,13 @@ def main():
     if upload_success:
         save_current_state(current_plates_in_file)
         logger.info("All uploads successful. State updated.")
-        # Clean up generated CSVs
-        for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_add*.csv")):
-            os.remove(f)
-        for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_remove*.csv")):
-            os.remove(f)
-        logger.info("Cleaned up temporary CSV files.")
+        # logger.info("Temporarily suspending CSV cleanup for verification.")
+        # # Clean up generated CSVs
+        # for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_add*.csv")):
+        #     os.remove(f)
+        # for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_remove*.csv")):
+        #     os.remove(f)
+        # logger.info("Cleaned up temporary CSV files.")
     else:
         logger.error("Uploads failed. State file not updated. Please investigate and re-run.")
 
