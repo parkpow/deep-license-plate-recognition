@@ -11,6 +11,7 @@ This project is an automated solution for importing data from files and adding o
 - **Automated Scheduling:** Uses `cron` to execute the import process at defined intervals.
 - **Log Management:** Records operations in dedicated log files.
 - **Centralized Data Structure:** All input, output, and log data are stored in a single `data` folder for easy management.
+- **Task Status Checker:** A secondary process that periodically queries an API to check the status of tasks associated with files in `data/output/`. Based on the API response, it manages these files (deletes on success, moves to `data/error/` on failure, or leaves them if pending).
 
 ## Configuration
 
@@ -25,7 +26,7 @@ You can edit this file to adjust the ParkPow Auto File Import Tool's behavior.
 CRON_SCHEDULE = */2 * * * *
 
 [API]
-API_URL = http://YOUR_PARKPOW_IP:8000/api/v1/import-vehicles/
+BASE_API_URL = http://YOUR_PARKPOW_IP:8000
 AUTH_TOKEN = YOU_PARKPOW_TOKEN
 
 [COLUMN_MAPPING]
@@ -38,25 +39,27 @@ Vehicle Tags = Block
 
 ### Section Details
 
-- **[DEFAULT]**
+- **[CRON]**
 
-  - `CRON_SCHEDULE`: Defines the `cron` schedule in the standard format (minute hour day_of_month month day_of_week). Ex: `*/2 * * * *` (every 2 minutes). For a suitable configuration, you can visit https://crontab.guru/ to get the appropriate execution schedule.
+  - `CRON_SCHEDULE`: Defines the `cron` schedule for the main import process in the standard format (minute hour day_of_month month day_of_week). Ex: `*/2 * * * *` (every 2 minutes).
 
 - **[API]**
 
-  - `API_URL`: [Parkpow API URL](https://app.parkpow.com/documentation/#tag/Vehicles/operation/Import%20Vehicles) for vehicle import.
-  - `AUTH_TOKEN`: The authentication token required to access the Parkpow API.
+  - `BASE_API_URL`: The base URL for the [Parkpow API](https://app.parkpow.com/documentation/#tag/Vehicles/operation/Import%20Vehicles) (e.g., `http://192.168.5.198:8000`).  
+    If you're using Parkpow Cloud, use `https://app.parkpow.com`.
+  - `AUTH_TOKEN`: The authentication token required to access the ParkPow API.
 
 - **[COLUMN_MAPPING]**
 
   - Mapping of input file columns to desired field names for the API. Format: `source_col<index> = <taget_field_name>`. Ex: `source_col0 = license_plate`.
 
 - **[EXTRA_COLUMNS]**
+
   - It is used to map columns in the destination spreadsheet that require fixed values. Format: `target_field_name = <value>`.
   - Example: `Vehicle Tags = Block`
-    - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in Parkpow.
+    - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in ParkPow.
 
-> You can check the template header by downloading the import template from your [Parkpow Cloud](<(https://app.parkpow.com/vehicles/export/template)>). For Parkpow On-Premise, go to the Vehicles menu, click on the Actions button, select Import, and then choose Download template.
+> You can check the template header by downloading the import template from your [ParkPow Cloud](<(https://app.parkpow.com/vehicles/export/template)>). For ParkPow On-Premise, go to the Vehicles menu, click on the Actions button, select Import, and then choose Download template.
 
 ## How to Use
 
@@ -117,8 +120,9 @@ Vehicle Tags = Block
 
 All application and `cron` logs are stored in the `data/logs` folder on your host.
 
-- `data/logs/app.log`: Contains detailed logs of the Python script execution.
-- `data/logs/cron.log`: Contains standard output and errors from `cron` and the `main.py` script when executed by `cron`.
+- `data/logs/app.log`: Contains detailed logs of the main Python script execution.
+- `data/logs/cron.log`: Contains standard output and errors from `cron` and the scripts executed by `cron`.
+- `data/logs/checker_errors.log`: Contains specific error logs from the task status checker process.
 
 ## Column and Static Data Mapping
 
@@ -144,7 +148,7 @@ The application allows flexibility in data mapping:
     Vehicle Tags = Block
     ```
 
-    - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in Parkpow.
+    - This modification should only be made if there is a change in the TAG. It is important to remember that the modification will only affect new inclusions in ParkPow.
 
 ## Troubleshooting
 
