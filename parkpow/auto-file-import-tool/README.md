@@ -51,7 +51,7 @@ Vehicle Tags = Block
 
 - **[COLUMN_MAPPING]**
 
-  - Mapping of input file columns to desired field names for the API. Format: `source_col<index> = <taget_field_name>`. Ex: `source_col0 = license_plate`.
+source_col<index> = <target_field_name>
 
 - **[EXTRA_COLUMNS]**
 
