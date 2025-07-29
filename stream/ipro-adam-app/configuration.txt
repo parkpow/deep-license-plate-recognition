@@ -25,7 +25,7 @@ APPNAME0	Platerecognizer Stream
 #-------------------------------------
 #### Required ROM (Flash memory) size for this application
 #### アプリが必要とするROM(Flashメモリ)使用量(KB)
-ROMSIZE		700000
+ROMSIZE		550000
 
 #### Required RAM (temporary files and heap) size for this application
 #### アプリが必要とするRAM(tmpファイル+ヒープ)使用量(KB)
@@ -59,4 +59,4 @@ UPDATER		update.sh
 #### ライセンス登録機能ID(16進8桁数値)
 #### During development, set any value between 0000FF01 to 0000FFFF.
 #### 開発時には、0000FF01から0000FFFFの間の値を設定してください。
-FUNCID		0000FFA0
+FUNCID		00002178
