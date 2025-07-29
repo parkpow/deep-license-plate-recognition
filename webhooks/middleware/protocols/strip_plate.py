@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import time
+from datetime import datetime
 from copy import deepcopy
 from typing import Any
 
@@ -26,20 +26,26 @@ def strip_data_in_jsonl_file(
         return
 
     try:
-        with open(jsonl_file) as file:
+        with open(jsonl_file, "r") as file:
             lines = file.readlines()
 
-        with open(jsonl_file, "w") as file:
-            for line in lines:
-                data = json.loads(line)
+        updated_lines = []
+        for line in lines:
+            data = json.loads(line)
+            try:
                 if data["results"][0]["plate"] == plate:
                     logging.info(
                         f"Camera: {camera_id} - Stripping data in local file for prediction at {timestamp}"
                     )
                     data["results"] = converted_payload["data"]["results"]
-                file.write(json.dumps(data) + "\n")
-        return
-    except Exception as e:
+            except (KeyError, IndexError):
+                # Line doesn't match expected format, keep it as is.
+                pass
+            updated_lines.append(json.dumps(data) + "\n")
+
+        with open(jsonl_file, "w") as file:
+            file.writelines(updated_lines)
+    except (IOError, json.JSONDecodeError) as e:
         logging.error(
             f"Error stripping data in local file for prediction at {timestamp} from {jsonl_file}: {e}"
         )
@@ -116,12 +122,29 @@ def process_request(
         logging.error(f"No file uploaded for {json_data}")
         return "No file uploaded.", 400
 
-    prediction_data = json_data["data"]
+    prediction_data = json_data.get("data")
+    if not isinstance(prediction_data, dict):
+        logging.error(f"Missing or invalid 'data' field in JSON: {json.dumps(json_data)}")
+        return "Invalid data format.", 400
+    
     timestamp = prediction_data["timestamp"]
     camera_id = prediction_data["camera_id"]
-    plate = prediction_data["results"][0]["plate"]
 
-    filename = time.strftime("%y-%m-%d.jsonl")
+    try:
+        plate = prediction_data["results"][0]["plate"]
+    except (KeyError, IndexError, TypeError):
+        plate = None
+
+    if not all((timestamp, camera_id, plate)):
+        logging.error(f"Missing required fields in prediction data: {json.dumps(json_data)}")
+        return "Invalid prediction data format.", 400
+
+    try:
+        event_dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        filename = event_dt.strftime("%y-%m-%d.jsonl")
+    except Exception as e:
+        logging.error(f"Invalid timestamp format: {timestamp} ({e})")
+        return "Invalid timestamp format.", 400
 
     converted_payload = convert_plate_format_to_vehicle_format(json_data)
 
@@ -143,7 +166,7 @@ def process_request(
         logging.error(
             f"Camera: {camera_id} - Vehicle activity at {timestamp}. Error processing the request: {err}"
         )
-        return f"Failed to process the request: {err}", response.status_code
+        return f"Failed to process the request: {err}", 500
 
     try:
         strip_data_in_jsonl_file(
