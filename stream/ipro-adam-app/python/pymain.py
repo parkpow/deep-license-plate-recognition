@@ -53,6 +53,24 @@ def create_respone_header(body, status=200):
     return header
 
 
+def write_env_file(token, license_key, log_level):
+
+    debugDbg("Writing stream credentials to /ai_data/env-file.ini")
+
+    env_vars = {
+        "TOKEN": token,
+        "LICENSE_KEY": license_key,
+        "LOGGING": log_level,
+    }
+
+    # Write or overwrite environment variables to ini file
+    env_file_path = "/ai_data/env-file.ini"
+    with open(env_file_path, "w") as env_file:
+        env_file.write("[DEFAULT]\n")
+        for key, value in env_vars.items():
+            env_file.write(f"{key}={value}\n")
+
+
 def httpCB(reqType, reqData):
     global license_key
     global token
@@ -182,6 +200,11 @@ def loadPref():
     debugDbg(f"  token:{token}")
     debugDbg(f"  stream_log_level :{stream_log_level}")
 
+    if license_key and token:
+        license_key_pref = license_key.tobytes().decode("utf-8")
+        token_pref = token.tobytes().decode("utf-8")
+        write_env_file(token_pref, license_key_pref, stream_log_level)
+
 
 def setPref(pref_str):
     global license_key
@@ -190,17 +213,17 @@ def setPref(pref_str):
 
     debugDbg(f"Set Pref: {pref_str}")
     pref = pref_str.split(",")
-    license_key_pref = pref[0]
-    token_pref = pref[1]
+    token_pref = pref[0]
+    license_key_pref = pref[1]
     stream_log_level_pref = pref[2]
 
     license_key = memoryview(license_key_pref.encode())
-    license_token = memoryview(token_pref.encode())
+    memoryview(token_pref.encode())
     stream_log_level = int(stream_log_level_pref)
 
     debugDbg("setPref adam_set_appPref")
-    debugDbg(f"  license_key:{license_key}")
-    debugDbg(f"  license_token:{license_token}")
+    debugDbg(f"  license_key:{license_key_pref}")
+    debugDbg(f"  license_token:{token_pref}")
     debugDbg(f"  stream_log_level :{stream_log_level}")
 
     libAdamApiPython.adam_lock_appPref()
@@ -209,20 +232,7 @@ def setPref(pref_str):
     libAdamApiPython.adam_set_appPref({LOGGING_PREF: stream_log_level})
     libAdamApiPython.adam_unlock_appPref()
 
-    debugDbg("Writing stream credentials to /ai_data/env-file.ini")
-
-    # Write to /ai_data/stream.env
-    env_file_path = "/ai_data/env-file.ini"
-    env_vars = {
-        "TOKEN": token_pref,
-        "LICENSE_KEY": license_key_pref,
-        "LOGGING": stream_log_level_pref,
-    }
-
-    with open(env_file_path, "w") as env_file:
-        env_file.write("[DEFAULT]\n")
-        for key, value in env_vars.items():
-            env_file.write(f"{key}={value}\n")
+    write_env_file(token_pref, license_key_pref, stream_log_level_pref)
 
 
 def procPref():
@@ -233,7 +243,7 @@ def procPref():
     level = libAdamApiPython.ADAM_LV_INF
     libAdamApiPython.adam_debug_print(
         level,
-        f"PLATEREC - license_key={license_key}, token={token}, stream_log_level=stream_log_level",
+        f"PLATEREC - license_key={license_key}, token={token}, stream_log_level={stream_log_level}",
     )
 
 
