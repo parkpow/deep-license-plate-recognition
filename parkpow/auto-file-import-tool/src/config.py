@@ -81,12 +81,14 @@ def load_config() -> dict:
 
     expected_config_options = [
         ('CRON', 'CRON_SCHEDULE', str, '0 6 * * *', True),
-        ('API', 'API_URL', str, None, True),
+        ('CRON', 'CRON_SCHEDULE_CHECKER', str, '*/5 * * * *', False),
+        ('API', 'BASE_API_URL', str, None, True),
         ('API', 'AUTH_TOKEN', str, None, True),
         ('PATHS', 'UPLOAD_FOLDER', str, 'data/upload', False),
         ('PATHS', 'PROCESSED_FOLDER', str, 'data/processed', False),
         ('PATHS', 'OUTPUT_FOLDER', str, 'data/output', False),
         ('PATHS', 'LOGS_FOLDER', str, 'data/logs', False),
+        ('PATHS', 'ERROR_FOLDER', str, 'data/error', False),
         ('CSV', 'MAX_ROWS_PER_FILE', int, 45000, False),
     ]
 
@@ -112,6 +114,14 @@ def load_config() -> dict:
                 missing_parameters.append(f"[{section}] {option} (REQUIRED, but not found in the file)")
             else:
                 app_config[option] = fallback_value
+
+    # Construct derived API URLs
+    if 'BASE_API_URL' in app_config:
+        base_url = app_config['BASE_API_URL'].rstrip('/') # Remove trailing slash if present
+        app_config['API_URL'] = f"{base_url}/api/v1/import-vehicles/"
+        app_config['TASK_STATUS_API_URL'] = f"{base_url}/api/v1/task-check/"
+    else:
+        missing_parameters.append("[API] BASE_API_URL (REQUIRED, but not found or empty)")
 
     if config.has_section('COLUMN_MAPPING'):
         app_config['COLUMN_MAPPING'] = dict(config.items('COLUMN_MAPPING'))

@@ -36,3 +36,11 @@ def setup_logging():
     # Optional: Set a higher level for specific noisy loggers if needed
     # logging.getLogger('requests').setLevel(logging.WARNING)
     # logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    # Setup checker errors logger
+    CHECKER_ERRORS_LOG_FILE = os.path.join(LOGS_FOLDER, 'checker_errors.log')
+    checker_errors_logger = logging.getLogger('checker_errors_logger')
+    checker_errors_logger.setLevel(logging.WARNING)
+    checker_errors_handler = RotatingFileHandler(CHECKER_ERRORS_LOG_FILE, maxBytes=1024*1024*5, backupCount=2)
+    checker_errors_handler.setFormatter(log_format)
+    checker_errors_logger.addHandler(checker_errors_handler)
