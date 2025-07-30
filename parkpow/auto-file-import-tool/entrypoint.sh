@@ -39,7 +39,7 @@ CRON_MAIN_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/loc
 echo "${CRON_SCHEDULE_FROM_INI} ${CRON_MAIN_COMMAND}" > "${CRON_FILE}"
 
 # The command to be executed by cron for checker process
-CRON_CHECKER_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python run_checker.py >> ${CRON_LOG_FILE} 2>&1"
+CRON_CHECKER_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.status_checker >> ${CRON_LOG_FILE} 2>&1"
 echo "${CRON_SCHEDULE_CHECKER_FROM_INI} ${CRON_CHECKER_COMMAND}" >> "${CRON_FILE}"
 
 # Install the new crontab, replacing any existing one

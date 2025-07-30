@@ -3,10 +3,11 @@ import re
 import requests
 import logging
 import json
-from config import load_config
+from src.config import load_config
+from src.logger_setup import setup_logging
 
-# Setup loggers
-main_logger = logging.getLogger('main_logger')
+# Get loggers as configured in logger_setup.py
+logger = logging.getLogger(__name__)
 checker_errors_logger = logging.getLogger('checker_errors_logger')
 
 def check_task_status():
@@ -16,10 +17,10 @@ def check_task_status():
     task_status_api_url = config['TASK_STATUS_API_URL']
     auth_token = config['AUTH_TOKEN']
 
-    main_logger.info(f"Starting task status check in {output_folder}")
+    logger.info(f"Starting task status check in {output_folder}")
 
     if not os.path.exists(output_folder):
-        main_logger.warning(f"Output folder {output_folder} does not exist. Skipping status check.")
+        logger.warning(f"Output folder {output_folder} does not exist. Skipping status check.")
         return
 
     for filename in os.listdir(output_folder):
@@ -29,7 +30,8 @@ def check_task_status():
             if task_id:
                 check_single_task(task_id, filename, filepath, task_status_api_url, error_folder, auth_token)
             else:
-                checker_errors_logger.info(f"Could not extract task ID from filename: {filename}")
+                # Use the main logger for info-level messages
+                logger.info(f"Could not extract task ID from filename: {filename}")
 
 def extract_task_id(filename: str) -> str | None:
     # This regex extracts the part between the last underscore and the file extension
@@ -48,14 +50,14 @@ def check_single_task(task_id: str, filename: str, filepath: str, api_url: str, 
         data = response.json()
 
         if "info" in data:
-            main_logger.info(f"Task {task_id} (file: {filename}) completed successfully. Deleting file.")
+            logger.info(f"Task {task_id} (file: {filename}) completed successfully. Deleting file.")
             os.remove(filepath)
         elif "error" in data:
             error_message = data.get("error", "Unknown error")
             checker_errors_logger.error(f"Task {task_id} (file: {filename}) failed: {error_message}. Moving to error folder.")
             os.rename(filepath, os.path.join(error_folder, filename))
         elif not data:  # Empty JSON, task is pending
-            main_logger.info(f"Task {task_id} (file: {filename}) is still pending.")
+            logger.info(f"Task {task_id} (file: {filename}) is still pending.")
         else:
             checker_errors_logger.warning(f"Unexpected API response for task {task_id} (file: {filename}): {json.dumps(data)}")
 
@@ -67,7 +69,5 @@ def check_single_task(task_id: str, filename: str, filepath: str, api_url: str, 
         checker_errors_logger.error(f"An unexpected error occurred while checking task {task_id} (file: {filename}): {e}")
 
 if __name__ == '__main__':
-    # This block is for testing purposes only and won't be used in the cron job
-    # In a real scenario, logger_setup would be called from run_checker.py
-    logging.basicConfig(level=logging.INFO)
+    setup_logging()
     check_task_status()

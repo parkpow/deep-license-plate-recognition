@@ -2,8 +2,7 @@ import os
 import logging
 import shutil
 from datetime import datetime
-import csv
-import glob
+
 
 from src.logger_setup import setup_logging
 from src.converter import process_input_file, HEADERS, write_csv_parts
@@ -92,10 +91,6 @@ def main():
     logger.info(f"Plates to add: {len(plates_to_add)}")
     logger.info(f"Plates to remove: {len(plates_to_remove)}")
 
-    # 4. Prepare CSVs for addition and removal
-    add_csv_path = os.path.join(OUTPUT_FOLDER, "to_add.csv")
-    remove_csv_path = os.path.join(OUTPUT_FOLDER, "to_remove.csv")
-
     # Filter rows for addition
     lp_index = HEADERS.index("license_plate")
     rows_to_add = [
@@ -139,13 +134,6 @@ def main():
     if upload_success:
         save_current_state(current_plates_in_file)
         logger.info("All uploads successful. State updated.")
-        # logger.info("Temporarily suspending CSV cleanup for verification.")
-        # # Clean up generated CSVs
-        # for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_add*.csv")):
-        #     os.remove(f)
-        # for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_remove*.csv")):
-        #     os.remove(f)
-        # logger.info("Cleaned up temporary CSV files.")
     else:
         logger.error("Uploads failed. State file not updated. Please investigate and re-run.")
 
