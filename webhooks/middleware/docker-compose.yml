@@ -9,7 +9,7 @@ services:
     group_add:
       - video
     volumes:
-      - "/opt/stream:/user-data" # Adjust the path as needed for Stream working directory
+    - "/opt/stream:/user-data" # Adjust the path as needed for Stream working directory
     environment:
       - LOGGING=30  # Uncomment if you want different logging level: 10 for debug, 20 for info, 30 for warning
       - LICENSE_KEY=${STREAM_LICENSE_KEY}  # Add the LICENSE_KEY from environment variable
@@ -24,4 +24,4 @@ services:
       - "8002:8002"
     volumes:
       - ./dot_config.csv:/app/dot_config.csv:ro
-      # - "/opt/stream:/user-data" uncomment this line if you use strip_plate protocol (Required)
+      - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)

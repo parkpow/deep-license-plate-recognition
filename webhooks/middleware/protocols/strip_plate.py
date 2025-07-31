@@ -1,11 +1,13 @@
 import json
 import logging
 import os
-from datetime import datetime
 from copy import deepcopy
+from datetime import datetime
 from typing import Any
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -26,28 +28,37 @@ def strip_data_in_jsonl_file(
         return
 
     try:
-        with open(jsonl_file, "r") as file:
+        with open(jsonl_file) as file:
             lines = file.readlines()
 
         updated_lines = []
-        for line in lines:
-            data = json.loads(line)
+        for line_num, line in enumerate(lines, start=1):
+            line = line.strip()
+            if not line:  # skip empty lines
+                continue
             try:
-                if data["results"][0]["plate"] == plate:
-                    logging.info(
-                        f"Camera: {camera_id} - Stripping data in local file for prediction at {timestamp}"
-                    )
+                data = json.loads(line)
+            except json.JSONDecodeError as e:
+                logging.error(
+                    f"Invalid JSON in {jsonl_file} at line {line_num}: {e}"
+                )
+                continue
+
+            try:
+                if data.get("results") and data["results"][0].get("plate") == plate:
                     data["results"] = converted_payload["data"]["results"]
             except (KeyError, IndexError):
-                # Line doesn't match expected format, keep it as is.
-                pass
+                pass  # structure not as expected, leave unchanged
+
             updated_lines.append(json.dumps(data) + "\n")
 
         with open(jsonl_file, "w") as file:
             file.writelines(updated_lines)
-    except (IOError, json.JSONDecodeError) as e:
+
+    except OSError as e:
         logging.error(
-            f"Error stripping data in local file for prediction at {timestamp} from {jsonl_file}: {e}"
+            f"Error stripping data in local file for prediction at {timestamp} "
+            f"from {jsonl_file}: {e}"
         )
 
 
@@ -72,11 +83,15 @@ def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
             "box": result.get("vehicle", {}).get("box", {}),
         }
 
-        props = {"make_model": [], "orientation": [], "color": []}
+        props: dict[str, list[dict[str, Any]]] = {"make_model": [], "orientation": [], "color": []}
 
         for mm in result.get("model_make", []):
             props["make_model"].append(
-                {"make": "generic", "model": "Unknown", "score": mm.get("score", 0)}
+                {
+                    "make": mm.get("make", "Unknown"),
+                    "model": mm.get("model", "Unknown"),
+                    "score": mm.get("score", 0),
+                }
             )
 
         for o in result.get("orientation", []):
@@ -85,7 +100,9 @@ def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
             )
 
         for c in result.get("color", []):
-            props["color"].append({"value": "Unknown", "score": c.get("score", 0)})
+            props["color"].append(
+                {"value": c.get("color", "Unknown"), "score": c.get("score", 0)}
+            )
 
         new_result = {
             "source_url": result.get("source_url"),
@@ -94,7 +111,7 @@ def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
             "speed": result.get("speed"),
             "speed_score": result.get("speed_score"),
             "vehicle": {
-                "type": "generic",
+                "type": vehicle["type"],
                 "score": vehicle["score"],
                 "box": vehicle["box"],
                 "props": props,
@@ -108,9 +125,59 @@ def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
     return new_payload
 
 
+def get_jsonl_filename(camera_id: str, timestamp: str) -> str:
+    """Generate the JSONL filename based on camera ID and timestamp.
+    Args:
+        camera_id (str): The ID of the camera.
+        timestamp (str): The timestamp in ISO format.
+
+    Returns:
+        str: The formatted filename in format $(camera)_%y-%m-%d.jsonl,
+             see https://guides.platerecognizer.com/docs/stream/configuration#jsonlines_file
+
+    """
+    try:
+        event_dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return f"{camera_id}_{event_dt.strftime('%y-%m-%d')}.jsonl"
+    except ValueError as e:
+        logging.error(f"Invalid timestamp format: {timestamp} ({e})")
+        raise ValueError("Invalid timestamp format") from e
+
+
+def post_with_retries(
+    url: str,
+    data: dict,
+    files: dict | None = None,
+    headers: dict | None = None,
+    allowed_methods: list[str] | None = None,
+    retries_total: int = 3,
+    backoff_factor: float = 1.0,
+    status_forcelist: list[int] | None = None,
+) -> requests.Response:
+    """Send a POST request with retries using requests and urllib3 Retry."""
+
+    session = requests.Session()
+    retries = Retry(
+        total=retries_total,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+        allowed_methods=allowed_methods,
+    )
+    adapter = HTTPAdapter(max_retries=retries)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    response = session.post(url, data=data, files=files, headers=headers)
+    response.raise_for_status()
+    return response
+
+
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+    
+    url = os.getenv("WEBHOOK_URL")
+    if not url:
+        raise ValueError("WEBHOOK_URL environment variable is not set or empty, if the webhook receiver is ParkPow endpoint, make sure to include PARKPOW_TOKEN environment variable too.")
 
     if not all_files:
         logging.error("No files uploaded.")
@@ -124,9 +191,11 @@ def process_request(
 
     prediction_data = json_data.get("data")
     if not isinstance(prediction_data, dict):
-        logging.error(f"Missing or invalid 'data' field in JSON: {json.dumps(json_data)}")
+        logging.error(
+            f"Missing or invalid 'data' field in JSON: {json.dumps(json_data)}"
+        )
         return "Invalid data format.", 400
-    
+
     timestamp = prediction_data["timestamp"]
     camera_id = prediction_data["camera_id"]
 
@@ -136,15 +205,10 @@ def process_request(
         plate = None
 
     if not all((timestamp, camera_id, plate)):
-        logging.error(f"Missing required fields in prediction data: {json.dumps(json_data)}")
+        logging.error(
+            f"Missing required fields in prediction data: {json.dumps(json_data)}"
+        )
         return "Invalid prediction data format.", 400
-
-    try:
-        event_dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-        filename = event_dt.strftime("%y-%m-%d.jsonl")
-    except Exception as e:
-        logging.error(f"Invalid timestamp format: {timestamp} ({e})")
-        return "Invalid timestamp format.", 400
 
     converted_payload = convert_plate_format_to_vehicle_format(json_data)
 
@@ -154,31 +218,41 @@ def process_request(
     if os.getenv("PARKPOW_TOKEN"):
         headers = {"Authorization": f'Token {os.getenv("PARKPOW_TOKEN")}'}
 
-    try:
-        response = requests.post(
-            os.getenv("WEBHOOK_URL"), data=data, files=all_files, headers=headers
-        )
-        response.raise_for_status()
-        logging.info(
-            f"Camera: {camera_id} - Vehicle activity at {timestamp}. Request was successful."
-        )
-    except requests.exceptions.RequestException as err:
-        logging.error(
-            f"Camera: {camera_id} - Vehicle activity at {timestamp}. Error processing the request: {err}"
-        )
-        return f"Failed to process the request: {err}", 500
+    activity_identifier = f"Camera: {camera_id} - New Vehicle: {timestamp}"
 
     try:
+        logging.info(
+            f"{activity_identifier}. Sending webhook to {url}..."
+        )
+        response = post_with_retries(
+            url,
+            data=data,
+            files=all_files,
+            headers=headers,
+        )
+        response_content = json.loads(response.content)[0]
+        logging.info(
+            f"{activity_identifier}. Webhook response: {response.status_code} - {response_content['status']} - {response_content['id']}."
+        )
+    except requests.exceptions.RequestException as err:
+        logging.error(f"{activity_identifier}. Error processing the request: {err}")
+        return f"Failed to process the request: {err}", 500
+
+    filename = get_jsonl_filename(camera_id, timestamp)
+
+    try:
+        logging.info(f"{activity_identifier}. Stripping data in local file...")
         strip_data_in_jsonl_file(
-            os.path.join("/user-data", f"{camera_id}_{filename}"),
+            os.path.join("/user-data", f"{filename}"),
             plate,
             converted_payload,
             camera_id,
             timestamp,
         )
+        logging.info(f"{activity_identifier}. Data in JSONL file stripped successfully.")
     except Exception as e:
         logging.error(
-            f"Error processing JSONL file for camera {camera_id} at {timestamp}: {e}"
+            f"Error processing JSONL file for camera {activity_identifier}: {e}"
         )
         return f"Failed to process JSONL file: {e}", 500
 
