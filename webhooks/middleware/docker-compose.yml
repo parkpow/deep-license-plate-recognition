@@ -9,7 +9,7 @@ services:
     group_add:
       - video
     volumes:
-    - "/opt/stream:/user-data" # Adjust the path as needed for Stream working directory
+      - "/opt/stream:/user-data" # Adjust the path as needed for Stream working directory
     environment:
       - LOGGING=30  # Uncomment if you want different logging level: 10 for debug, 20 for info, 30 for warning
       - LICENSE_KEY=${STREAM_LICENSE_KEY}  # Add the LICENSE_KEY from environment variable

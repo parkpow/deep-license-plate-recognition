@@ -39,16 +39,14 @@ def strip_data_in_jsonl_file(
             try:
                 data = json.loads(line)
             except json.JSONDecodeError as e:
-                logging.error(
-                    f"Invalid JSON in {jsonl_file} at line {line_num}: {e}"
-                )
+                logging.error(f"Invalid JSON in {jsonl_file} at line {line_num}: {e}")
                 continue
 
             try:
                 if data.get("results") and data["results"][0].get("plate") == plate:
                     data["results"] = converted_payload["data"]["results"]
             except (KeyError, IndexError):
-                pass  # structure not as expected, leave unchanged
+                pass  # structure not as expected
 
             updated_lines.append(json.dumps(data) + "\n")
 
@@ -83,7 +81,11 @@ def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
             "box": result.get("vehicle", {}).get("box", {}),
         }
 
-        props: dict[str, list[dict[str, Any]]] = {"make_model": [], "orientation": [], "color": []}
+        props: dict[str, list[dict[str, Any]]] = {
+            "make_model": [],
+            "orientation": [],
+            "color": [],
+        }
 
         for mm in result.get("model_make", []):
             props["make_model"].append(
@@ -174,10 +176,12 @@ def post_with_retries(
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
-    
+
     url = os.getenv("WEBHOOK_URL")
     if not url:
-        raise ValueError("WEBHOOK_URL environment variable is not set or empty, if the webhook receiver is ParkPow endpoint, make sure to include PARKPOW_TOKEN environment variable too.")
+        raise ValueError(
+            "WEBHOOK_URL environment variable is not set or empty, if the webhook receiver is ParkPow endpoint, make sure to include PARKPOW_TOKEN environment variable too."
+        )
 
     if not all_files:
         logging.error("No files uploaded.")
@@ -213,27 +217,41 @@ def process_request(
     converted_payload = convert_plate_format_to_vehicle_format(json_data)
 
     data = {"json": json.dumps(converted_payload)}
-
+    parkpow_token = os.getenv("PARKPOW_TOKEN")
     headers = {}
-    if os.getenv("PARKPOW_TOKEN"):
-        headers = {"Authorization": f'Token {os.getenv("PARKPOW_TOKEN")}'}
+    if parkpow_token:
+        headers = {"Authorization": f'Token {parkpow_token}'}
 
-    activity_identifier = f"Camera: {camera_id} - New Vehicle: {timestamp}"
+    activity_identifier = f"Camera: {camera_id} - Vehicle: {timestamp}"
 
     try:
-        logging.info(
-            f"{activity_identifier}. Sending webhook to {url}..."
-        )
+        logging.info(f"{activity_identifier}. Sending webhook to {url}...")
         response = post_with_retries(
             url,
             data=data,
             files=all_files,
             headers=headers,
         )
-        response_content = json.loads(response.content)[0]
+        try:
+            response_json = json.loads(response.content)
+            if not isinstance(response_json, list) or not response_json:
+                raise ValueError("Response JSON is not a non-empty list")
+            
+            response_content = response_json[0]
+
+            if not isinstance(response_content, dict):
+                raise ValueError("First element of response JSON is not a dict")
+            
+        except (json.JSONDecodeError, IndexError, TypeError, ValueError) as parse_err:
+            logging.error(
+                f"{activity_identifier}. Failed to parse webhook response: {parse_err}. Raw content: {response.content!r}"
+            )
+            return f"Failed to parse webhook response: {parse_err}", 502
+        
         logging.info(
             f"{activity_identifier}. Webhook response: {response.status_code} - {response_content['status']} - {response_content['id']}."
         )
+
     except requests.exceptions.RequestException as err:
         logging.error(f"{activity_identifier}. Error processing the request: {err}")
         return f"Failed to process the request: {err}", 500
@@ -249,7 +267,9 @@ def process_request(
             camera_id,
             timestamp,
         )
-        logging.info(f"{activity_identifier}. Data in JSONL file stripped successfully.")
+        logging.info(
+            f"{activity_identifier}. Data in JSONL file stripped successfully."
+        )
     except Exception as e:
         logging.error(
             f"Error processing JSONL file for camera {activity_identifier}: {e}"
