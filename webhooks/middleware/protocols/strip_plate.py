@@ -196,8 +196,8 @@ def process_request(
         )
         return "Invalid data format.", 400
 
-    timestamp = prediction_data["timestamp"]
-    camera_id = prediction_data["camera_id"]
+    timestamp = prediction_data.get("timestamp")
+    camera_id = prediction_data.get("camera_id")
 
     try:
         plate = prediction_data["results"][0]["plate"]
