@@ -24,4 +24,4 @@ services:
       - "8002:8002"
     volumes:
       - ./dot_config.csv:/app/dot_config.csv:ro
-      - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
+      # - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
