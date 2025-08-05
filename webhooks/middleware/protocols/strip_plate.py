@@ -139,7 +139,7 @@ def get_jsonl_filename(camera_id: str, timestamp: str) -> str:
 
     """
     try:
-        event_dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        event_dt = datetime.fromisoformat(timestamp)
         return f"{camera_id}_{event_dt.strftime('%y-%m-%d')}.jsonl"
     except ValueError as e:
         logging.error(f"Invalid timestamp format: {timestamp} ({e})")
@@ -201,6 +201,7 @@ def process_request(
         return "Invalid data format.", 400
 
     timestamp = prediction_data.get("timestamp")
+    timestamp_local = prediction_data.get("timestamp_local") #for local file
     camera_id = prediction_data.get("camera_id")
 
     try:
@@ -208,7 +209,7 @@ def process_request(
     except (KeyError, IndexError, TypeError):
         plate = None
 
-    if not all((timestamp, camera_id, plate)):
+    if not all((timestamp, timestamp_local, camera_id, plate)):
         logging.error(
             f"Missing required fields in prediction data: {json.dumps(json_data)}"
         )
@@ -256,7 +257,7 @@ def process_request(
         logging.error(f"{activity_identifier}. Error processing the request: {err}")
         return f"Failed to process the request: {err}", 500
 
-    filename = get_jsonl_filename(camera_id, timestamp)
+    filename = get_jsonl_filename(camera_id, timestamp_local)
 
     try:
         logging.info(f"{activity_identifier}. Stripping data in local file...")
