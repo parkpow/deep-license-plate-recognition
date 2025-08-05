@@ -128,7 +128,7 @@ def delete_empty_directories(directory):
                 if not list(dir_path.iterdir()):
                     dir_path.rmdir()
             except OSError as e:
-                logging.info(f"Error deleting empty directories: {e.filename} - {e.strerror}")
+                logging.error(f"Error deleting empty directories: {e.filename} - {e.strerror}")
 
 
 def main():
