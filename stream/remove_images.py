@@ -93,7 +93,7 @@ def delete_images_by_percentage(directory, target_free_percent, batch_size=10):
             delete_image(file_path)
             files_deleted += 1
         except OSError as e:
-            logging.info(f"Error deleting file {file_path}: {e.strerror}")
+            logging.error(f"Error deleting file {file_path}: {e.strerror}")
 
         if files_deleted % batch_size == 0:
             _, current_free_percent = get_percentages(directory)
