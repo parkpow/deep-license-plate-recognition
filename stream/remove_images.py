@@ -115,7 +115,7 @@ def delete_images_by_age(directory, threshold_minutes):
                 delete_image(file_path)
                 files_deleted += 1
             except OSError as e:
-                logging.info(f"Error deleting images: {e.filename} - {e.strerror}")
+                logging.error(f"Error deleting images: {e.filename} - {e.strerror}")
     
     if files_deleted == 0:
         logging.info(f"No file(s) to delete below the threshold time")
