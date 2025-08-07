@@ -5,19 +5,17 @@ This project is an automated solution for importing data from files and adding o
 ## Features
 
 - **Folder Monitoring:** Observes an upload folder for new CSV files.
-- **Data Processing:** Reads CSV files, applies column and static data mappings.
+- **Data Processing:** Reads files, applies column and static data mappings.
 - **API Integration:** Sends processed data to a configurable API endpoint.
 - **Flexible Configuration:** All configurations are managed via an external `config.ini` file.
 - **Automated Scheduling:** Uses `cron` to execute the import process at defined intervals.
 - **Log Management:** Records operations in dedicated log files.
 - **Centralized Data Structure:** All input, output, and log data are stored in a single `data` folder for easy management.
-- **Task Status Checker:** A secondary process that periodically queries an API to check the status of tasks associated with files in `data/output/`. Based on the API response, it manages these files (deletes on success, moves to `data/error/` on failure, or leaves them if pending).
+- **Task Status Monitoring:** After each file upload, a dedicated background thread monitors the status of the associated task by querying an API. Based on the API response, it manages the uploaded files (deletes on success, moves to `data/error/` on failure, or leaves them if pending).
 
 ## Configuration
 
-The system's configuration is done through the `config.ini` file. This file must be **manually created** by the user in the `data` folder on your host. An example `config.ini` content is provided below, which you should use as a starting point.
-
-You can edit this file to adjust the ParkPow Auto File Import Tool's behavior.
+The system's configuration is done through the `config.ini` file. This file must be **manually created** by the user in the `data` folder on your host. You **must** copy the example `config.ini` content provided below into your `data/config.ini` file and then edit it to adjust the ParkPow Auto File Import Tool's behavior.
 
 ### Example `config.ini`
 
@@ -83,34 +81,38 @@ source_col<index> = <target_field_name>
     docker build -t parkpow-auto-file-import-tool .
     ```
 
-3.  **Create the `data` folder on your host (if it doesn't exist yet):**
-    This folder will be used to persist configurations, logs, and data.
+3.  **Create the `data` folder on your host and the `config.ini` file within it:**
+    This `data` folder will be used to persist configurations, logs, and processed data. You must manually create the `config.ini` file inside this `data` folder and populate it with the required configuration (refer to the "Configuration" section above).
 
     ```bash
     mkdir -p data
+    # Then, create data/config.ini and add your configuration
     ```
 
 4.  **Run the Docker container:**
-    This command will start the container in the background (`-d`), map the `data` folder from your host to `/app/data` inside the container (`-v ./data:/app/data`), and name the container `parkpow-auto-file-import-tool`. On the first run, `data/config.ini` will be automatically created inside the `data` folder on your host.
+    This command will start the container in the background (`-d`), map the `data` folder from your host to `/app/data` inside the container (`-v ./data:/app/data`), and name the container `parkpow-auto-file-import-tool`. Upon its first run, the container will automatically create the necessary subfolders (`upload`, `processed`, `output`, `logs`, `error`) within your host's `data` directory.
+
+5.  **Place your input files in the `data/upload` folder:**
+    The tool monitors the `data/upload` folder for new files to process. Ensure your files are placed here for the system to pick them up.
 
     ```bash
     docker run -d --name parkpow-auto-file-import-tool -v ./data:/app/data parkpow-auto-file-import-tool
     ```
 
-5.  **Check container logs:**
+6.  **Check container logs:**
     To view the container output and `cron` logs in real-time:
 
     ```bash
     docker logs -f parkpow-auto-file-import-tool
     ```
 
-6.  **To stop the container:**
+7.  **To stop the container:**
 
     ```bash
     docker stop parkpow-auto-file-import-tool
     ```
 
-7.  **To restart the container in case of `config.ini` changes:**
+8.  **To restart the container in case of `config.ini` changes:**
 
     ```bash
     docker restart parkpow-auto-file-import-tool
@@ -122,7 +124,7 @@ All application and `cron` logs are stored in the `data/logs` folder on your hos
 
 - `data/logs/app.log`: Contains detailed logs of the main Python script execution.
 - `data/logs/cron.log`: Contains standard output and errors from `cron` and the scripts executed by `cron`.
-- `data/logs/checker_errors.log`: Contains specific error logs from the task status checker process.
+- `data/logs/checker_errors.log`: Contains specific error logs from the task status monitoring threads.
 
 ## Column and Static Data Mapping
 

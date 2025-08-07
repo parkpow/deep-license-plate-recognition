@@ -81,7 +81,7 @@ def load_config() -> dict:
 
     expected_config_options = [
         ('CRON', 'CRON_SCHEDULE', str, '0 6 * * *', True),
-        ('CRON', 'CRON_SCHEDULE_CHECKER', str, '*/5 * * * *', False),
+        
         ('API', 'BASE_API_URL', str, None, True),
         ('API', 'AUTH_TOKEN', str, None, True),
         ('PATHS', 'UPLOAD_FOLDER', str, 'data/upload', False),

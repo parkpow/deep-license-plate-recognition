@@ -12,7 +12,7 @@ PYTHONPATH=/app python -c "import src.config; src.config.load_config()" || exit 
 
 # Read paths from config.ini
 CRON_SCHEDULE_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE' '0 6 * * *')
-CRON_SCHEDULE_CHECKER_FROM_INI=$(get_config_value 'CRON' 'CRON_SCHEDULE_CHECKER' '*/5 * * * *')
+
 UPLOAD_FOLDER=$(get_config_value 'PATHS' 'UPLOAD_FOLDER' 'data/upload')
 PROCESSED_FOLDER=$(get_config_value 'PATHS' 'PROCESSED_FOLDER' 'data/processed')
 OUTPUT_FOLDER=$(get_config_value 'PATHS' 'OUTPUT_FOLDER' 'data/output')
@@ -27,7 +27,7 @@ echo "--------------------------------------------------"
 echo "  ParkPow Auto File Import Tool Container Started!"
 echo "--------------------------------------------------"
 echo "  Cron Schedule (Main): ${CRON_SCHEDULE_FROM_INI}"
-echo "  Cron Schedule (Checker): ${CRON_SCHEDULE_CHECKER_FROM_INI}"
+
 echo "  Monitoring logs in ${CRON_LOG_FILE}"
 echo "--------------------------------------------------"
 
@@ -38,9 +38,7 @@ CRON_FILE="/tmp/crontab_entry"
 CRON_MAIN_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.main >> ${CRON_LOG_FILE} 2>&1"
 echo "${CRON_SCHEDULE_FROM_INI} ${CRON_MAIN_COMMAND}" > "${CRON_FILE}"
 
-# The command to be executed by cron for checker process
-CRON_CHECKER_COMMAND="cd /app && export PYTHONPATH=/app:${PYTHONPATH:-} && /usr/local/bin/python -m src.status_checker >> ${CRON_LOG_FILE} 2>&1"
-echo "${CRON_SCHEDULE_CHECKER_FROM_INI} ${CRON_CHECKER_COMMAND}" >> "${CRON_FILE}"
+
 
 # Install the new crontab, replacing any existing one
 crontab "${CRON_FILE}"

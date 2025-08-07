@@ -3,8 +3,10 @@ import os
 import glob
 import time
 import logging
+import threading
 
-from src.config import load_config 
+from src.config import load_config
+from src.status_checker import monitor_task_status 
 
 config_values = load_config()
 
@@ -71,6 +73,12 @@ def upload_file(filepath: str, remove: bool) -> dict:
                 except OSError as e:
                     logger.error(f"Error renaming file {filepath} to {new_filepath}: {e}")
                     # Proceed with the original filepath if rename fails
+                
+                # Start a new thread to monitor the task status and join it
+                monitor_thread = threading.Thread(target=monitor_task_status, args=(task_id, new_filename, filepath))
+                monitor_thread.start()
+                # Return the thread so it can be joined later
+                
             else:
                 logger.info(f"Successfully uploaded: {filepath} (no task_id returned)")
 
@@ -78,7 +86,8 @@ def upload_file(filepath: str, remove: bool) -> dict:
                 "file": filepath,
                 "status": "success",
                 "task_id": task_id,
-                "http_code": response.status_code
+                "http_code": response.status_code,
+                "monitor_thread": monitor_thread
             }
 
         except requests.exceptions.JSONDecodeError:
@@ -105,6 +114,7 @@ def upload_file(filepath: str, remove: bool) -> dict:
 def upload_all_parts(pattern: str, remove_flag: bool) -> list:
     files = sorted(glob.glob(os.path.join(OUTPUT_FOLDER, pattern)))
     results = []
+    monitoring_threads = []
 
     if not files:
         logger.info(f"No files found matching pattern '{pattern}' to upload.")
@@ -115,6 +125,8 @@ def upload_all_parts(pattern: str, remove_flag: bool) -> list:
     for file in files:
         result = upload_file(file, remove=remove_flag)
         results.append(result)
+        if "monitor_thread" in result and result["monitor_thread"] is not None:
+            monitoring_threads.append(result["monitor_thread"])
         time.sleep(1) # Delay between uploads
 
     logger.info(f"Final upload report for pattern '{pattern}':")
@@ -122,5 +134,7 @@ def upload_all_parts(pattern: str, remove_flag: bool) -> list:
         status = r.get("status")
         task = r.get("task_id", "-")
         logger.info(f"{r['file']}: {status} (task_id: {task})")
+
+    
 
     return results
