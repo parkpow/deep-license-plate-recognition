@@ -177,14 +177,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--username",
         type=str,
-        default=username,
+        # default=username,
         help="username of camera login",
         required=False,
     )
     parser.add_argument(
         "--password",
         type=str,
-        default=password,
+        # default=password,
         help="password of camera login",
         required=False,
     )

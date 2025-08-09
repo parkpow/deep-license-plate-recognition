@@ -1,5 +1,4 @@
 # import threading;
-import time
 
 # debug
 import traceback
@@ -26,7 +25,8 @@ def debugErr(str):
 loop = None
 license_key = memoryview(b"")
 token = memoryview(b"")
-stream_log_level = 10
+stream_log_level = 0
+enum_values = ["10", "20", "30", "40", "50"]
 
 
 # Store pref names as constants
@@ -46,21 +46,20 @@ ADAM_HTTP_REQ_TYPE_POST = 1
 
 
 def create_respone_header(body, status=200):
-    len(body)
+    content_length = len(body)
     assert len(str(status)) == 3, "status code must be 3 digits"
-    header = f"HTTP/1.1 {status} OK\r\n" "Content-Type: text/html\r\n"
+    header = f"HTTP/1.1 {status} OK\r\nContent-Type: text/html\r\nContent-Length: {content_length}\r\n"
 
     return header
 
 
 def write_env_file(token, license_key, log_level):
-
     debugDbg("Writing stream credentials to /ai_data/env-file.ini")
 
     env_vars = {
         "TOKEN": token,
         "LICENSE_KEY": license_key,
-        "LOGGING": log_level,
+        "LOGGING": enum_values[log_level],
     }
 
     # Write or overwrite environment variables to ini file
@@ -141,17 +140,17 @@ def httpCB(reqType, reqData):
     return header, body
 
 
-def get_stream_log_level_context(stream_log_level: str) -> list:
+def get_stream_log_level_context(stream_log_level: int) -> list:
     """
-    Genereate selected attribute for stream log level options.
+    Generate selected attribute for stream log level options.
     """
     selected = 'selected="selected"'
     unselected = ""
-    enum_values = ["10", "20", "30", "40", "50"]
+
     context = []
 
     for i, _value in enumerate(enum_values):
-        if stream_log_level == enum_values[i]:
+        if stream_log_level == i:
             context.append(selected)
         else:
             context.append(unselected)
@@ -200,6 +199,11 @@ def loadPref():
     debugDbg(f"  token:{token}")
     debugDbg(f"  stream_log_level :{stream_log_level}")
 
+    libAdamApiPython.adam_debug_print(
+        libAdamApiPython.ADAM_LV_INF,
+        f"PLATEREC - license_key={license_key}, token={token}, stream_log_level={stream_log_level}",
+    )
+
     if license_key and token:
         license_key_pref = license_key.tobytes().decode("utf-8")
         token_pref = token.tobytes().decode("utf-8")
@@ -213,18 +217,13 @@ def setPref(pref_str):
 
     debugDbg(f"Set Pref: {pref_str}")
     pref = pref_str.split(",")
-    token_pref = pref[0]
-    license_key_pref = pref[1]
-    stream_log_level_pref = pref[2]
+    license_key_pref = pref[0]
+    token_pref = pref[1]
+    log_level_pref = pref[2]
 
     license_key = memoryview(license_key_pref.encode())
-    memoryview(token_pref.encode())
-    stream_log_level = int(stream_log_level_pref)
-
-    debugDbg("setPref adam_set_appPref")
-    debugDbg(f"  license_key:{license_key_pref}")
-    debugDbg(f"  license_token:{token_pref}")
-    debugDbg(f"  stream_log_level :{stream_log_level}")
+    token = memoryview(token_pref.encode())
+    stream_log_level = enum_values.index(log_level_pref)
 
     libAdamApiPython.adam_lock_appPref()
     libAdamApiPython.adam_set_appPref({LICENSE_KEY_PREF: license_key_pref})
@@ -232,31 +231,19 @@ def setPref(pref_str):
     libAdamApiPython.adam_set_appPref({LOGGING_PREF: stream_log_level})
     libAdamApiPython.adam_unlock_appPref()
 
-    write_env_file(token_pref, license_key_pref, stream_log_level_pref)
+    debugDbg("setPref adam_set_appPref")
+    debugDbg(f"  license_key:{license_key_pref}")
+    debugDbg(f"  license_token:{token_pref}")
+    debugDbg(f"  stream_log_level :{stream_log_level}")
 
-
-def procPref():
-    global license_key
-    global token
-    global stream_log_level
-
-    level = libAdamApiPython.ADAM_LV_INF
-    libAdamApiPython.adam_debug_print(
-        level,
-        f"PLATEREC - license_key={license_key}, token={token}, stream_log_level={stream_log_level}",
-    )
+    write_env_file(token_pref, license_key_pref, stream_log_level)
 
 
 def startProcessing():
     global loop
-
     loop = libAdamApiPython.adamEventloop()
-
     loadPref()
-    procPref()
-
     loop.dispatch()
-    time.sleep(360)
     del loop
     print("Finish: Process")
 

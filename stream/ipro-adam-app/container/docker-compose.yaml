@@ -111,12 +111,15 @@ services:
         read_only: false
         consistency: default
 
-      # TODO Test SD Card Mounts
+      # TODO SD Card Mounts
       # - type: bind
-      #   target: "/mnt/sdcard"
+      #   target: "/sdcard"
       #   source: "/mnt/sda/adamapp/stream"
       #   read_only: false
       #   consistency: default
+      # As of now, after you format SD card in ext format, you need to create folder(/mnt/sda/adamapp/stream) manually. Then, you can install ext application.
+      # In the new firmware version, camera will automatically create the folder defined in docker-compose.yaml(/mnt/sda/adamapp/stream)
+      # Camera mounts SD card as “/mnt/sda” and allows partner apps to access under “/mnt/sda/adamapp”.
 
     tmpfs:
       - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
@@ -133,7 +136,7 @@ services:
     image: "alpr-stream:arm-lite"
     networks:
       - nw-frontend
-    restart: no
+    restart: always
     volumes:
       - type: volume
         source: adam

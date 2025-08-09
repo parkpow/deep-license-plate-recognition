@@ -201,111 +201,6 @@
         }
     </style>
 
-    <script type="text/javascript">
-        const SendType = {
-            Post: "POST",
-            Get: "GET"
-        }
-        const CommType = {
-            Sync: false,
-            aSync: true
-        }
-
-        let param1 = "methodName=sendDataToAdamApplication&installId=@pInstallID&s_appDataType=1&s_appData=";
-
-        function HtmlComm_actInit() {
-            HtmlComm_xhr = HtmlComm_crtXMLHttpRequest();
-            if (HtmlComm_xhr == null) {
-            }
-            HtmlComm_xhr.onreadystatechange = HtmlComm_CommState;
-            return;
-        }
-        function HtmlComm_crtXMLHttpRequest() {
-            try {
-                return new XMLHttpRequest();
-            } catch (e) { }
-            try {
-                return new ActiveXObject('MSXML2.XMLHTTP.6.0');
-            } catch (e) { }
-            try {
-                return new ActiveXObject('MSXML2.XMLHTTP.3.0');
-            } catch (e) { }
-            try {
-                return new ActiveXObject('MSXML2.XMLHTTP');
-            } catch (e) { }
-            return null;
-        }
-        function HtmlComm_CommState() {
-            switch (HtmlComm_xhr.readyState) {
-                case 0:
-                    break;
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-                case 4:
-                    if (HtmlComm_xhr.status != 0) {
-                        if (HtmlComm_xhr.status == 200) {
-                            giresponse = HtmlComm_xhr.responseText;
-                            console.log("msg : " + giresponse);
-							location.reload();
-                        }
-                        else {
-                            giresponse = HtmlComm_xhr.responseText;
-                            alert("errorcode" + HtmlComm_xhr.status + ": Reception error" + giresponse);
-                        }
-                    }
-                    else {
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-        function HtmlComm_actOpen(Type, Sync, xhr_tmp, url) {
-            xhr_tmp.open(Type, url, Sync);
-            if (Type == SendType.Get) {
-                xhr_tmp.responseType = 'arraybuffer';
-                xhr_tmp.setRequestHeader('Pragma', 'no-cache');
-                xhr_tmp.setRequestHeader('Cache-Control', 'no-cachache');
-            } else if (Type == SendType.Post) {
-                xhr_tmp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            }
-        }
-        function HtmlComm_actSend(SendData_tmp, xhr_tmp) {
-            if (SendData_tmp == "") {
-                try {
-                    xhr_tmp.send(null);
-                } catch (e) {
-                }
-            }
-            else {
-                try {
-                    xhr_tmp.send(SendData_tmp);
-                } catch (e) {
-                }
-            }
-        }
-
-        function saveChanges() {
-            let licenseKey = document.getElementById("licenseKey").value;
-            let licenseToken = document.getElementById("licenseToken").value;
-            let logLevel = document.getElementById("logLevel").value;
-
-            let SendData_setting = licenseKey + "," + licenseToken + "," + logLevel;
-            HtmlComm_actInit();
-            if (HtmlComm_xhr != null) {
-                HtmlComm_actOpen(SendType.Post, CommType.aSync, HtmlComm_xhr, "/cgi-bin/adam.cgi");
-                HtmlComm_actSend(param1 + btoa(SendData_setting), HtmlComm_xhr);
-                giloadflag = 1;
-            }
-            else {
-                console.log("error : HtmlComm_actInit");
-            }
-        }
-    </script>
 </head>
 
 <body>
@@ -349,10 +244,51 @@
         </div>
         <table class="table2" id="btntable">
             <td class="td2">
-                <button type="button" value="Save Changes" onclick="saveChanges()">Save Changes</button>
+                <button type="button" value="Save Changes" onclick="saveChanges(this)">Save Changes</button>
             </td>
         </table>
-        <tr>
-        </tr>
     </div>
+
+
+    <script type="text/javascript">
+        const param1 = "methodName=sendDataToAdamApplication&installId=@pInstallID&s_appDataType=1&s_appData=";
+
+        async function saveChanges(btn) {
+            // Disable button & show loading
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "Saving...";
+
+            try {
+                let licenseKey = document.getElementById("licenseKey").value;
+                let licenseToken = document.getElementById("licenseToken").value;
+                let logLevel = document.getElementById("logLevel").value;
+
+                let sendData = `${licenseKey},${licenseToken},${logLevel}`;
+                let bodyData = param1 + btoa(sendData);
+
+                const response = await fetch("/cgi-bin/adam.cgi", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: bodyData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${await response.text()}`);
+                }
+
+                console.log("msg :", await response.text());
+                location.reload();
+
+            } catch (err) {
+                alert("Save failed: " + err.message);
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+    </script>
+
+
 </body>
