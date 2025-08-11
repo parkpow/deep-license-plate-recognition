@@ -25,10 +25,7 @@ class TestWebhookTester:
         data = tester.get_webhook_payload()
         files = {"upload": ("name", b"sample file content")}
         options = [
-            {
-                "method": "get",
-                "kwargs": {"url": image_url},
-            },
+            {"method": "get", "kwargs": {"url": image_url}},
             {
                 "method": "post",
                 "kwargs": {"url": "https://example.com", "data": data, "files": files},
@@ -36,10 +33,7 @@ class TestWebhookTester:
         ]
 
         for option in options:
-            response = tester.send_request(
-                option["method"],
-                **option["kwargs"],
-            )
+            response = tester.send_request(option["method"], **option["kwargs"])
 
             if option["method"] == "get":
                 assert response.status_code == 200

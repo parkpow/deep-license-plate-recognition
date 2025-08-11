@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any
 
@@ -16,23 +16,36 @@ class WebhookTester:
 
     def __init__(self, url: str):
         self.url = url
+        self.token = os.environ.get("TOKEN")
+        self.camera_id = os.environ.get("CAMERA", "camera-1")
+        self.plate = os.environ.get("PLATE", "pl8rec")
+        self.region_code = os.environ.get("REGION", "us-ca")
+        self.timestamp = os.environ.get(
+            "TIMESTAMP", datetime.now(timezone.utc).isoformat()
+        )
 
-    def get_webhook_payload(self) -> dict[str, Any]:
+    def get_webhook_payload(
+        self,
+        camera_id: str = "camera-1",
+        plate: str = "pl8rec",
+        region_code: str = "us-ca",
+        timestamp: str = datetime.now(timezone.utc).isoformat(),
+    ) -> dict[str, Any]:
         """Return a sample payload to the request."""
         return {
             "json": json.dumps(
                 {
                     "hook": {
                         "target": self.url,
-                        "id": "camera-1",
+                        "id": camera_id,
                         "event": "recognition",
-                        "filename": ("camera-1_screenshots/image.jpg"),
+                        "filename": (f"{camera_id}_screenshots/image.jpg"),
                     },
                     "data": {
-                        "camera_id": os.environ.get("CAMERA", "camera-1"),
-                        "filename": ("camera-1_screenshots/image.jpg"),
-                        "timestamp": datetime.now(UTC).isoformat(),
-                        "timestamp_local": str(datetime.now()),
+                        "camera_id": camera_id,
+                        "filename": (f"{camera_id}_screenshots/image.jpg"),
+                        "timestamp": timestamp,
+                        "timestamp_local": timestamp,
                         "results": [
                             {
                                 "box": {
@@ -42,7 +55,7 @@ class WebhookTester:
                                     "ymin": 270,
                                 },
                                 "candidates": [
-                                    {"plate": "pl8rec", "score": 0.902},
+                                    {"plate": plate, "score": 0.902},
                                     {"plate": "plbrec", "score": 0.758},
                                 ],
                                 "color": [
@@ -69,8 +82,8 @@ class WebhookTester:
                                     {"orientation": "Front", "score": 0.07},
                                     {"orientation": "Unknown", "score": 0.047},
                                 ],
-                                "plate": "pl8rec",
-                                "region": {"code": "us-ca", "score": 0.179},
+                                "plate": plate,
+                                "region": {"code": region_code, "score": 0.179},
                                 "score": 0.902,
                                 "vehicle": {
                                     "box": {
@@ -102,8 +115,8 @@ class WebhookTester:
         print(f"This request includes a {len(response.content)/ 1024:.1f} KB image.")
         return {"upload": ("image.jpg", BytesIO(response.content))}
 
-    @staticmethod
     def send_request(
+        self,
         method: str,
         url: str,
         data: dict[str, Any] | None = None,
@@ -122,10 +135,9 @@ class WebhookTester:
         """
         if method.lower() not in ["get", "post"]:
             raise ValueError("Method not supported. Only accepts `get` or `post`.")
-        token = os.environ.get("TOKEN")
         headers = {}
-        if token:
-            headers["Authorization"] = f"Token {token}"
+        if self.token:
+            headers["Authorization"] = f"Token {self.token}"
         try:
             response = getattr(requests, method.lower())(
                 url, data=data, files=files, timeout=30, headers=headers
@@ -144,7 +156,10 @@ class WebhookTester:
     def execute(self) -> None:
         """Used to test the webhook."""
         print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
-        payload = self.get_webhook_payload()
+
+        payload = self.get_webhook_payload(
+            self.camera_id, self.plate, self.region_code, self.timestamp
+        )
         files = self.get_files_payload()
         response = self.send_request("post", self.url, payload, files)
         content = response.text
