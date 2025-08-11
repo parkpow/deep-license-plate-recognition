@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import requests
 
-from .functions import WebhookError, WebhookTester
+from .webhook_tester import WebhookError, WebhookTester
 
 
 class TestWebhookTester:
