@@ -110,6 +110,17 @@ services:
         source: "/tmp/pflog_mask_shmid"
         read_only: false
         consistency: default
+
+      # TODO SD Card Mounts
+      # - type: bind
+      #   target: "/sdcard"
+      #   source: "/mnt/sda/adamapp/stream"
+      #   read_only: false
+      #   consistency: default
+      # As of now, after you format SD card in ext format, you need to create folder(/mnt/sda/adamapp/stream) manually. Then, you can install ext application.
+      # In the new firmware version, camera will automatically create the folder defined in docker-compose.yaml(/mnt/sda/adamapp/stream)
+      # Camera mounts SD card as “/mnt/sda” and allows partner apps to access under “/mnt/sda/adamapp”.
+
     tmpfs:
       - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
 
@@ -125,7 +136,7 @@ services:
     image: "alpr-stream:arm-lite"
     networks:
       - nw-frontend
-    restart: no
+    restart: always
     volumes:
       - type: volume
         source: adam
@@ -140,11 +151,12 @@ services:
         consistency: default
 
     tmpfs:
-      - /var/cache/nginx:rw,noexec,nosuid,gid=1000,uid=1000
       - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
+
+    # read config from /ai_data/env-file.ini
+    # command: cat /ai_data/env-file.ini
     environment:
-      - TOKEN=
-      - LICENSE_KEY=
+      - EXTRA_ENV_FILE=/ai_data/env-file.ini
 
     read_only: true
     user:
@@ -158,6 +170,8 @@ services:
       com.i-pro.app-type: "ext"
       com.i-pro.device-category: "CV5x-A"
       com.i-pro.device-vendor: "i-PRO"
+    depends_on:
+      - adam
 
 volumes:
   adam:
