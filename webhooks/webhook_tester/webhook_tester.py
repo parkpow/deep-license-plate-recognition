@@ -35,30 +35,22 @@ class WebhookTester:
             "TIMESTAMP", datetime.now(timezone.utc).isoformat()
         )
 
-    def get_webhook_payload(
-        self,
-        camera_id: str | None = "camera-1",
-        plate: str | None = "pl8rec",
-        region_code: str | None = "us-ca",
-        timestamp: str | None = None,
-    ) -> dict[str, Any]:
+    def get_webhook_payload(self) -> dict[str, Any]:
         """Return a sample payload to the request."""
-        if timestamp is None:
-            timestamp = datetime.now(timezone.utc).isoformat()
         return {
             "json": json.dumps(
                 {
                     "hook": {
                         "target": self.url,
-                        "id": camera_id,
+                        "id": self.camera_id,
                         "event": "recognition",
-                        "filename": (f"{camera_id}_screenshots/image.jpg"),
+                        "filename": (f"{self.camera_id}_screenshots/image.jpg"),
                     },
                     "data": {
-                        "camera_id": camera_id,
-                        "filename": (f"{camera_id}_screenshots/image.jpg"),
-                        "timestamp": timestamp,
-                        "timestamp_local": timestamp,
+                        "camera_id": self.camera_id,
+                        "filename": (f"{self.camera_id}_screenshots/image.jpg"),
+                        "timestamp": self.timestamp,
+                        "timestamp_local": self.timestamp,
                         "results": [
                             {
                                 "box": {
@@ -68,7 +60,7 @@ class WebhookTester:
                                     "ymin": 270,
                                 },
                                 "candidates": [
-                                    {"plate": plate, "score": 0.902},
+                                    {"plate": self.plate, "score": 0.902},
                                     {"plate": "plbrec", "score": 0.758},
                                 ],
                                 "color": [
@@ -95,8 +87,8 @@ class WebhookTester:
                                     {"orientation": "Front", "score": 0.07},
                                     {"orientation": "Unknown", "score": 0.047},
                                 ],
-                                "plate": plate,
-                                "region": {"code": region_code, "score": 0.179},
+                                "plate": self.plate,
+                                "region": {"code": self.region_code, "score": 0.179},
                                 "score": 0.902,
                                 "vehicle": {
                                     "box": {
@@ -170,9 +162,7 @@ class WebhookTester:
         """Used to test the webhook."""
         print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
 
-        payload = self.get_webhook_payload(
-            self.camera_id, self.plate, self.region_code, self.timestamp
-        )
+        payload = self.get_webhook_payload()
         files = self.get_files_payload()
         response = self.send_request("post", self.url, payload, files)
         content = response.text
