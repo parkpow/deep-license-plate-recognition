@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from datetime import datetime, timezone
@@ -14,24 +15,36 @@ class WebhookError(Exception):
 class WebhookTester:
     """Main class to use in testing the webhook."""
 
-    def __init__(self, url: str):
-        self.url = url
-        self.token = os.environ.get("TOKEN")
-        self.camera_id = os.environ.get("CAMERA", "camera-1")
-        self.plate = os.environ.get("PLATE", "pl8rec")
-        self.region_code = os.environ.get("REGION", "us-ca")
-        self.timestamp = os.environ.get(
+    def __init__(
+        self,
+        url: str,
+        token: str | None = None,
+        camera_id: str | None = None,
+        plate: str | None = None,
+        region_code: str | None = None,
+        timestamp: str | None = None,
+    ):
+        self.url = url or os.environ.get("URL", "")
+        if not self.url:
+            raise ValueError("Set URL environment variable when running docker.")
+        self.token = token or os.environ.get("TOKEN")
+        self.camera_id = camera_id or os.environ.get("CAMERA", "camera-1")
+        self.plate = plate or os.environ.get("PLATE", "pl8rec")
+        self.region_code = region_code or os.environ.get("REGION", "us-ca")
+        self.timestamp = timestamp or os.environ.get(
             "TIMESTAMP", datetime.now(timezone.utc).isoformat()
         )
 
     def get_webhook_payload(
         self,
-        camera_id: str = "camera-1",
-        plate: str = "pl8rec",
-        region_code: str = "us-ca",
-        timestamp: str = datetime.now(timezone.utc).isoformat(),
+        camera_id: str | None = "camera-1",
+        plate: str | None = "pl8rec",
+        region_code: str | None = "us-ca",
+        timestamp: str | None = None,
     ) -> dict[str, Any]:
         """Return a sample payload to the request."""
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc).isoformat()
         return {
             "json": json.dumps(
                 {
@@ -171,13 +184,35 @@ class WebhookTester:
             print(f"Response content: {content}")
             print("--> The server successfully received the webhook.")
 
+    @staticmethod
+    def parse_args():
+        """Parse command line arguments."""
+        parser = argparse.ArgumentParser(
+            description="Test webhook with license plate recognition data"
+        )
+        parser.add_argument("--url", help="Webhook URL to test")
+        parser.add_argument("--token", help="Header authorization token")
+        parser.add_argument("--camera-id", help="Camera ID (default: camera-1)")
+        parser.add_argument("--plate", help="License plate text (default: pl8rec)")
+        parser.add_argument("--region", help="Region code (default: us-ca)")
+        parser.add_argument(
+            "--timestamp",
+            help="Timestamp (default: current UTC time). Format: 2025-08-11T16:42:58.740143Z",
+        )
+        return parser.parse_args()
+
 
 if __name__ == "__main__":
-    url = os.environ.get("URL")
-    if not url:
-        raise ValueError("Set URL environment variable when running docker.")
+    args = WebhookTester.parse_args()
     try:
-        tester = WebhookTester(url)
+        tester = WebhookTester(
+            url=args.url,
+            token=args.token,
+            camera_id=args.camera_id,
+            plate=args.plate,
+            region_code=args.region,
+            timestamp=args.timestamp,
+        )
         tester.execute()
     except KeyboardInterrupt:
         print("Stopping...")
