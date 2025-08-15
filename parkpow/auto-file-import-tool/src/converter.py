@@ -4,7 +4,7 @@ from datetime import datetime
 import re 
 from src.config import load_config 
 
-config_values = load_config()
+config_values = load_config() 
 
 COLUMN_MAPPING = config_values['COLUMN_MAPPING']
 EXTRA_COLUMNS = config_values['EXTRA_COLUMNS']

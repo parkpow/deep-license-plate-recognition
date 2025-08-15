@@ -75,7 +75,7 @@ def upload_file(filepath: str, remove: bool) -> dict:
                     # Proceed with the original filepath if rename fails
                 
                 # Start a new thread to monitor the task status and join it
-                monitor_thread = threading.Thread(target=monitor_task_status, args=(task_id, new_filename, filepath))
+                monitor_thread = threading.Thread(target=monitor_task_status, args=(task_id, new_filename, filepath, 180), daemon=True)
                 monitor_thread.start()
                 # Return the thread so it can be joined later
                 
@@ -111,14 +111,14 @@ def upload_file(filepath: str, remove: bool) -> dict:
         logger.error(f"Unexpected error while uploading {filepath}: {e}")
         return {"file": filepath, "status": "unexpected_error", "error": str(e)}
 
-def upload_all_parts(pattern: str, remove_flag: bool) -> list:
+def upload_all_parts(pattern: str, remove_flag: bool) -> tuple[list, list]:
     files = sorted(glob.glob(os.path.join(OUTPUT_FOLDER, pattern)))
     results = []
     monitoring_threads = []
 
     if not files:
         logger.info(f"No files found matching pattern '{pattern}' to upload.")
-        return results
+        return results, monitoring_threads
 
     logger.info(f"Found {len(files)} file(s) matching '{pattern}' to upload...")
 
@@ -137,4 +137,4 @@ def upload_all_parts(pattern: str, remove_flag: bool) -> list:
 
     
 
-    return results
+    return results, monitoring_threads

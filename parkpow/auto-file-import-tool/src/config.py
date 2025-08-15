@@ -141,4 +141,3 @@ def load_config() -> dict:
 
     _cached_config_values = app_config
     return app_config
-

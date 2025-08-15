@@ -1,5 +1,4 @@
 import os
-import re
 import requests
 import logging
 import json
@@ -10,15 +9,10 @@ from src.config import load_config
 logger = logging.getLogger(__name__)
 checker_errors_logger = logging.getLogger('checker_errors_logger')
 
-def extract_task_id(filename: str) -> str | None:
-    # This regex extracts the part between the last underscore and the file extension
-    # Example: 'to_remove023_7660bbd2d1154b3993256d5d9fdeedd1.csv' -> '7660bbd2d1154b3993256d5d9fdeedd1'
-    match = re.search(r'_([^_.]+)\.[^.]+$', filename)
-    if match:
-        return match.group(1)
-    return None
 
-def monitor_task_status(task_id: str, filename: str, filepath: str):
+
+def monitor_task_status(task_id: str, filename: str, filepath: str, max_retries: int = 180):
+    retries = 0
     config = load_config()
     error_folder = config['ERROR_FOLDER']
     task_status_api_url = config['TASK_STATUS_API_URL']
@@ -46,17 +40,19 @@ def monitor_task_status(task_id: str, filename: str, filepath: str):
                 break  # Exit loop on error
             elif not data:  # Empty JSON, task is pending
                 logger.info(f"Task {task_id} (file: {filename}) is still pending. Retrying in 15 seconds.")
-                time.sleep(15)
             else:
                 checker_errors_logger.warning(f"Unexpected API response for task {task_id} (file: {filename}): {json.dumps(data)}. Retrying in 15 seconds.")
-                time.sleep(15)
 
         except requests.exceptions.RequestException as e:
             checker_errors_logger.error(f"API request failed for task {task_id} (file: {filename}): {e}. Retrying in 15 seconds.")
-            time.sleep(15)
         except json.JSONDecodeError:
             checker_errors_logger.error(f"Failed to decode JSON response for task {task_id} (file: {filename}). Response: {response.text}. Retrying in 15 seconds.")
-            time.sleep(15)
         except Exception as e:
             checker_errors_logger.error(f"An unexpected error occurred while checking task {task_id} (file: {filename}): {e}. Retrying in 15 seconds.")
-            time.sleep(15)
+        
+        time.sleep(15)
+        retries += 1
+        if retries >= max_retries:
+            checker_errors_logger.error(f"Task {task_id} (file: {filename}) reached maximum retries ({max_retries}) and is still pending. Moving to error folder.")
+            os.rename(filepath, os.path.join(error_folder, filename))
+            break # Exit loop after max retries
