@@ -1,41 +1,40 @@
 repos:
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  # Ruff version.
-  rev: 'v0.0.254'
-  hooks:
-    - id: ruff
-      args: [--fix, --exit-non-zero-on-fix]
--   repo: https://github.com/psf/black
-    rev: 22.12.0
-    hooks:
-    -   id: black
-        language_version: python3
-        args:
-        - --config
-        - ./pyproject.toml
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.0.1
-    hooks:
-    -   id: mypy
-        args:
-        - --allow-untyped-globals
-        - --ignore-missing-imports
-        additional_dependencies:
-        - types-requests
-        - types-python-dateutil
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
-    hooks:
-    -   id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]
-    -   id: check-yaml
-    -   id: check-merge-conflict
-    -   id: debug-statements
-    -   id: check-added-large-files
--   repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.4
-    hooks:
-    -   id: prettier
-        exclude: '.*.min.js'
-        types:
-        - javascript
+    - repo: https://github.com/charliermarsh/ruff-pre-commit
+      # Ruff version.
+      rev: "v0.0.254"
+      hooks:
+          - id: ruff
+            args: [--fix, --exit-non-zero-on-fix]
+    - repo: https://github.com/ambv/black
+      rev: 24.8.0
+      hooks:
+          - id: black
+            language_version: python3
+            args: ["-C"]
+
+    - repo: https://github.com/pre-commit/mirrors-mypy
+      rev: v1.0.1
+      hooks:
+          - id: mypy
+            args:
+                - --allow-untyped-globals
+                - --ignore-missing-imports
+            additional_dependencies:
+                - types-requests
+                - types-python-dateutil
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.4.0
+      hooks:
+          - id: trailing-whitespace
+            args: [--markdown-linebreak-ext=md]
+          - id: check-yaml
+          - id: check-merge-conflict
+          - id: debug-statements
+          - id: check-added-large-files
+    - repo: https://github.com/pre-commit/mirrors-prettier
+      rev: v3.0.0-alpha.4
+      hooks:
+          - id: prettier
+            exclude: ".*.min.js"
+            types:
+                - javascript
