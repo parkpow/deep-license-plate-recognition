@@ -4,7 +4,7 @@ from datetime import datetime
 import re 
 from src.config import load_config 
 
-config_values = load_config()
+config_values = load_config() 
 
 COLUMN_MAPPING = config_values['COLUMN_MAPPING']
 EXTRA_COLUMNS = config_values['EXTRA_COLUMNS']
@@ -92,8 +92,12 @@ def process_input_file(input_filename: str) -> tuple[list, set]:
 
                 
                 if license_plate:
-                    license_plates_in_file.add(license_plate)
-                    formatted_rows.append(new_row)
+                    # Ensure we only add unique license plates to the formatted_rows
+                    if license_plate not in license_plates_in_file:
+                        license_plates_in_file.add(license_plate)
+                        formatted_rows.append(new_row)
+                    else:
+                        logger.warning(f"Duplicate license plate found in input file, skipping row: {license_plate}")
                 else:
                     logger.warning(f"Skipping row due to missing license plate: {line}")
 

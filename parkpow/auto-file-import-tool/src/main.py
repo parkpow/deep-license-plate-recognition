@@ -2,8 +2,7 @@ import os
 import logging
 import shutil
 from datetime import datetime
-import csv
-import glob
+
 
 from src.logger_setup import setup_logging
 from src.converter import process_input_file, HEADERS, write_csv_parts
@@ -51,6 +50,7 @@ def save_current_state(license_plates: set):
 
 def main():
     logger.info("Starting synchronization cycle.")
+    all_monitoring_threads = []
 
     # Find the first file in the upload folder
     try:
@@ -92,10 +92,6 @@ def main():
     logger.info(f"Plates to add: {len(plates_to_add)}")
     logger.info(f"Plates to remove: {len(plates_to_remove)}")
 
-    # 4. Prepare CSVs for addition and removal
-    add_csv_path = os.path.join(OUTPUT_FOLDER, "to_add.csv")
-    remove_csv_path = os.path.join(OUTPUT_FOLDER, "to_remove.csv")
-
     # Filter rows for addition
     lp_index = HEADERS.index("license_plate")
     rows_to_add = [
@@ -124,13 +120,15 @@ def main():
     # 5. Upload CSVs
     upload_success = True
     if rows_to_add:
-        add_upload_results = upload_all_parts("to_add*.csv", remove_flag=False)
+        add_upload_results, add_threads = upload_all_parts("to_add*.csv", remove_flag=False)
+        all_monitoring_threads.extend(add_threads)
         if any(r["status"] != "success" for r in add_upload_results):
             upload_success = False
             logger.error("Failed to upload all 'to_add' files. State will not be updated.")
 
     if rows_to_remove and upload_success: # Only attempt removal if addition was successful
-        remove_upload_results = upload_all_parts("to_remove*.csv", remove_flag=True)
+        remove_upload_results, remove_threads = upload_all_parts("to_remove*.csv", remove_flag=True)
+        all_monitoring_threads.extend(remove_threads)
         if any(r["status"] != "success" for r in remove_upload_results):
             upload_success = False
             logger.error("Failed to upload all 'to_remove' files. State will not be updated.")
@@ -139,12 +137,6 @@ def main():
     if upload_success:
         save_current_state(current_plates_in_file)
         logger.info("All uploads successful. State updated.")
-        # Clean up generated CSVs
-        for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_add*.csv")):
-            os.remove(f)
-        for f in glob.glob(os.path.join(OUTPUT_FOLDER, "to_remove*.csv")):
-            os.remove(f)
-        logger.info("Cleaned up temporary CSV files.")
     else:
         logger.error("Uploads failed. State file not updated. Please investigate and re-run.")
 
@@ -155,6 +147,17 @@ def main():
         logger.info(f"Moved processed input file to: {processed_filename}")
     except Exception as e:
         logger.error(f"Could not move processed input file: {e}")
+
+    # Wait for monitoring threads to complete
+    if all_monitoring_threads:
+        logger.info(f"Waiting for {len(all_monitoring_threads)} monitoring task(s) to complete... (max 45 minute)")
+        timeout_seconds = 45 * 60
+        for thread in all_monitoring_threads:
+            thread.join(timeout=timeout_seconds)
+
+        still_alive_threads = [thread for thread in all_monitoring_threads if thread.is_alive()]
+        if still_alive_threads:
+            logger.warning(f"{len(still_alive_threads)} monitoring task(s) did not complete within the timeout. Forcing exit.")
 
     logger.info("Synchronization cycle finished.")
 
