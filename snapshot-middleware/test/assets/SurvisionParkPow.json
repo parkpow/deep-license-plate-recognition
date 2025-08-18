@@ -1,86 +1,85 @@
-[[
+[
   {
-    "id": 2830867,
-    "vehicle": {
-      "license_plate": "mw818wm",
-      "field1": null,
-      "field2": null,
-      "field3": null,
-      "field4": null,
-      "field5": null,
-      "field6": null
+  "id": 2830867,
+  "vehicle": {
+    "license_plate": "mw818wm",
+    "field1": null,
+    "field2": null,
+    "field3": null,
+    "field4": null,
+    "field5": null,
+    "field6": null
+  },
+  "start_cam": {
+    "code": "sv1-searial-1",
+    "name": "sv1-searial-1",
+    "type": 0,
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  "end_cam": null,
+  "start_img": "http://0.0.0.0:8000/media/visits/2025/04/03/1/102/0925_hm1iZ_65f0e3f4-9ef6-49fa-b911-3d0a46eb3fd8.jpg",
+  "start_data": {
+    "box": {
+      "xmin": 693,
+      "ymin": 681,
+      "xmax": 988,
+      "ymax": 759
     },
-    "start_cam": {
-      "code": "sv1-searial-1",
-      "name": "sv1-searial-1",
-      "type": 0,
-      "latitude": null,
-      "longitude": null,
-      "notes": ""
+    "direction": 81,
+    "region": {
+      "code": "fr",
+      "score": 0.816
     },
-    "end_cam": null,
-    "start_img": "http://0.0.0.0:8000/media/visits/2025/04/03/1/102/0925_hm1iZ_65f0e3f4-9ef6-49fa-b911-3d0a46eb3fd8.jpg",
-    "start_data": {
-      "box": {
-        "xmin": 693,
-        "ymin": 681,
-        "xmax": 988,
-        "ymax": 759
-      },
-      "direction": 81,
-      "region": {
-        "code": "fr",
-        "score": 0.816
-      },
-      "plate": "mw818wm",
-      "dscore": 0.883,
-      "score": 1,
-      "vehicle": {
-        "box": {
-          "xmin": 385,
-          "ymin": 142,
-          "xmax": 1446,
-          "ymax": 921
-        },
-        "score": 0.414,
-        "type": "unknown"
-      },
-      "color": [
-        {
-          "color": "black",
-          "score": 0
-        }
-      ],
-      "orientation": [
-        {
-          "orientation": "Rear",
-          "score": 0
-        }
-      ],
-      "model_make": [
-        {
-          "model": "Invalid",
-          "make": "generic",
-          "score": 0.761
-        }
-      ]
-    },
-    "end_data": {},
-    "end_img": null,
-    "duration": null,
-    "status": "Created - New visit created",
+    "plate": "mw818wm",
+    "dscore": 0.883,
     "score": 1,
-    "start_date": "2024-10-18T02:04:50.098000+03:00",
-    "start_img_plate": null,
-    "start_orientation": 1,
-    "start_direction": 81,
-    "end_date": null,
-    "end_img_plate": null,
-    "end_orientation": null,
-    "end_direction": null,
-    "last_spotted": "2024-10-18T02:04:50.098000+03:00",
-    "org": 1,
-    "spot": null
-  }
-]
+    "vehicle": {
+      "box": {
+        "xmin": 385,
+        "ymin": 142,
+        "xmax": 1446,
+        "ymax": 921
+      },
+      "score": 0.414,
+      "type": "unknown"
+    },
+    "color": [
+      {
+        "color": "black",
+        "score": 0
+      }
+    ],
+    "orientation": [
+      {
+        "orientation": "Rear",
+        "score": 0
+      }
+    ],
+    "model_make": [
+      {
+        "model": "Invalid",
+        "make": "generic",
+        "score": 0.761
+      }
+    ]
+  },
+  "end_data": {},
+  "end_img": null,
+  "duration": null,
+  "status": "Created - New visit created",
+  "score": 1,
+  "start_date": "2024-10-18T02:04:50.098000+03:00",
+  "start_img_plate": null,
+  "start_orientation": 1,
+  "start_direction": 81,
+  "end_date": null,
+  "end_img_plate": null,
+  "end_orientation": null,
+  "end_direction": null,
+  "last_spotted": "2024-10-18T02:04:50.098000+03:00",
+  "org": 1,
+  "spot": null
+}
 ]
