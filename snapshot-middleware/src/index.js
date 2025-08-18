@@ -138,16 +138,15 @@ export default {
                 );
                 if (params.parkpowCameraIds) {
                   const parkPowCameraIds = params.parkpowCameraIds.split(",");
-                  resData = [];
-                  for (const parkPowCameraId of parkPowCameraIds) {
-                    const res = await parkPow.logVehicle(
+                  const promises = parkPowCameraIds.map((parkPowCameraId) =>
+                    parkPow.logVehicle(
                       cameraData.imageBase64,
                       ssRes.result,
                       parkPowCameraId,
                       ssRes.timestamp,
-                    );
-                    resData.push(res);
-                  }
+                    ),
+                  );
+                  resData = await Promise.all(promises);
                 } else {
                   resData = await parkPow.logVehicle(
                     cameraData.imageBase64,
