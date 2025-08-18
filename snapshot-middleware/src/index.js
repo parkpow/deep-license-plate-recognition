@@ -16,6 +16,7 @@ function requestParams(request) {
     overwriteDirection: searchParams.get("overwrite_direction"),
     overwriteOrientation: searchParams.get("overwrite_orientation"),
     parkpowForwarding: searchParams.get("parkpow_forwarding"),
+    parkpowCameraIds: searchParams.get("parkpow_camera_ids"),
   };
 }
 
@@ -120,6 +121,9 @@ export default {
                     cameraData.plate,
                   );
                 }
+                if (params.parkpowCameraIds) {
+                  parkPowForwardingEnabled = true;
+                }
               }
 
               let resData;
@@ -132,12 +136,26 @@ export default {
                   validInt(env.PARKPOW_RETRY_LIMIT, 5),
                   validInt(env.RETRY_DELAY, 2000),
                 );
-                resData = await parkPow.logVehicle(
-                  cameraData.imageBase64,
-                  ssRes.result,
-                  ssRes.cameraId,
-                  ssRes.timestamp,
-                );
+                if (params.parkpowCameraIds) {
+                  const parkPowCameraIds = params.parkpowCameraIds.split(",");
+                  resData = [];
+                  for (const parkPowCameraId of parkPowCameraIds) {
+                    const res = await parkPow.logVehicle(
+                      cameraData.imageBase64,
+                      ssRes.result,
+                      parkPowCameraId,
+                      ssRes.timestamp,
+                    );
+                    resData.push(res);
+                  }
+                } else {
+                  resData = await parkPow.logVehicle(
+                    cameraData.imageBase64,
+                    ssRes.result,
+                    ssRes.cameraId,
+                    ssRes.timestamp,
+                  );
+                }
               } else {
                 resData = ssRes.data;
               }

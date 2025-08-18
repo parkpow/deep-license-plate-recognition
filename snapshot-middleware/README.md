@@ -46,7 +46,8 @@ The worker can also be controlled using GET params
 - `overwrite_plate` - Overwrite Snapshot `plate` with camera response before forwarding to ParkPow
 - `overwrite_direction` - Overwrite Snapshot `direction` with camera response before forwarding
 - `overwrite_orientation` - Overwrite Snapshot `orientation` with camera response before forwarding
-- `parkpow_forwarding` - Enable ParkPow forwarding. This is also automatically enabled if you use any `overwrite_*` params.
+- `parkpow_forwarding` - Enable ParkPow forwarding. This is also automatically enabled if you use any `overwrite_*` params or `parkpow_camera_ids`.
+- `parkpow_camera_ids` - Duplicate same Snapshot results on ParkPow using different cameraIds. E.g `parkpow_camera_ids=camera_out,camera2_in`
 
 **Source Camera IDs**:
 ```plaintext
