@@ -136,25 +136,19 @@ export default {
                   validInt(env.PARKPOW_RETRY_LIMIT, 5),
                   validInt(env.RETRY_DELAY, 2000),
                 );
+                let parkPowCameraIds = [ssRes.cameraId];
                 if (params.parkpowCameraIds) {
-                  const parkPowCameraIds = params.parkpowCameraIds.split(",");
-                  const promises = parkPowCameraIds.map((parkPowCameraId) =>
-                    parkPow.logVehicle(
-                      cameraData.imageBase64,
-                      ssRes.result,
-                      parkPowCameraId,
-                      ssRes.timestamp,
-                    ),
-                  );
-                  resData = await Promise.all(promises);
-                } else {
-                  resData = await parkPow.logVehicle(
+                  parkPowCameraIds = params.parkpowCameraIds.split(",");
+                }
+                const promises = parkPowCameraIds.map((parkPowCameraId) =>
+                  parkPow.logVehicle(
                     cameraData.imageBase64,
                     ssRes.result,
-                    ssRes.cameraId,
+                    parkPowCameraId,
                     ssRes.timestamp,
-                  );
-                }
+                  ),
+                );
+                resData = await Promise.all(promises);
               } else {
                 resData = ssRes.data;
               }
