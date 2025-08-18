@@ -59,7 +59,7 @@ describe("ParkPow Forwarding", () => {
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual(SurvisionParkPowResponse);
+    expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
   });
 
   it("Forwards only the first Snapshot result if multiple", async () => {
@@ -83,7 +83,7 @@ describe("ParkPow Forwarding", () => {
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual(SurvisionParkPowResponse);
+    expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
   });
 
   it("Fallback to Camera results if Snapshot is empty.", async () => {
@@ -102,7 +102,7 @@ describe("ParkPow Forwarding", () => {
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual(GenetecResultParkPow);
+    expect(await response.json()).toStrictEqual([GenetecResultParkPow]);
   });
 
   it("Retries Rate Limits", async () => {
