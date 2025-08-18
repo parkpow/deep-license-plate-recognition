@@ -49,7 +49,14 @@ export default {
       const contentLength = request.headers.get("content-length");
       const cntLength = validInt(contentLength, -1);
       if (contentType?.includes("application/json") && cntLength > 0) {
-        const data = await request.json();
+        let data;
+        try {
+          data = await request.json();
+        } catch (e) {
+          return new Response("Error - Could not parse submitted JSON body.", {
+            status: 400,
+          });
+        }
         const snapshot = new SnapshotApi(
           env.SNAPSHOT_TOKEN,
           env.SNAPSHOT_URL,
