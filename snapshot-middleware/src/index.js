@@ -16,6 +16,7 @@ function requestParams(request) {
     overwriteDirection: searchParams.get("overwrite_direction"),
     overwriteOrientation: searchParams.get("overwrite_orientation"),
     parkpowForwarding: searchParams.get("parkpow_forwarding"),
+    parkpowCameraIds: searchParams.get("parkpow_camera_ids"),
   };
 }
 
@@ -48,7 +49,14 @@ export default {
       const contentLength = request.headers.get("content-length");
       const cntLength = validInt(contentLength, -1);
       if (contentType?.includes("application/json") && cntLength > 0) {
-        const data = await request.json();
+        let data;
+        try {
+          data = await request.json();
+        } catch (e) {
+          return new Response("Error - Could not parse submitted JSON body.", {
+            status: 400,
+          });
+        }
         const snapshot = new SnapshotApi(
           env.SNAPSHOT_TOKEN,
           env.SNAPSHOT_URL,
@@ -120,6 +128,9 @@ export default {
                     cameraData.plate,
                   );
                 }
+                if (params.parkpowCameraIds) {
+                  parkPowForwardingEnabled = true;
+                }
               }
 
               let resData;
@@ -132,12 +143,19 @@ export default {
                   validInt(env.PARKPOW_RETRY_LIMIT, 5),
                   validInt(env.RETRY_DELAY, 2000),
                 );
-                resData = await parkPow.logVehicle(
-                  cameraData.imageBase64,
-                  ssRes.result,
-                  ssRes.cameraId,
-                  ssRes.timestamp,
+                let parkPowCameraIds = [ssRes.cameraId];
+                if (params.parkpowCameraIds) {
+                  parkPowCameraIds = params.parkpowCameraIds.split(",");
+                }
+                const promises = parkPowCameraIds.map((parkPowCameraId) =>
+                  parkPow.logVehicle(
+                    cameraData.imageBase64,
+                    ssRes.result,
+                    parkPowCameraId,
+                    ssRes.timestamp,
+                  ),
                 );
+                resData = await Promise.all(promises);
               } else {
                 resData = ssRes.data;
               }

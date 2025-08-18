@@ -83,9 +83,9 @@ describe("Overwrite Parameters", async () => {
       await waitOnExecutionContext(ctx);
       expect(await response.status).toBe(200);
       const responseJson = await response.json();
-      expect(responseJson["time"]).toBe("2024-10-24T17:29:26Z");
-      expect(responseJson["camera"]).toBe("G637821011231200521C - Camera");
-      expect(responseJson["results"]).toStrictEqual([modifiedResult]);
+      expect(responseJson[0]["time"]).toBe("2024-10-24T17:29:26Z");
+      expect(responseJson[0]["camera"]).toBe("G637821011231200521C - Camera");
+      expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
     },
   );
 
@@ -267,9 +267,9 @@ describe("Overwrite Parameters", async () => {
       await waitOnExecutionContext(ctx);
       expect(await response.status).toBe(200);
       const responseJson = await response.json();
-      expect(responseJson["time"]).toBe("2024-10-17T23:04:50.098000Z");
-      expect(responseJson["camera"]).toBe("sv1-searial-1");
-      expect(responseJson["results"]).toStrictEqual([modifiedResult]);
+      expect(responseJson[0]["time"]).toBe("2024-10-17T23:04:50.098000Z");
+      expect(responseJson[0]["camera"]).toBe("sv1-searial-1");
+      expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
     },
   );
 });
