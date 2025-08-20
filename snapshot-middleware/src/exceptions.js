@@ -33,3 +33,10 @@ export class InvalidIntValue extends Error {
     this.name = "InvalidIntValue";
   }
 }
+
+export class InvalidResults extends UnexpectedApiResponse {
+  constructor(message) {
+    super(message);
+    this.name = "InvalidIntValue";
+  }
+}

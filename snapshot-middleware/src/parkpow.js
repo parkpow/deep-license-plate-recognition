@@ -20,7 +20,7 @@ export class ParkPowApi {
     }
     // Include API VERSION
     this.apiBase = `${this.apiBase}/api/v1/`;
-    console.debug("Api Base: " + this.apiBase);
+    // console.debug("Api Base: " + this.apiBase);
   }
 
   /**
@@ -33,7 +33,7 @@ export class ParkPowApi {
    * @returns {Promise<*>}
    */
   async logVehicle(encodedImage, result, cameraId, timestamp) {
-    console.debug("logVehicle called with result:", result);
+    console.debug(JSON.stringify(result));
     const endpoint = "log-vehicle/";
     const data = {
       camera: cameraId,
