@@ -17,7 +17,7 @@
     "@cloudflare/vitest-pool-workers": "0.8.62",
     "@vitest/coverage-istanbul": "^3.2.4",
     "vitest": "3.2.4",
-    "wrangler": "^4.30.0"
+    "wrangler": "^4.31.0"
   },
   "type": "module",
   "engines": {
