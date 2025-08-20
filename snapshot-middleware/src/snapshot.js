@@ -1,9 +1,39 @@
 import { fetchWithRetry } from "./utils";
+import { InvalidResults } from "./exceptions.js";
+
+export const FORMAT_V1 = 1;
+export const FORMAT_V2 = 2;
 
 export class SnapshotResponse {
   constructor(data) {
     this._data = data;
     console.debug(JSON.stringify(data));
+    if (data["results"].length === 0) {
+      this.format = FORMAT_V1;
+    } else {
+      if (this.isV2Format(data["results"][0])) {
+        this.format = FORMAT_V2;
+      } else {
+        this.format = FORMAT_V1;
+      }
+    }
+  }
+
+  isV2Format(result) {
+    return (
+      ("plate" in result &&
+        result["plate"] &&
+        result["plate"].constructor === Object &&
+        "props" in result["plate"]) ||
+      ("vehicle" in result &&
+        result["vehicle"] &&
+        result["vehicle"].constructor === Object &&
+        "props" in result["vehicle"])
+    );
+  }
+
+  isEmpty() {
+    return this.results.length === 0;
   }
 
   /**
@@ -21,20 +51,48 @@ export class SnapshotResponse {
   }
 
   overwritePlate(plate) {
-    this.ensureResultsNotEmpty(plate);
-    this.result["plate"] = plate;
-    if (
-      this.result["candidates"] === undefined ||
-      this.result["candidates"].length === 0
-    ) {
-      this.result["candidates"] = [
-        {
-          plate: plate,
-          score: 0.9,
-        },
-      ];
+    const overwriteScore = 0.9;
+    if (this.format === FORMAT_V1) {
+      this.ensureResultsNotEmpty(plate);
+      this.result["plate"] = plate;
+      if (
+        this.result["candidates"] === undefined ||
+        this.result["candidates"].length === 0
+      ) {
+        this.result["candidates"] = [
+          {
+            plate: plate,
+            score: overwriteScore,
+          },
+        ];
+      } else {
+        this.result["candidates"][0]["plate"] = plate;
+      }
+    } else if (this.format === FORMAT_V2) {
+      let v2Plate = {
+        value: plate,
+        score: overwriteScore,
+      };
+      if (this.result["plate"]) {
+        this.result["plate"]["props"]["plate"][0] = v2Plate;
+      } else {
+        this.result["plate"] = {
+          type: "Plate",
+          score: overwriteScore,
+          box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
+          props: {
+            plate: [v2Plate],
+            region: [
+              // {
+              //   "value": "gb",
+              //   "score": 0.931
+              // }
+            ],
+          },
+        };
+      }
     } else {
-      this.result["candidates"][0]["plate"] = plate;
+      throw new Error("Unexpected format");
     }
 
     // TODO Overwrite plate scores
@@ -44,11 +102,24 @@ export class SnapshotResponse {
   }
 
   /**
+   * Pick first result with vehicle
+   * @param results
+   * @returns {*}
+   */
+  pickValidResult(results) {
+    let pickedResult = results.find((el) => el["vehicle"]);
+    if (!pickedResult) {
+      throw InvalidResults("No result with vehicle");
+    }
+    return pickedResult;
+  }
+
+  /**
    * Default result is the first result
    * @returns {*}
    */
   get result() {
-    return this.results[0];
+    return this.pickValidResult(this.results);
   }
 
   overwriteDirection(direction, licensePlateNumber) {
@@ -110,11 +181,11 @@ export class SnapshotApi {
     } else {
       this.apiBase = "https://api.platerecognizer.com";
     }
-    console.debug("Api Base: " + this.apiBase);
+    //console.debug("Api Base: " + this.apiBase);
   }
 
   async uploadBase64(encodedImage, camera, timestamp, params) {
-    console.debug(params);
+    //console.debug(params);
     const endpoint = "/v1/plate-reader/";
     const body = new FormData();
     body.set("upload", encodedImage);

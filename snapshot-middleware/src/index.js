@@ -4,7 +4,7 @@ import { UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
 import { validInt } from "./utils";
 
-function requestParams(request) {
+function requestParams(request, parkpowForwardingDefault) {
   const { searchParams } = new URL(request.url);
   return {
     mmc: searchParams.get("mmc"),
@@ -15,7 +15,9 @@ function requestParams(request) {
     overwritePlate: searchParams.get("overwrite_plate"),
     overwriteDirection: searchParams.get("overwrite_direction"),
     overwriteOrientation: searchParams.get("overwrite_orientation"),
-    parkpowForwarding: searchParams.get("parkpow_forwarding"),
+    parkpowForwarding:
+      searchParams.get("parkpow_forwarding") ||
+      validInt(parkpowForwardingDefault),
     parkpowCameraIds: searchParams.get("parkpow_camera_ids"),
   };
 }
@@ -40,6 +42,52 @@ function findProcessor(selection, request, data) {
 }
 
 /**
+ * Utility function to log error responses to console
+ * @param data
+ * @param status
+ * @returns {Response}
+ */
+function loggedResponse(data, status = 400) {
+  console.log(`${status}-${data}`);
+  return new Response(data, { status: status });
+}
+
+/**
+ * Perform ParkPow overwrite operations and turn on forwarding
+ * @param forwardingEnabled
+ * @param ssRes
+ * @param cameraData
+ * @param params
+ * @returns {boolean}
+ */
+function overwriteOps(forwardingEnabled, ssRes, cameraData, params) {
+  // Create camera result to forward if Snapshot empty
+  if (forwardingEnabled && ssRes.isEmpty()) {
+    ssRes.overwritePlate(cameraData.plate);
+    ssRes.overwriteOrientation(cameraData.orientation, cameraData.plate);
+    ssRes.overwriteDirection(cameraData.direction, cameraData.plate);
+  } else {
+    if (params.overwritePlate) {
+      forwardingEnabled = true;
+      ssRes.overwritePlate(cameraData.plate);
+    }
+    if (params.overwriteOrientation) {
+      forwardingEnabled = true;
+      ssRes.overwriteOrientation(cameraData.orientation, cameraData.plate);
+    }
+    if (params.overwriteDirection) {
+      forwardingEnabled = true;
+      ssRes.overwriteDirection(cameraData.direction, cameraData.plate);
+    }
+    if (params.parkpowCameraIds) {
+      forwardingEnabled = true;
+    }
+  }
+
+  return forwardingEnabled;
+}
+
+/**
  * Integration URL will configure processor, if not then fallback to the checking of headers
  */
 export default {
@@ -53,9 +101,7 @@ export default {
         try {
           data = await request.json();
         } catch (e) {
-          return new Response("Error - Could not parse submitted JSON body.", {
-            status: 400,
-          });
+          return loggedResponse("Error - Could not parse submitted JSON body.");
         }
         const snapshot = new SnapshotApi(
           env.SNAPSHOT_TOKEN,
@@ -63,25 +109,24 @@ export default {
           validInt(env.SNAPSHOT_RETRY_LIMIT, 5),
           validInt(env.RETRY_DELAY, 2000),
         );
-        const params = requestParams(request);
-        console.debug(`Params: ${JSON.stringify(params)}`);
+        const params = requestParams(request, env.PARKPOW_FORWARDING);
+        //console.debug(`Params: ${JSON.stringify(params)}`);
         const processorSelection = validInt(params.processorSelection, -1);
-        console.debug(`Processor Selection: ${processorSelection}`);
+        //console.debug(`Processor Selection: ${processorSelection}`);
         const CameraClass = findProcessor(processorSelection, request, data);
-        console.debug(`CameraClass: ${CameraClass}`);
         if (CameraClass) {
           let cameraData;
           try {
             cameraData = new CameraClass(request, data);
-            console.debug(`CameraData Instance: ${cameraData}`);
+            console.debug(JSON.stringify(cameraData.debugLog));
           } catch (e) {
             const errMsg =
               processorSelection > -1
                 ? "Specified Processor Unable Process Camera Data"
                 : "Invalid Camera Data";
-            return new Response(
+            console.debug(JSON.stringify(data));
+            return loggedResponse(
               `Processor Error - ${processorSelection} - ${errMsg}`,
-              { status: 400 },
             );
           }
           return snapshot
@@ -95,43 +140,14 @@ export default {
               async (response) => new SnapshotResponse(await response.json()),
             )
             .then(async (ssRes) => {
-              console.debug(`Snapshot results: ${ssRes.results}`);
+              // console.debug(`Snapshot results: ${ssRes.results}`);
               // check config to forward to ParkPow
-              let parkPowForwardingEnabled = !!params.parkpowForwarding;
-              // Create camera result to forward if Snapshot empty
-              if (parkPowForwardingEnabled && ssRes.results.length === 0) {
-                ssRes.overwritePlate(cameraData.plate);
-                ssRes.overwriteOrientation(
-                  cameraData.orientation,
-                  cameraData.plate,
-                );
-                ssRes.overwriteDirection(
-                  cameraData.direction,
-                  cameraData.plate,
-                );
-              } else {
-                if (params.overwritePlate) {
-                  parkPowForwardingEnabled = true;
-                  ssRes.overwritePlate(cameraData.plate);
-                }
-                if (params.overwriteOrientation) {
-                  parkPowForwardingEnabled = true;
-                  ssRes.overwriteOrientation(
-                    cameraData.orientation,
-                    cameraData.plate,
-                  );
-                }
-                if (params.overwriteDirection) {
-                  parkPowForwardingEnabled = true;
-                  ssRes.overwriteDirection(
-                    cameraData.direction,
-                    cameraData.plate,
-                  );
-                }
-                if (params.parkpowCameraIds) {
-                  parkPowForwardingEnabled = true;
-                }
-              }
+              let parkPowForwardingEnabled = overwriteOps(
+                !!params.parkpowForwarding,
+                ssRes,
+                cameraData,
+                params,
+              );
 
               let resData;
               // By default, the response should be Snapshot response
@@ -148,45 +164,46 @@ export default {
                   parkPowCameraIds = params.parkpowCameraIds.split(",");
                 }
                 const promises = parkPowCameraIds.map((parkPowCameraId) =>
-                  parkPow.logVehicle(
-                    cameraData.imageBase64,
-                    ssRes.result,
-                    parkPowCameraId,
-                    ssRes.timestamp,
-                  ),
+                  parkPow
+                    .logVehicle(
+                      cameraData.imageBase64,
+                      ssRes.result,
+                      parkPowCameraId,
+                      ssRes.timestamp,
+                    )
+                    .catch((error) => {
+                      return { error: error.message };
+                    }),
                 );
                 resData = await Promise.all(promises);
               } else {
                 resData = ssRes.data;
               }
-              // console.debug(`resString: ${resString}`)
-              return new Response(JSON.stringify(resData), {
+              const resString = JSON.stringify(resData);
+              console.log(resString);
+              return new Response(resString, {
                 headers: { "Content-Type": "application/json" },
               });
             })
             .catch((error) => {
               if (error instanceof UnexpectedApiResponse) {
-                return new Response(error.message, { status: error.status });
+                return loggedResponse(error.message, error.status);
               } else {
                 throw error;
               }
             });
         } else {
-          return new Response(
+          return loggedResponse(
             "Error - Invalid Request Content or Wrong Processor",
-            {
-              status: 400,
-            },
           );
         }
       } else {
-        return new Response(
+        return loggedResponse(
           "Error - Expected Content-Type application/json and Content-Length > 0",
-          { status: 400 },
         );
       }
     } else {
-      return new Response("Error - Required POST", { status: 400 });
+      return loggedResponse("Error - Required POST");
     }
   },
 };
