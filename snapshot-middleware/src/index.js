@@ -1,23 +1,31 @@
 import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
-import { UnexpectedApiResponse } from "./exceptions";
+import { InvalidResults, UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
 import { validInt } from "./utils";
 
-function requestParams(request, parkpowForwardingDefault) {
+function mergeConfigs(param, env) {
+  if (param) {
+    let merged = { ...JSON.parse(env), ...JSON.parse(param) };
+    return JSON.stringify(merged);
+  } else {
+    return env;
+  }
+}
+
+function requestParams(request, parkpowForwardingEnv, configEnv) {
   const { searchParams } = new URL(request.url);
   return {
     mmc: searchParams.get("mmc"),
     camera_id: searchParams.get("camera_id"),
     regions: searchParams.get("regions"),
-    config: searchParams.get("config"),
+    config: mergeConfigs(searchParams.get("config"), configEnv),
     processorSelection: searchParams.get("processor_selection"),
     overwritePlate: searchParams.get("overwrite_plate"),
     overwriteDirection: searchParams.get("overwrite_direction"),
     overwriteOrientation: searchParams.get("overwrite_orientation"),
     parkpowForwarding:
-      searchParams.get("parkpow_forwarding") ||
-      validInt(parkpowForwardingDefault),
+      searchParams.get("parkpow_forwarding") || validInt(parkpowForwardingEnv),
     parkpowCameraIds: searchParams.get("parkpow_camera_ids"),
   };
 }
@@ -109,16 +117,18 @@ export default {
           validInt(env.SNAPSHOT_RETRY_LIMIT, 5),
           validInt(env.RETRY_DELAY, 2000),
         );
-        const params = requestParams(request, env.PARKPOW_FORWARDING);
-        //console.debug(`Params: ${JSON.stringify(params)}`);
+        const params = requestParams(
+          request,
+          env.PARKPOW_FORWARDING,
+          env.SNAPSHOT_CONFIG,
+        );
         const processorSelection = validInt(params.processorSelection, -1);
-        //console.debug(`Processor Selection: ${processorSelection}`);
         const CameraClass = findProcessor(processorSelection, request, data);
         if (CameraClass) {
           let cameraData;
           try {
             cameraData = new CameraClass(request, data);
-            console.debug(JSON.stringify(cameraData.debugLog));
+            console.log(cameraData.debugLog);
           } catch (e) {
             const errMsg =
               processorSelection > -1
@@ -140,7 +150,6 @@ export default {
               async (response) => new SnapshotResponse(await response.json()),
             )
             .then(async (ssRes) => {
-              // console.debug(`Snapshot results: ${ssRes.results}`);
               // check config to forward to ParkPow
               let parkPowForwardingEnabled = overwriteOps(
                 !!params.parkpowForwarding,
@@ -186,7 +195,10 @@ export default {
               });
             })
             .catch((error) => {
-              if (error instanceof UnexpectedApiResponse) {
+              if (error instanceof InvalidResults) {
+                // Prevent cameras retrying empty or invalid results
+                return loggedResponse(error.message, 200);
+              } else if (error instanceof UnexpectedApiResponse) {
                 return loggedResponse(error.message, error.status);
               } else {
                 throw error;
