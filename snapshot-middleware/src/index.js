@@ -205,8 +205,10 @@ export default {
               }
             });
         } else {
+          console.debug(JSON.stringify(data));
           return loggedResponse(
-            "Error - Invalid Request Content or Wrong Processor",
+            "Invalid Request Content or Wrong Processor",
+            200,
           );
         }
       } else {
