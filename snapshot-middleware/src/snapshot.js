@@ -7,7 +7,7 @@ export const FORMAT_V2 = 2;
 export class SnapshotResponse {
   constructor(data) {
     this._data = data;
-    console.debug(JSON.stringify(data));
+    console.log(JSON.stringify(data));
     if (data["results"].length === 0) {
       this.format = FORMAT_V1;
     } else {
@@ -109,7 +109,7 @@ export class SnapshotResponse {
   pickValidResult(results) {
     let pickedResult = results.find((el) => el["vehicle"]);
     if (!pickedResult) {
-      throw InvalidResults("No result with vehicle");
+      throw new InvalidResults("No result with vehicle");
     }
     return pickedResult;
   }
@@ -185,7 +185,7 @@ export class SnapshotApi {
   }
 
   async uploadBase64(encodedImage, camera, timestamp, params) {
-    //console.debug(params);
+    console.log("Snapshot upload Params", params);
     const endpoint = "/v1/plate-reader/";
     const body = new FormData();
     body.set("upload", encodedImage);

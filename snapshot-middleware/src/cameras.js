@@ -88,7 +88,7 @@ class Survision extends Camera {
     let copy = Object.assign({}, this.data);
     // Clear image
     copy["anpr"]["decision"]["jpeg"] = "";
-    return copy;
+    return JSON.stringify(copy);
   }
 
   get plate() {
@@ -134,8 +134,6 @@ class Genetec extends Camera {
     }
     //  "11:49:22", Format HH/MM/SS
     const [hours, minutes, seconds] = data["TimeUtc"].split(":");
-    //console.debug(`year: ${year} month: ${month} day: ${day}`);
-    //console.debug(`hours: ${hours} minutes: ${minutes} seconds: ${seconds}`);
     const createdDate = new Date(
       validInt(year),
       validInt(month) - 1,
@@ -144,7 +142,6 @@ class Genetec extends Camera {
       validInt(minutes),
       validInt(seconds),
     ).toISOString();
-    //console.debug(`createdDate: ${createdDate}`);
     const imageBase64 = data["ContextImage"];
     super(cameraId, imageBase64, createdDate, data);
   }
@@ -158,7 +155,7 @@ class Genetec extends Camera {
     // Clear image
     copy["ContextImage"] = "";
     copy["PlateImage"] = "";
-    return copy;
+    return JSON.stringify(copy);
   }
   get plate() {
     return this.data["Plate"];

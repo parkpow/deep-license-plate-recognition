@@ -19,6 +19,7 @@ SNAPSHOT_RETRY_LIMIT=5
 PARKPOW_RETRY_LIMIT=5
 RETRY_DELAY=2000
 PARKPOW_FORWARDING=1
+SNAPSHOT_CONFIG='{"detection_mode":"vehicle"}'
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
