@@ -91,9 +91,12 @@ class WebhookQueue:
                                 "orientation": [
                                     {
                                         "score": 1,
-                                        "value": "Rear"
-                                        if v_attrs["Relative Motion"] == "Moving Away"
-                                        else "Front",
+                                        "value": (
+                                            "Rear"
+                                            if v_attrs["Relative Motion"]
+                                            == "Moving Away"
+                                            else "Front"
+                                        ),
                                     }
                                 ],
                                 "make_model": [
@@ -222,17 +225,13 @@ def main():
         description="Forward Genetec LPR Events to ParkPow."
     )
     subparsers = parser.add_subparsers(help="subcommand help")
-    pp_args = subparsers.add_parser(
-        "parkpow",
-        help="Forward Genetec events to ParkPow",
-    )
+    pp_args = subparsers.add_parser("parkpow", help="Forward Genetec events to ParkPow")
     pp_args.add_argument("--token", help="ParkPow Token.", required=True)
     pp_args.add_argument("--url", help="ParkPow Server URL.", required=False)
     pp_args.set_defaults(func=forward_parkpow)
 
     snapshot_args = subparsers.add_parser(
-        "snapshot",
-        help="Forward Genetec events to Snapshot",
+        "snapshot", help="Forward Genetec events to Snapshot"
     )
     group = snapshot_args.add_mutually_exclusive_group()
     group.add_argument("--url", help="Snapshot Server URL.")

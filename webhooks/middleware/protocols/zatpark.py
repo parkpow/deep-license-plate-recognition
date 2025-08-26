@@ -1,6 +1,6 @@
 import base64
-import os
 import logging
+import os
 from datetime import datetime
 from typing import Any
 
@@ -9,10 +9,9 @@ import requests
 service_url = os.getenv("ZATPARK_SERVICE_URL")
 
 if not service_url:
-    logging.error(
-        "Missing required configuration: ZATPARK_SERVICE_URL must be set."
-    )
+    logging.error("Missing required configuration: ZATPARK_SERVICE_URL must be set.")
     exit(1)
+
 
 def convert_to_timestamp(time_string: str) -> int:
     try:
@@ -25,26 +24,38 @@ def convert_to_timestamp(time_string: str) -> int:
     except (ValueError, TypeError) as e:
         raise ValueError(f"Invalid time format: {time_string}") from e
 
-def extract_data_plate(json_data: dict) -> tuple[
-    str | None, str | None, float | None, str | None, str | None, dict[str, str], int, int
+
+def extract_data_plate(
+    json_data: dict,
+) -> tuple[
+    str | None,
+    str | None,
+    float | None,
+    str | None,
+    str | None,
+    dict[str, str],
+    int | None,
+    int | None,
 ]:
-    
+
     data_section = json_data.get("data", {})
     results = data_section.get("results")
 
     if not results or not isinstance(results, list) or not results:
         raise ValueError("Missing or invalid 'results' data in JSON payload.")
 
-    data_results = results[0] 
-        
+    data_results = results[0]
+
     plate = data_results.get("plate")
     region = data_results.get("region", {}).get("code")
     score = data_results.get("score")
     orientation = data_results.get("orientation", [{}])[0].get("orientation")
-    
+
     # Common data extraction
     camera_id = data_section.get("camera_id")
     header = json_data.get("webhook_header", {})
+    if not isinstance(header, dict):
+        header = {}
 
     timestamp_str = data_section.get("timestamp")
     timestamp_local_str = data_section.get("timestamp_local")
@@ -56,7 +67,9 @@ def extract_data_plate(json_data: dict) -> tuple[
         timestamp = None
 
     try:
-        timestamp_local = convert_to_timestamp(timestamp_local_str) if timestamp_local_str else None
+        timestamp_local = (
+            convert_to_timestamp(timestamp_local_str) if timestamp_local_str else None
+        )
     except ValueError:
         logging.warning(f"Invalid format for 'timestamp_local': {timestamp_local_str}")
         timestamp_local = None
@@ -71,32 +84,52 @@ def extract_data_plate(json_data: dict) -> tuple[
         region = plate_props.get("region", [{}])[0].get("value")
         orientation = vehicle_props.get("orientation", [{}])[0].get("value")
 
-    return region, plate, score, orientation, camera_id, header, timestamp, timestamp_local
+    return (
+        region,
+        plate,
+        score,
+        orientation,
+        camera_id,
+        header if isinstance(header, dict) else {},
+        timestamp,
+        timestamp_local,
+    )
 
 
 def process_request(
-     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
-    ) -> tuple[str, int]:
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
+) -> tuple[str, int]:
 
     if not all_files:
-        logging.error("No files dictionary provided. 'vehicle' and 'plate' image_type are required.")
+        logging.error(
+            "No files dictionary provided. 'vehicle' and 'plate' image_type are required."
+        )
         return "No files uploaded.", 400
-    
+
     upload_file = all_files.get("upload")
     plate_img = all_files.get("plate_img")
-    
+
     if not upload_file or not plate_img:
         logging.error("Both image_type are required,  vehicle and plate.")
         return "Required files ('vehicle' or 'plate') are missing.", 400
 
     imagens = {}
     if upload_file:
-        imagens['upload'] = base64.b64encode(upload_file).decode("utf-8")
+        imagens["upload"] = base64.b64encode(upload_file).decode("utf-8")
     if plate_img:
-        imagens['plate'] = base64.b64encode(plate_img).decode("utf-8")
+        imagens["plate"] = base64.b64encode(plate_img).decode("utf-8")
 
     try:
-        region, plate, score, orientation, camera_id, header, timestamp, timestamp_local = extract_data_plate(json_data)
+        (
+            region,
+            plate,
+            score,
+            orientation,
+            camera_id,
+            header,
+            timestamp,
+            timestamp_local,
+        ) = extract_data_plate(json_data)
     except (ValueError, KeyError, IndexError) as e:
         logging.error(f"Failed to extract necessary data from JSON payload: {e}")
         return f"Invalid or incomplete JSON data: {e}", 400
@@ -106,9 +139,10 @@ def process_request(
     serial_number = header.get("serial_number") or mac_address
 
     if mac_address is None:
-        logging.error(f"The MAC address is required for '{camera_id}', but was not provided.")
+        logging.error(
+            f"The MAC address is required for '{camera_id}', but was not provided."
+        )
         return "The MAC address is required.", 400
-    
 
     if not plate or score is None:
         logging.error("Failed to extract plate or score from json_data.")
@@ -121,17 +155,18 @@ def process_request(
                 "serialNo": serial_number,
                 "MAC": mac_address,
                 "cameraName": camera_name,
-                "timeStamp": {
-                    "Time": timestamp,
-                    "LocalTime": timestamp_local
-                },
+                "timeStamp": {"Time": timestamp, "LocalTime": timestamp_local},
                 "confidence": int(score * 100),
                 "motion": "toward" if orientation == "Front" else "Away",
-                "plate": imagens['plate'],
-                "overview": imagens['upload']
+                "plate": imagens["plate"],
+                "overview": imagens["upload"],
             }
         ]
     }
+
+    if service_url is None:
+        logging.error("ZATPARK_SERVICE_URL is not set.")
+        return "Service URL is not configured.", 500
 
     try:
         response = requests.post(service_url, json=payload, timeout=10)
@@ -146,4 +181,7 @@ def process_request(
         return "Request received and successfully processed.", 200
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to send request to Zatpark service: {str(e)}")
-        return "An error occurred while communicating with the external Zatpark service.", 500
+        return (
+            "An error occurred while communicating with the external Zatpark service.",
+            500,
+        )

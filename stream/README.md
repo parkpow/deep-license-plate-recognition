@@ -71,11 +71,11 @@ _1. Don't forget to update the `--threshold` (time duration in hours) to remove 
 
 _2. `--threshold` should be an integer between `1` and `23 `(hours)._
 
-_3. `--directory` Stream working directory, default value = `.` 
+_3. `--directory` Stream working directory, default value = `.`
 
 ### Schedule running of script
 
-For Linux: 
+For Linux:
 
 _Note: Make sure cron is installed._
 
@@ -105,14 +105,14 @@ schtasks /create /sc daily /tn RemoveStreamImages /tr "C:\Users\User\AppData\Loc
 
 ```
 
-2. Lastly, to make sure this runs on the Stream directory. Open Task Scheduler, click on the newly created scheduler task, then choose Properties. Go to the Actions tab, then click on Edit. Set the Start in (optional) to be the path of your Stream Directory then click Ok. 
+2. Lastly, to make sure this runs on the Stream directory. Open Task Scheduler, click on the newly created scheduler task, then choose Properties. Go to the Actions tab, then click on Edit. Set the Start in (optional) to be the path of your Stream Directory then click Ok.
 
 
 ### Uninstall
 
-To uninstall the service, just remove the script from the Stream directory. 
+To uninstall the service, just remove the script from the Stream directory.
 
-To remove the scheduled running of the script, 
+To remove the scheduled running of the script,
 
 For Linux, run this in the terminal:
 ```bash
@@ -138,7 +138,7 @@ _Notes:_
 _1. Don't forget to update the `--target_free` (desired free space %) and `--trigger_usage` (disk usage % that triggers cleanup).
 
 _2. Both `--target_free` and `--trigger_usage` must be integers between 1 and 99.
-_3. `--directory` Stream working directory, default value = `.` 
+_3. `--directory` Stream working directory, default value = `.`
 
 ### Schedule running of script
 

@@ -130,9 +130,9 @@ def process_request(
     payload = {
         "serverId": server_id,
         "name": license_plate,
-        "description": tag.upper()
-        if parkpow_check_license(license_plate) and tag
-        else "",
+        "description": (
+            tag.upper() if parkpow_check_license(license_plate) and tag else ""
+        ),
         "startTimeMs": convert_to_timestamp_milliseconds(
             json_data["data"]["timestamp_local"]
         ),

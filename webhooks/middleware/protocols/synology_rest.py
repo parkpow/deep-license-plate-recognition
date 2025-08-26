@@ -28,10 +28,7 @@ def process_request(
         logging.error(f"Vehicle: {plate}. Invalid timestamp format.")
         return "Invalid timestamp format.", 400
 
-    request_data = {
-        "time": timestamp,
-        "text1": plate,
-    }
+    request_data = {"time": timestamp, "text1": plate}
 
     HEADERS = {"Content-Type": "application/x-www-form-urlencoded; charset=utf-8"}
     data = parse.urlencode(request_data)

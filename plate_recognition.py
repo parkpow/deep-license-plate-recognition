@@ -91,9 +91,7 @@ def recognition_api(
             response = requests.post(
                 "https://container-api.parkpow.com/api/v1/predict/",
                 files=dict(image=fp),
-                headers={
-                    "Authorization": "Token " + api_key,
-                },
+                headers={"Authorization": "Token " + api_key},
             )
         else:
             response = requests.post(
@@ -190,15 +188,19 @@ def is_detection_mode_vehicle(engine_config):
 
 
 def transform_result(input_data):
-    output = OrderedDict([
-        ("filename", input_data.get("filename")),
-        ("timestamp", input_data.get("timestamp")),
-        ("camera_id", input_data.get("camera_id")),
-        ("results", [])
-    ])
+    output = OrderedDict(
+        [
+            ("filename", input_data.get("filename")),
+            ("timestamp", input_data.get("timestamp")),
+            ("camera_id", input_data.get("camera_id")),
+            ("results", []),
+        ]
+    )
 
-    no_plate_box = OrderedDict([("xmin", None), ("ymin", None), ("xmax", None), ("ymax", None)])
-    no_plate_region = OrderedDict([("code", None),("score", None)])
+    no_plate_box = OrderedDict(
+        [("xmin", None), ("ymin", None), ("xmax", None), ("ymax", None)]
+    )
+    no_plate_region = OrderedDict([("code", None), ("score", None)])
 
     for result in input_data.get("results", []):
         # Process plate data if available
@@ -210,10 +212,16 @@ def transform_result(input_data):
 
             region_candidates = props.get("region", [])
             top_region = region_candidates[0] if region_candidates else None
-            region_entry = (OrderedDict([
-                ("code", top_region.get("value")),
-                ("score", top_region.get("score"))
-            ]) if top_region else None)
+            region_entry = (
+                OrderedDict(
+                    [
+                        ("code", top_region.get("value")),
+                        ("score", top_region.get("score")),
+                    ]
+                )
+                if top_region
+                else None
+            )
         else:
             plate_candidates = []
             top_plate = None
@@ -242,24 +250,28 @@ def transform_result(input_data):
             for cand in plate_candidates
         ]
 
-        vehicle_entry = OrderedDict([
-            ("score", vehicle_data.get("score")),
-            ("type", vehicle_data.get("type")),
-            ("box", vehicle_data.get("box")),
-        ])
+        vehicle_entry = OrderedDict(
+            [
+                ("score", vehicle_data.get("score")),
+                ("type", vehicle_data.get("type")),
+                ("box", vehicle_data.get("box")),
+            ]
+        )
 
-        transformed_result = OrderedDict([
-            ("box", plate_data.get("box") if plate_data else no_plate_box),
-            ("plate", top_plate.get("value") if top_plate else None),
-            ("region", region_entry if top_plate else no_plate_region),
-            ("score", top_plate.get("score") if top_plate else None),
-            ("candidates", candidates if plate_data else None),
-            ("dscore", plate_data.get("score") if plate_data else None),
-            ("vehicle", vehicle_entry),
-            ("model_make", model_make),
-            ("color", colors),
-            ("orientation", orientations),
-        ])
+        transformed_result = OrderedDict(
+            [
+                ("box", plate_data.get("box") if plate_data else no_plate_box),
+                ("plate", top_plate.get("value") if top_plate else None),
+                ("region", region_entry if top_plate else no_plate_region),
+                ("score", top_plate.get("score") if top_plate else None),
+                ("candidates", candidates if plate_data else None),
+                ("dscore", plate_data.get("score") if plate_data else None),
+                ("vehicle", vehicle_entry),
+                ("model_make", model_make),
+                ("color", colors),
+                ("orientation", orientations),
+            ]
+        )
 
         output["results"].append(transformed_result)
 
@@ -281,7 +293,11 @@ def save_results(results, args):
     elif args.format == "csv":
         fieldnames = []
         for result in results[:10]:
-            data = transform_result(result) if is_detection_mode_vehicle(args.engine_config) else result
+            data = (
+                transform_result(result)
+                if is_detection_mode_vehicle(args.engine_config)
+                else result
+            )
             candidates = flatten(data.copy())
             for candidate in candidates:
                 if len(fieldnames) < len(candidate):
@@ -290,7 +306,11 @@ def save_results(results, args):
             writer = csv.DictWriter(fp, fieldnames=fieldnames)
             writer.writeheader()
             for result in results:
-                result_data = transform_result(result) if is_detection_mode_vehicle(args.engine_config) else result
+                result_data = (
+                    transform_result(result)
+                    if is_detection_mode_vehicle(args.engine_config)
+                    else result
+                )
                 flattened_results = flatten(result_data)
                 for flattened_result in flattened_results:
                     writer.writerow(flattened_result)

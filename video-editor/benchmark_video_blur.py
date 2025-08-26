@@ -1,16 +1,16 @@
 import argparse
 import datetime
 import math
+import os
+import subprocess
+import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-import os
 from timeit import default_timer
 
-import requests
-import subprocess
-import time
 import cv2
+import requests
 
 
 def parse_arguments():
@@ -88,7 +88,7 @@ def write_results(args, results):
 
 
 def print_table(file_path):
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         for line in file:
             print(line, end="")
 
@@ -131,16 +131,11 @@ def convert_size(size_bytes):
 def benchmark(args, executor, sample_rate):
     stats = list(
         executor.map(
-            partial(call_duration, video_editor_url=args.video_editor_url),
-            [args.video],
+            partial(call_duration, video_editor_url=args.video_editor_url), [args.video]
         )
     )
     file_size = os.path.getsize(args.blur_output)
-    yield dict(
-        rate=sample_rate,
-        size=convert_size(file_size),
-        duration=max(stats),
-    )
+    yield dict(rate=sample_rate, size=convert_size(file_size), duration=max(stats))
 
 
 def check_api_access(api_url, max_wait_time=60, poll_interval=2):
@@ -182,7 +177,7 @@ def main(args):
         for sample_rate in sample_rates:
             # Read the existing env.txt file and remove any existing SAMPLE entry
             lines = []
-            with open("env.txt", "r") as env_file:
+            with open("env.txt") as env_file:
                 for line in env_file:
                     if not line.startswith("SAMPLE="):
                         lines.append(line)

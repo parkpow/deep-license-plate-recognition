@@ -31,10 +31,7 @@ def test_process_files(mock_post, client):
 
     response = client.post(
         "/",
-        data={
-            "anpr.xml": xml.open("rb"),
-            "licensePlatePicture.jpg": image.open("rb"),
-        },
+        data={"anpr.xml": xml.open("rb"), "licensePlatePicture.jpg": image.open("rb")},
     )
 
     pp_url = os.getenv("PP_URL")

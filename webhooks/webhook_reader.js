@@ -22,7 +22,7 @@ let storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname)
+    cb(null, file.originalname);
   },
 });
 
@@ -64,17 +64,17 @@ function collectRequestData(request, response) {
       }
     });
   } else {
-    var rawData = '';
-    request.on('data', (data) => {
+    var rawData = "";
+    request.on("data", (data) => {
       rawData += data;
     });
-    request.on('end', () => {
+    request.on("end", () => {
       var decodedData = decodeURIComponent(rawData);
-      if (decodedData.includes("json=")){
-        decodedData = decodedData.split('+').join(' ');
-        const jsonData = decodedData.split("json=")[1]
-        console.log(jsonData)
-        response.end('OK!');
+      if (decodedData.includes("json=")) {
+        decodedData = decodedData.split("+").join(" ");
+        const jsonData = decodedData.split("json=")[1];
+        console.log(jsonData);
+        response.end("OK!");
       }
     });
   }

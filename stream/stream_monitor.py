@@ -151,11 +151,7 @@ if __name__ == "__main__":
     )
     # Log Lines to Process
     parser.add_argument(
-        "-n",
-        "--count",
-        type=int,
-        default=1,
-        help="Number of cameras in config.ini",
+        "-n", "--count", type=int, default=1, help="Number of cameras in config.ini"
     )
 
     args = parser.parse_args()

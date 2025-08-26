@@ -122,12 +122,7 @@ def _forward_to_destination(
 
             data = {"json": json.dumps(json_data)}
 
-            resp = requests.post(
-                destination,
-                data=data,
-                files=files_to_send,
-                timeout=5,
-            )
+            resp = requests.post(destination, data=data, files=files_to_send, timeout=5)
         else:
             resp = requests.post(
                 destination, data={"json": json.dumps(json_data)}, timeout=5

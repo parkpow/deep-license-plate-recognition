@@ -18,14 +18,14 @@ class Program
             if(uploadBase64){
                 string base64String = Convert.ToBase64String(fileBytes);
                 formData.Add(new StringContent(base64String), "upload");
-            }else{            
+            }else{
                 formData.Add(new ByteArrayContent(fileBytes), "upload", fileName );
             }
 
             if (regions!=null)
             {
                 formData.Add(new StringContent(regions), "regions");
-                
+
             }
 
             // formData.Add(new StringContent("{\"region\":\"strict\"}"), "config");
@@ -98,13 +98,13 @@ class Program
         if (arguments.Count == 0 || arguments.ContainsKey("--help"))
         {
             PrintHelp();
-            return; 
+            return;
         }
 
         if(!arguments.ContainsKey("--file")){
             Console.WriteLine("--file Is required");
             PrintHelp();
-            return; 
+            return;
         }
         String filePath = arguments["--file"];
 
@@ -112,24 +112,24 @@ class Program
         string cameraId;
         string token;
         String sdkUrl = "https://api.platerecognizer.com/v1/plate-reader/";
-        
+
 
         if(!arguments.TryGetValue("--token", out token)){
             if(!arguments.TryGetValue("--url", out sdkUrl)){
                 Console.WriteLine("Please specify --token or onPremise --url");
                 PrintHelp();
-                return; 
+                return;
             }
         }
 
         if(!arguments.TryGetValue("--regions", out regions)){
             Console.WriteLine("No regions specified");
         }
-        
+
         if(!arguments.TryGetValue("--camera", out cameraId)){
             Console.WriteLine("No cameraId specified");
         }
-        
+
         bool uploadBase64 = arguments.ContainsKey("--base64");
 
 

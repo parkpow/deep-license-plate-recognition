@@ -25,7 +25,7 @@ Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integration
 
 ## **Environment Variables Setup**
    Set the required environment variables in a `.env` file.
-   
+
    ℹ️ A sample .env file is included in the repository for reference.
 
 #### **Required for running the middleware with Docker Compose (integrated with Stream):**
@@ -36,7 +36,7 @@ Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integration
    ```
 
 #### **If using the `strip_plate` protocol, also include:**
-   
+
    ```
    WEBHOOK_URL=https://app.parkpow.com/api/v1/webhook-receiver/
    PARKPOW_TOKEN=your_parkpow_token

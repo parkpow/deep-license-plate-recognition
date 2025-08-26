@@ -135,10 +135,7 @@ def image_transfer(src_path, args):
 
     if not args.output_file:
 
-        payload = {
-            "results": json.dumps(results),
-            "camera": camera,
-        }
+        payload = {"results": json.dumps(results), "camera": camera}
         files = {"image": (filename, open(src_path, "rb"), "application/octet-stream")}
         response = api_request(args, payload, files)
         if not response:

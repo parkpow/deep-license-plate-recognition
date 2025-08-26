@@ -1,14 +1,16 @@
 import logging
-import sys
 import os
+import sys
 from logging.handlers import RotatingFileHandler
-from src.config import load_config 
+
+from src.config import load_config
 
 config_values = load_config()
 
-LOGS_FOLDER = config_values['LOGS_FOLDER']
+LOGS_FOLDER = config_values["LOGS_FOLDER"]
 
-LOG_FILE = os.path.join(LOGS_FOLDER, 'app.log')
+LOG_FILE = os.path.join(LOGS_FOLDER, "app.log")
+
 
 def setup_logging():
     # Get the root logger
@@ -22,10 +24,14 @@ def setup_logging():
 
     # Create handlers
     console_handler = logging.StreamHandler(sys.stdout)
-    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1024*1024*5, backupCount=2) # 5MB per file, 2 backups
+    file_handler = RotatingFileHandler(
+        LOG_FILE, maxBytes=1024 * 1024 * 5, backupCount=2
+    )  # 5MB per file, 2 backups
 
     # Create formatters and add it to handlers
-    log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    log_format = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     console_handler.setFormatter(log_format)
     file_handler.setFormatter(log_format)
 
@@ -38,9 +44,11 @@ def setup_logging():
     # logging.getLogger('urllib3').setLevel(logging.WARNING)
 
     # Setup checker errors logger
-    CHECKER_ERRORS_LOG_FILE = os.path.join(LOGS_FOLDER, 'checker_errors.log')
-    checker_errors_logger = logging.getLogger('checker_errors_logger')
+    CHECKER_ERRORS_LOG_FILE = os.path.join(LOGS_FOLDER, "checker_errors.log")
+    checker_errors_logger = logging.getLogger("checker_errors_logger")
     checker_errors_logger.setLevel(logging.WARNING)
-    checker_errors_handler = RotatingFileHandler(CHECKER_ERRORS_LOG_FILE, maxBytes=1024*1024*5, backupCount=2)
+    checker_errors_handler = RotatingFileHandler(
+        CHECKER_ERRORS_LOG_FILE, maxBytes=1024 * 1024 * 5, backupCount=2
+    )
     checker_errors_handler.setFormatter(log_format)
     checker_errors_logger.addHandler(checker_errors_handler)

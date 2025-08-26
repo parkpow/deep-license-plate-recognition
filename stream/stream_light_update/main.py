@@ -157,8 +157,7 @@ def restore_updates(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="stream-sdk-update",
-        description="Stream SDK Slight Update",
+        prog="stream-sdk-update", description="Stream SDK Slight Update"
     )
     subparsers = parser.add_subparsers(help="Extract/Restore Help")
     parser_a = subparsers.add_parser("extract", help="Extract updates on machine A")
