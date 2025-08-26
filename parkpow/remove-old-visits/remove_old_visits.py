@@ -7,7 +7,9 @@ import json
 from urllib.parse import parse_qs, urlparse
 
 
-async def api_request(http_function, end_point, api_key, params=None, payload=dict):
+async def api_request(
+    http_function, end_point, api_key, params=None, payload: dict | None = None
+):
     """_summary_
 
     Args:
