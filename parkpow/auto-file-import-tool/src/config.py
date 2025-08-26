@@ -139,14 +139,10 @@ def load_config() -> dict[str, Any]:
                     f"[{section}] {option} (REQUIRED, but not found in the file)"
                 )
             else:
-                # Ensure fallback_value matches data_type
-                if data_type == int and not isinstance(fallback_value, int):
-                    app_config[option] = int(fallback_value)  # type: ignore
-                else:
-                    app_config[option] = fallback_value
+                app_config[option] = fallback_value
 
     # Construct derived API URLs
-    if "BASE_API_URL" in app_config and isinstance(app_config["BASE_API_URL"], str):
+    if "BASE_API_URL" in app_config:
         base_url = app_config["BASE_API_URL"].rstrip(
             "/"
         )  # Remove trailing slash if present
