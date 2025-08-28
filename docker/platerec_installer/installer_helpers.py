@@ -182,15 +182,16 @@ def launch_browser(url):
         # remove all environment variables that contain the 'tmp' directory.
         my_env = dict(os.environ)
         to_delete = []
-        for (k, v) in my_env.items():
+        for k, v in my_env.items():
             if k != "PATH" and "tmp" in v:
                 to_delete.append(k)
         for k in to_delete:
             my_env.pop(k, None)
         try:
             subprocess.call([opener, url], env=my_env, shell=False)
-        except FileNotFoundError:  # [Errno 2] No such file or directory: 'xdg-open': 'xdg-open'
+        except (
+            FileNotFoundError
+        ):  # [Errno 2] No such file or directory: 'xdg-open': 'xdg-open'
             print(f"Unable to launch browser: {opener} command not found")
     else:
         raise Exception(f"Unrecognized OS platform: {os_platform}")
-    

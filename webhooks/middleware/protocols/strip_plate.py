@@ -176,6 +176,10 @@ def post_with_retries(
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+    """
+    Processes a request and strips plate data from a JSONL file.
+    Assumes that after validation, camera_id, timestamp, and timestamp_local are str.
+    """
 
     url = os.getenv("WEBHOOK_URL")
     if not url:
@@ -200,9 +204,11 @@ def process_request(
         )
         return "Invalid data format.", 400
 
-    timestamp = prediction_data.get("timestamp")
-    timestamp_local = prediction_data.get("timestamp_local") #for local file
-    camera_id = prediction_data.get("camera_id")
+    timestamp: str | None = prediction_data.get("timestamp")
+    timestamp_local: str | None = prediction_data.get(
+        "timestamp_local"
+    )  # for local file
+    camera_id: str | None = prediction_data.get("camera_id")
 
     try:
         plate = prediction_data["results"][0]["plate"]
@@ -215,40 +221,40 @@ def process_request(
         )
         return "Invalid prediction data format.", 400
 
+    # mypy: safe to cast after validation
+    assert isinstance(timestamp, str)
+    assert isinstance(timestamp_local, str)
+    assert isinstance(camera_id, str)
+
     converted_payload = convert_plate_format_to_vehicle_format(json_data)
 
     data = {"json": json.dumps(converted_payload)}
     parkpow_token = os.getenv("PARKPOW_TOKEN")
     headers = {}
     if parkpow_token:
-        headers = {"Authorization": f'Token {parkpow_token}'}
+        headers = {"Authorization": f"Token {parkpow_token}"}
 
     activity_identifier = f"Camera: {camera_id} - Vehicle: {timestamp}"
 
     try:
         logging.info(f"{activity_identifier}. Sending webhook to {url}...")
-        response = post_with_retries(
-            url,
-            data=data,
-            files=all_files,
-            headers=headers,
-        )
+        response = post_with_retries(url, data=data, files=all_files, headers=headers)
         try:
             response_json = json.loads(response.content)
             if not isinstance(response_json, list) or not response_json:
                 raise ValueError("Response JSON is not a non-empty list")
-            
+
             response_content = response_json[0]
 
             if not isinstance(response_content, dict):
                 raise ValueError("First element of response JSON is not a dict")
-            
+
         except (json.JSONDecodeError, IndexError, TypeError, ValueError) as parse_err:
             logging.error(
                 f"{activity_identifier}. Failed to parse webhook response: {parse_err}. Raw content: {response.content!r}"
             )
             return f"Failed to parse webhook response: {parse_err}", 502
-        
+
         logging.info(
             f"{activity_identifier}. Webhook response: {response.status_code} - {response_content['status']} - {response_content['id']}."
         )

@@ -7,6 +7,7 @@ from json.decoder import JSONDecodeError
 
 upload_to = "uploads"
 
+
 class GetHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -20,13 +21,20 @@ class GetHandler(BaseHTTPRequestHandler):
         self.end_headers()
         ctype, pdict = cgi.parse_header(self.headers["Content-Type"])
         if ctype == "multipart/form-data":
-            form = cgi.FieldStorage( fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST', 'CONTENT_TYPE':self.headers['Content-Type'], })
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={
+                    "REQUEST_METHOD": "POST",
+                    "CONTENT_TYPE": self.headers["Content-Type"],
+                },
+            )
             # Get webhook content
-            json_data = form.getvalue('json')
+            json_data = form.getvalue("json")
             # Get webhook file
-            if 'upload' in form:
-                filename = form['upload'].filename
-                buffer = form['upload'].file.read()
+            if "upload" in form:
+                filename = form["upload"].filename
+                buffer = form["upload"].file.read()
                 if not os.path.exists(upload_to):
                     try:
                         os.makedirs(upload_to)

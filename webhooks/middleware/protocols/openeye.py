@@ -44,12 +44,7 @@ def process_request(
                             "id": json_data["data"]["camera_id"],
                         },
                         "linkedObjects": [],
-                        "props": [
-                            {
-                                "name": "licensePlate",
-                                "value": plate,
-                            }
-                        ],
+                        "props": [{"name": "licensePlate", "value": plate}],
                     },
                 }
             ],

@@ -163,9 +163,7 @@ def get_uninstall(product):
                         "",
                         id=f"span-uninstall-{product}",
                         className="align-middle",
-                        style={
-                            "color": "red",
-                        },
+                        style={"color": "red"},
                     ),
                     dbc.Modal(
                         [
@@ -199,9 +197,7 @@ def get_uninstall(product):
             ),
             dcc.Loading(
                 type="circle",
-                children=html.Div(
-                    id=f"loading-uninstall-{product}",
-                ),
+                children=html.Div(id=f"loading-uninstall-{product}"),
                 parent_className="col-auto",
             ),
         ],
@@ -320,8 +316,7 @@ def get_local_config():
                 width=7,
             ),
             dbc.Col(
-                dbc.Checkbox(id="check-config-local", className="align-bottom"),
-                width=4,
+                dbc.Checkbox(id="check-config-local", className="align-bottom"), width=4
             ),
         ],
         class_name="mb-3",
@@ -439,7 +434,7 @@ def get_video_picker(product):
                         ],
                         id=f"pickup-video-{product}",
                         accept="video/*",
-                    ),
+                    )
                 ],
                 width=4,
             ),
@@ -477,10 +472,7 @@ def get_status(product):
 
 def get_config_status():
     return html.P(
-        children="",
-        style={"color": "red"},
-        className="mb-0",
-        id="p-status-config",
+        children="", style={"color": "red"}, className="mb-0", id="p-status-config"
     )
 
 
@@ -534,7 +526,7 @@ def get_continue(product):
                         color="primary",
                         id=f"button-submit-{product}",
                         style={"width": "100%"},
-                    ),
+                    )
                 ],
                 width=2,
             ),
@@ -555,9 +547,7 @@ def get_loading_submit(product):
 def get_confirm(product):
     return (
         dcc.ConfirmDialogProvider(
-            children=html.Button(
-                "Click Me",
-            ),
+            children=html.Button("Click Me"),
             id="danger-danger-provider",
             message="Danger danger! Are you sure you want to continue?",
         ),
@@ -574,7 +564,7 @@ def edit_config():
                         color="success",
                         id="button-stream-config",
                         style={"width": "100%"},
-                    ),
+                    )
                 ],
                 width=2,
             ),
@@ -610,12 +600,7 @@ app.layout = dbc.Container(
             [
                 dbc.Tab(
                     [
-                        dbc.Form(
-                            [
-                                get_refresh(STREAM),
-                            ],
-                            class_name="mt-3",
-                        ),
+                        dbc.Form([get_refresh(STREAM)], class_name="mt-3"),
                         dbc.Form(
                             [
                                 get_token(STREAM),
@@ -665,12 +650,7 @@ app.layout = dbc.Container(
                 ),
                 dbc.Tab(
                     [
-                        dbc.Form(
-                            [
-                                get_refresh(SNAPSHOT),
-                            ],
-                            class_name="mt-3",
-                        ),
+                        dbc.Form([get_refresh(SNAPSHOT)], class_name="mt-3"),
                         dbc.Form(
                             [
                                 get_token(SNAPSHOT),
@@ -796,12 +776,7 @@ def refresh_docker_snapshot(n_clicks, hardware, uninstall):
 
 
 @app.callback(
-    [
-        Output("pickup-stream", "style"),
-    ],
-    [
-        Input("check-video-stream", "value"),
-    ],
+    [Output("pickup-stream", "style")], [Input("check-video-stream", "value")]
 )
 def select_video(checked):
     if checked:
@@ -819,9 +794,7 @@ def select_video(checked):
         Output("area-config-stream", "style"),
         Output("label-config-stream", "style"),
     ],
-    [
-        Input("check-config-local", "value"),
-    ],
+    [Input("check-config-local", "value")],
 )
 def local_config(checked):
     if checked:
@@ -919,10 +892,7 @@ def toggle_modal_snapshot(n1, n2, n3, is_open):
 
 
 @app.callback(
-    [
-        Output("uninstall-stream", "style"),
-    ],
-    [Input("ok-uninstall-stream", "n_clicks")],
+    [Output("uninstall-stream", "style")], [Input("ok-uninstall-stream", "n_clicks")]
 )
 def uninstall_button_stream(n_clicks):
     if dash.callback_context.triggered[0]["prop_id"] == "ok-uninstall-stream.n_clicks":
@@ -937,9 +907,7 @@ def uninstall_button_stream(n_clicks):
 
 
 @app.callback(
-    [
-        Output("uninstall-snapshot", "style"),
-    ],
+    [Output("uninstall-snapshot", "style")],
     [
         Input("ok-uninstall-snapshot", "n_clicks"),
         Input("dropdown-hardware-snapshot", "value"),
@@ -976,10 +944,7 @@ clientside_callback(
     }
     """,
     [Output("button-stream-config", "style"), Output("p-status-config", "children")],
-    [
-        Input("button-stream-config", "n_clicks"),
-        State("input-key-stream", "value"),
-    ],
+    [Input("button-stream-config", "n_clicks"), State("input-key-stream", "value")],
     prevent_initial_call=True,
 )
 
@@ -1166,10 +1131,7 @@ def submit_snapshot(n_clicks, token, key, boot, port, hardware):
 
 @app.callback(
     Output("copy-status-stream", "children"),
-    [
-        Input("copy-stream", "n_clicks"),
-        Input("button-submit-stream", "n_clicks"),
-    ],
+    [Input("copy-stream", "n_clicks"), Input("button-submit-stream", "n_clicks")],
 )
 def copy_to_clipboard_stream(n_clicks, n_clicks_submit):
     if dash.callback_context.triggered[0]["prop_id"] == "copy-stream.n_clicks":
@@ -1180,10 +1142,7 @@ def copy_to_clipboard_stream(n_clicks, n_clicks_submit):
 
 @app.callback(
     Output("copy-status-snapshot", "children"),
-    [
-        Input("copy-snapshot", "n_clicks"),
-        Input("button-submit-snapshot", "n_clicks"),
-    ],
+    [Input("copy-snapshot", "n_clicks"), Input("button-submit-snapshot", "n_clicks")],
 )
 def copy_to_clipboard_snapshot(n_clicks, n_clicks_submit):
     if dash.callback_context.triggered[0]["prop_id"] == "copy-snapshot.n_clicks":

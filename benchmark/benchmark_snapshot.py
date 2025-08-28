@@ -70,10 +70,7 @@ def call_duration(path, sdk_url, config, mmc, blur):
             blur_api(sdk_url, fp)
         else:
             recognition_api(
-                fp,
-                sdk_url=sdk_url,
-                config=config,
-                mmc="true" if mmc else "false",
+                fp, sdk_url=sdk_url, config=config, mmc="true" if mmc else "false"
             )
     return (default_timer() - now) * 1000
 

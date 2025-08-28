@@ -164,7 +164,7 @@ export default function Snapshot() {
             restartPolicy:restartPolicy,
             curlPort:curlPort,
             country:country,
-            architecture:architecture            
+            architecture:architecture
           }));
           // Pull image and update
           ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {

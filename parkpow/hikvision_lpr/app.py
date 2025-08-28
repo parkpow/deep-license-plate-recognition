@@ -65,13 +65,9 @@ def parse_event_xml(xml_data):
 
 
 def upload_event(xml_data, image):
-    (
-        license_plate_number,
-        confidence,
-        plate_coordinates,
-        date_time,
-        camera_id,
-    ) = parse_event_xml(xml_data)
+    (license_plate_number, confidence, plate_coordinates, date_time, camera_id) = (
+        parse_event_xml(xml_data)
+    )
 
     parkpow.log_vehicle(
         image,

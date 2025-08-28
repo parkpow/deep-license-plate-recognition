@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-import asyncio
-import http.client
 import argparse
+import asyncio
 import datetime
+import http.client
 import json
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
-async def api_request(http_function, end_point, api_key, params=None, payload={}):
+
+async def api_request(
+    http_function, end_point, api_key, params=None, payload: dict | None = None
+):
     """_summary_
 
     Args:
@@ -47,7 +50,9 @@ async def api_request(http_function, end_point, api_key, params=None, payload={}
         print("Error:", e)
 
 
-async def list_visits(api_key, max_age, hostname, page=None):
+async def list_visits(
+    api_key: str, max_age: str, hostname: str | None, page: str | None = None
+):
     """lists the visits from the past <max_age> days.
 
     Args:
@@ -60,6 +65,8 @@ async def list_visits(api_key, max_age, hostname, page=None):
         dict: response <HTTPResponse class>, connection <HTTPSConnection or HTTPConnection class>
     """
     visit_list_path = "visit-list/"
+    if hostname is None:
+        raise Exception("hostname is required")
     end_point = hostname + visit_list_path
     end_period = datetime.date.today()
     start_period = end_period - datetime.timedelta(days=int(max_age))  # today - max_age
@@ -75,25 +82,25 @@ async def list_visits(api_key, max_age, hostname, page=None):
         http_function="GET", end_point=end_point, api_key=api_key, params=params
     )
     try:
-        if 200 <= response_and_connection['response'].status < 300:
+        if 200 <= response_and_connection["response"].status < 300:
             response_data = await asyncio.get_event_loop().run_in_executor(
-                None, response_and_connection['response'].read
+                None, response_and_connection["response"].read
             )
             data = json.loads(response_data.decode())
-            response_and_connection['connection'].close()
+            response_and_connection["connection"].close()
             return data
         else:
             raise Exception(
                 f"Check parameters and try again.\x0aReason: {response_and_connection['response'].reason}"
             )
     except Exception as e:
-        print('Error:', e)
+        print("Error:", e)
         raise
     finally:
-        response_and_connection['connection'].close()
+        response_and_connection["connection"].close()
 
 
-async def remove_visit(hostname, api_key, visit_id):
+async def remove_visit(hostname: str | None, api_key, visit_id):
     """remove individual visits by <visit_id>
 
     Args:
@@ -105,27 +112,27 @@ async def remove_visit(hostname, api_key, visit_id):
         JSON: response from API
     """
     remove_visit_path = "delete-visit/"
+    if hostname is None:
+        raise Exception("hostname is required")
     end_point = hostname + remove_visit_path
 
-    payload = {
-        "id": visit_id,
-    }
+    payload = {"id": visit_id}
 
     response_and_connection = await api_request(
         http_function="POST", end_point=end_point, api_key=api_key, payload=payload
     )
     try:
-        if 200 <= response_and_connection['response'].status < 300:
+        if 200 <= response_and_connection["response"].status < 300:
             print(f"Visit {visit_id} successfully removed!")
         else:
             raise Exception(
                 f"Error on deleting visit.\x0aReason: {response_and_connection['response'].reason}"
             )
     except Exception as e:
-        print('Error:', e)
+        print("Error:", e)
         raise
     finally:
-        response_and_connection['connection'].close()
+        response_and_connection["connection"].close()
 
     response_data = await asyncio.get_event_loop().run_in_executor(
         None, response_and_connection["response"].read
@@ -173,7 +180,7 @@ if __name__ == "__main__":
         epilog="",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.epilog += (
+    parser.epilog += (  # type: ignore
         "Examples:\n"
         "Remove old visits, up to 30 days parkpow API: "
         "./remove_old_visits.py --token <YOUR_API_TOKEN> --max-age 30 --api-url https://app.parkpow.com/api/v1/"
@@ -194,7 +201,6 @@ if __name__ == "__main__":
         help="Number of previous days you want to remove.",
         type=int,
         required=True,
-        
     )
 
     parser.add_argument(
@@ -205,7 +211,7 @@ if __name__ == "__main__":
     )
 
     cli_args = parser.parse_args()
-    
+
     print(cli_args.max_age)
     if not cli_args.token:
         raise Exception("token is required")

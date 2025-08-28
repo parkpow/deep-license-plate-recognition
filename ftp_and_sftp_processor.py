@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 import argparse
+import ftplib
 import json
 import logging
 import os
 import sys
 import tempfile
 import time
-import ftplib
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from ftplib import FTP, error_perm, error_reply
+from typing import Any
 
 import paramiko
 
@@ -25,6 +27,19 @@ logging.basicConfig(
 )
 
 lgr = logging.getLogger(__name__)
+
+
+def get_files_and_dirs(
+    func: Callable[[Any, list, list, list], None]
+) -> Callable[[Any], tuple[list, list, list]]:
+    def wrapper(self):
+        file_list = self.list_files()
+        dirs = []
+        nondirs = []
+        func(self, file_list, dirs, nondirs)
+        return file_list, dirs, nondirs
+
+    return wrapper
 
 
 class FileTransferProcessor(ABC):
@@ -67,8 +82,9 @@ class FileTransferProcessor(ABC):
 
         file_list, dirs, nondirs = self.retrieve_files()
 
-        logging.info("Found %s file(s) in %s.", len(
-            nondirs), self.get_working_directory())
+        logging.info(
+            "Found %s file(s) in %s.", len(nondirs), self.get_working_directory()
+        )
 
         # processing files
         self.process_files(nondirs)
@@ -110,8 +126,9 @@ class FileTransferProcessor(ABC):
                         ]
                     )
 
-        logging.info("Found %s file(s) in %s.", len(
-            nondirs), self.get_working_directory())
+        logging.info(
+            "Found %s file(s) in %s.", len(nondirs), self.get_working_directory()
+        )
         self.process_files(nondirs)
 
     def track_processed(self):
@@ -176,16 +193,6 @@ class FileTransferProcessor(ABC):
             save_results(results, self)
         else:
             print(json.dumps(results, indent=2))
-
-    def get_files_and_dirs(func):
-        def wrapper(self):
-            file_list = self.list_files()
-            dirs = []
-            nondirs = []
-            func(self, file_list, dirs, nondirs)
-            return file_list, dirs, nondirs
-
-        return wrapper
 
     def get_month_literal(self, month_number):
 
@@ -290,11 +297,10 @@ class FTPProcessor(FileTransferProcessor):
 
     def list_files(self):
         file_list = []
-        self.ftp.retrlines(
-            "LIST", lambda x: file_list.append(x.split(maxsplit=8)))
+        self.ftp.retrlines("LIST", lambda x: file_list.append(x.split(maxsplit=8)))
         return file_list
 
-    @FileTransferProcessor.get_files_and_dirs
+    @get_files_and_dirs
     def retrieve_files(self, file_list, dirs, nondirs):
         self.os_linux = self.is_linux_os(file_list)
         for info in file_list:
@@ -326,28 +332,33 @@ class FTPProcessor(FileTransferProcessor):
                         ]
                     )
 
+
 class SFTPProcessor(FileTransferProcessor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.sftp = None
         self.os_linux = True
-        
+
     def connect(self):
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             if self.ftp_password and not self.pkey:
-                print(self.hostname, self.port,
-                      self.ftp_user, self.ftp_password)
-                ssh.connect(self.hostname, port=self.port, username=self.ftp_user,
-                            password=self.ftp_password, look_for_keys=False, allow_agent=False)
+                print(self.hostname, self.port, self.ftp_user, self.ftp_password)
+                ssh.connect(
+                    self.hostname,
+                    port=self.port,
+                    username=self.ftp_user,
+                    password=self.ftp_password,
+                    look_for_keys=False,
+                    allow_agent=False,
+                )
 
             else:
                 try:
                     key = paramiko.RSAKey.from_private_key_file(self.pkey)
-                    ssh.connect(self.hostname, self.port,
-                                self.ftp_user, pkey=key)
+                    ssh.connect(self.hostname, self.port, self.ftp_user, pkey=key)
                 except paramiko.AuthenticationException as e:
                     logging.error(f"Authentication failed: {e}")
                     raise
@@ -359,8 +370,7 @@ class SFTPProcessor(FileTransferProcessor):
             logging.info(f"Connected to SFTP server at {self.hostname}")
 
         except paramiko.AuthenticationException:
-            logging.error(
-                "Authentication failed. Please check your credentials.")
+            logging.error("Authentication failed. Please check your credentials.")
         except paramiko.SSHException as e:
             logging.error(f"SSH connection error: {e}")
         except Exception as e:
@@ -421,7 +431,7 @@ class SFTPProcessor(FileTransferProcessor):
 
         return file_list
 
-    @FileTransferProcessor.get_files_and_dirs
+    @get_files_and_dirs
     def retrieve_files(self, file_list, dirs, nondirs):
 
         for info in file_list:
@@ -429,8 +439,7 @@ class SFTPProcessor(FileTransferProcessor):
             if info[0].startswith("d"):
                 dirs.append(name)
             else:
-                nondirs.append(
-                    [name, self.parse_date(info[-4], info[-3], info[-2])])
+                nondirs.append([name, self.parse_date(info[-4], info[-3], info[-2])])
 
 
 def parse_arguments(args_hook=lambda _: _):
@@ -451,8 +460,7 @@ ftp_and_sftp_processor.py -H host -U user1 -P pass -s http://localhost:8080
 """,
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("-a", "--api-key",
-                        help="Your API key.", required=False)
+    parser.add_argument("-a", "--api-key", help="Your API key.", required=False)
     parser.add_argument(
         "-r",
         "--regions",
@@ -603,6 +611,7 @@ def ftp_process(args):
     else:
         file_processor.processing_single_camera(args)
 
+
 def main():
     args = parse_arguments(custom_args)
 
@@ -615,6 +624,7 @@ def main():
             time.sleep(args.interval)
     else:
         ftp_process(args)
+
 
 if __name__ == "__main__":
     main()

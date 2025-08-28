@@ -31,11 +31,7 @@ def test_process_files(mock_post, client):
 
     # https://www.axis.com/vapix-library/subjects/T10102231/section/t10165701/display?section=t10165701-t10165793
     response = client.post(
-        "/",
-        data={
-            "event": event.open("rb"),
-            "image": image.open("rb"),
-        },
+        "/", data={"event": event.open("rb"), "image": image.open("rb")}
     )
     assert response.status_code == 200
     assert b"Files uploaded successfully" in response.data

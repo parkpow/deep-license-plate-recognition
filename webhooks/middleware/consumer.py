@@ -73,7 +73,7 @@ def handle_webhook():
         }
 
         webhook_header = {k: v for k, v in webhook_header.items() if v is not None}
-        
+
         if webhook_header and isinstance(json_data, dict):
             json_data["webhook_header"] = webhook_header
 

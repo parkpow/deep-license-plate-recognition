@@ -31,10 +31,7 @@ lgr = logging.getLogger(__name__)
 
 
 class VerkadaApi:
-    def __init__(
-        self,
-        api_key,
-    ):
+    def __init__(self, api_key):
         self.api_key = api_key
 
     @staticmethod
@@ -105,12 +102,7 @@ class ParkPowApi:
         data = {
             "camera": camera,
             "image": encoded_image,
-            "results": [
-                {
-                    "plate": license_plate_number,
-                    "score": confidence,
-                }
-            ],
+            "results": [{"plate": license_plate_number, "score": confidence}],
             "time": p_time,
         }
         try:

@@ -103,9 +103,7 @@ def process(args, path: Path, output: Path, logo=None):
             data["copy_metadata"] = "true"
 
         if args.api_key:
-            headers = {
-                "Authorization": f"Token {args.api_key}",
-            }
+            headers = {"Authorization": f"Token {args.api_key}"}
         else:
             headers = None
 
@@ -186,12 +184,7 @@ Specify engine config and/or two regions:
         required=True,
         help="Folder containing images to process.",
     )
-    parser.add_argument(
-        "--logo",
-        type=Path,
-        required=False,
-        help="Logo file path.",
-    )
+    parser.add_argument("--logo", type=Path, required=False, help="Logo file path.")
     parser.add_argument(
         "--plates", type=int, default="10", help="Plate blur intensity."
     )

@@ -58,11 +58,7 @@ def benchmark(args, executor):
         )
     )
     duration = (default_timer() - now) * 1000
-    yield dict(
-        min=min(stats),
-        max=max(stats),
-        avg=duration / args.iterations,
-    )
+    yield dict(min=min(stats), max=max(stats), avg=duration / args.iterations)
 
 
 def mem_usage():
@@ -95,8 +91,7 @@ def main():
         # Warmup
         list(
             executor.map(
-                partial(call_duration, stream_url=args.stream_url),
-                [args.video],
+                partial(call_duration, stream_url=args.stream_url), [args.video]
             )
         )
         # Benchmark

@@ -152,7 +152,7 @@ To remove images from FTP or SFTP server after processing, add the argument `--d
 | --format               | Format of the result, available choices 'json'(default) or 'csv'                            |
 | --mmc                  | Predict vehicle make and model (SDK only). It has to be enabled.                            |
 | --pkey                 | SFTP Private Key Path.                                                                      |
-  
+
 <br><br><br>
 
 ## Automatic Image Transfer

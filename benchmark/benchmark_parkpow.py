@@ -11,13 +11,9 @@ def parse_arguments():
         help="The base URL of the ParkPow website. Defaults to localhost.",
         default="http://127.0.0.1:8000",
     )
+    parser.add_argument("--email", help="The email address to be used for login")
     parser.add_argument(
-        "--email",
-        help="The email address to be used for login",
-    )
-    parser.add_argument(
-        "--password",
-        help="The corresponding password for the provided email.",
+        "--password", help="The corresponding password for the provided email."
     )
     return parser.parse_args()
 
