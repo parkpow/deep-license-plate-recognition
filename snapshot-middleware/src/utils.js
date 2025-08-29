@@ -19,7 +19,7 @@ export function fetchWithRetry(url, init, tries = 3, delay = 2000) {
         if (response.status === 429) throw new Error429(responseText);
         if (response.status >= 500 && response.status <= 599)
           throw new Error5xx(responseText, response.status);
-        console.error(responseText);
+        // console.error(responseText);
         // 2. reject instead of throw, preferred
         return Promise.reject(
           new UnexpectedApiResponse(responseText, response.status),
@@ -32,7 +32,7 @@ export function fetchWithRetry(url, init, tries = 3, delay = 2000) {
         if (tries <= 0) {
           throw new RetryLimit(error.message, error.status);
         }
-        console.log(`Retrying request: ${tries}`);
+        //console.log(`Retrying request: ${tries}`);
         // if the rate limit is reached or exceeded,
         return wait(delay).then(() => fetchWithRetry(url, init, tries - 1));
       } else {
