@@ -47,7 +47,7 @@ Passmark: 2420.9990
 | 2560x1440  | 786.3 | 194.81, 83.06              | 868.37, 441.07                   |
 
 ## AWS Instance Type - t3-xlarge 4-vCPU(2 core) 16 GiB Memory
-Processor: Intel Xeon Platinum 8259CL CPU @ 2.50GHz  
+Processor: Intel Xeon Platinum 8259CL @ 2.50GHz  
 NumSockets: 1  
 Manufacturer: GenuineIntel  
 NumCores: 2  
@@ -55,7 +55,7 @@ NumLogicals: 4
 CPUFrequency: 2499  
 Passmark: 4039.57  
 
-### WORKERS =1 (DEFAULT)
+### WORKERS = 1 (DEFAULT)
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
 |------------|-------|----------------------------|----------------------------------|
@@ -82,3 +82,20 @@ Passmark: 4039.57
 | 1920x1080  | 360.1 | 371.16, 93.14              | 1711.66, 715.22                  |
 | 2560x1440  | 614.7 | 402.30, 164.91             | 1800.31, 790.79                  |
 
+## Local Machine Benchmark - 12th Gen Intel Core i3-1215U (6 Cores, 8 Threads, 16 GiB RAM)
+Processor: Intel Core i3-1215U @ 1.20GHz  
+Manufacturer: GenuineIntel  
+NumCores: 6  
+NumLogicals: 8  
+CPUFrequency: 4400  
+Passmark: 10432  
+
+### 4K Images Benchmark
+
+| Filename      | Avg Speed (ms) | Min Speed (ms) | Max Speed (ms) |
+|---------------|----------------|----------------|----------------|
+| [single-1.jpg](https://drive.google.com/file/d/19IafPgGJLawOn7fv4MbXFd1Wc4yt78-X/view?usp=drive_link)  | 533.8          | 477.8          | 2356.3         |
+| [single-2.jpg](https://drive.google.com/file/d/1ntqdpxi4cDSkTr14RaqUlKC8f9wnCs2M/view?usp=drive_link)  | 663.8          | 653.2          | 2917.1         |
+| [many-1.jpg](https://drive.google.com/file/d/126AphdZb6jqnUVjChmZRiRCdIk_1FuGN/view?usp=drive_link)    | 990.1          | 1189.7         | 5012           |
+| [many-2.jpg](https://drive.google.com/file/d/16hfH_nGZ_omyfiQtT_U69NI3Ju5jQ3Aw/view?usp=drive_link)    | 1314.3         | 1219.7         | 6185.4         |
+| [many-3.jpg](https://drive.google.com/file/d/1_r1w6Z5K9IJUWJJe9mzifpwZNU_Li9M0/view?usp=drive_link)    | 1018.9         | 944.5          | 4332.3         |
