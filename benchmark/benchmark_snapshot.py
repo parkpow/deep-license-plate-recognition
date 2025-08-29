@@ -2,6 +2,7 @@ import argparse
 import math
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from statistics import mean
 from timeit import default_timer
 
 import psutil
@@ -107,7 +108,7 @@ def benchmark(args, executor):
                 mode=config.get("mode", "regular"),
                 min=min(stats),
                 max=max(stats),
-                avg=duration / args.iterations,
+                avg=mean(stats),
             )
 
 

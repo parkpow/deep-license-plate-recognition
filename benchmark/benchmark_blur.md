@@ -94,8 +94,8 @@ Passmark: 10432
 
 | Filename      | Avg Speed (ms) | Min Speed (ms) | Max Speed (ms) |
 |---------------|----------------|----------------|----------------|
-| [single-1.jpg](https://drive.google.com/file/d/19IafPgGJLawOn7fv4MbXFd1Wc4yt78-X/view?usp=drive_link)  | 533.8          | 477.8          | 2356.3         |
-| [single-2.jpg](https://drive.google.com/file/d/1ntqdpxi4cDSkTr14RaqUlKC8f9wnCs2M/view?usp=drive_link)  | 663.8          | 653.2          | 2917.1         |
-| [many-1.jpg](https://drive.google.com/file/d/126AphdZb6jqnUVjChmZRiRCdIk_1FuGN/view?usp=drive_link)    | 990.1          | 1189.7         | 5012           |
-| [many-2.jpg](https://drive.google.com/file/d/16hfH_nGZ_omyfiQtT_U69NI3Ju5jQ3Aw/view?usp=drive_link)    | 1314.3         | 1219.7         | 6185.4         |
-| [many-3.jpg](https://drive.google.com/file/d/1_r1w6Z5K9IJUWJJe9mzifpwZNU_Li9M0/view?usp=drive_link)    | 1018.9         | 944.5          | 4332.3         |
+| [single-1.jpg](https://drive.google.com/file/d/19IafPgGJLawOn7fv4MbXFd1Wc4yt78-X/view?usp=drive_link)  | 1920.3         | 559.4          | 2129.1         |
+| [single-2.jpg](https://drive.google.com/file/d/1ntqdpxi4cDSkTr14RaqUlKC8f9wnCs2M/view?usp=drive_link)  | 2442.6         | 691.4          | 2619.9         |
+| [many-1.jpg](https://drive.google.com/file/d/126AphdZb6jqnUVjChmZRiRCdIk_1FuGN/view?usp=drive_link)    | 3266.8         | 817.3          | 3965.1         |
+| [many-2.jpg](https://drive.google.com/file/d/16hfH_nGZ_omyfiQtT_U69NI3Ju5jQ3Aw/view?usp=drive_link)    | 4514.9         | 1092.2         | 5180.0         |
+| [many-3.jpg](https://drive.google.com/file/d/1_r1w6Z5K9IJUWJJe9mzifpwZNU_Li9M0/view?usp=drive_link)    | 3687.1         | 989.0          | 4175.9         |
