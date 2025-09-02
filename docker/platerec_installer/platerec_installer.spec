@@ -18,7 +18,7 @@ elif sys.platform == 'linux':
     pathex = ['/src']
 else: # MacOs on GH Actions
     site_packages = site.getsitepackages()[0]
-    pathex = [os.path.dirname(__file__)]
+    pathex = [os.path.abspath(SPECPATH)]
 
 a = Analysis(  # noqa
     ['platerec_installer.py'],
