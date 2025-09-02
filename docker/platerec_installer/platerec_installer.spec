@@ -6,6 +6,7 @@
 # docker run -v "$$(pwd):/src/" danleyb2/pyinstaller-windows "pyinstaller platerec_installer.spec -F"
 
 import sys
+import site
 
 block_cipher = None
 
@@ -16,8 +17,8 @@ elif sys.platform == 'linux':
     site_packages = '/root/.pyenv/versions/3.7.5/lib/python3.7/site-packages/'
     pathex = ['/src']
 else: # MacOs on GH Actions
-    site_packages = '/Users/runner/hostedtoolcache/Python/3.8.10/x64/lib/python3.8/site-packages/'
-    pathex = [os.path.abspath(SPECPATH)]
+    site_packages = site.getsitepackages()[0]
+    pathex = [os.path.dirname(__file__)]
 
 a = Analysis(  # noqa
     ['platerec_installer.py'],
