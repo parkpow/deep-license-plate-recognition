@@ -18,7 +18,7 @@ elif sys.platform == 'linux':
     site_packages = '/root/.pyenv/versions/3.7.5/lib/python3.7/site-packages/'
     pathex = ['/src']
 else: # MacOs on GH Actions
-    site_packages = '/Users/runner/hostedtoolcache/Python/3.8.10/x64/lib/python3.8/site-packages/'
+    site_packages = '/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/site-packages/'
     pathex = [os.path.abspath(SPECPATH)]
 
 a = Analysis(  # noqa
