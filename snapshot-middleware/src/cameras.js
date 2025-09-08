@@ -85,7 +85,7 @@ class Survision extends Camera {
   }
 
   get debugLog() {
-    let copy = Object.assign({}, this.data);
+    let copy = { ...this.data };
     // Clear image
     copy["anpr"]["decision"]["jpeg"] = "";
     return JSON.stringify(copy);
@@ -151,7 +151,7 @@ class Genetec extends Camera {
   }
 
   get debugLog() {
-    let copy = Object.assign({}, this.data);
+    let copy = { ...this.data };
     // Clear image
     copy["ContextImage"] = "";
     copy["PlateImage"] = "";

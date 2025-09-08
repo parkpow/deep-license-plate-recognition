@@ -1,5 +1,4 @@
 import { fetchWithRetry } from "./utils";
-import { InvalidResults } from "./exceptions.js";
 
 export const FORMAT_V1 = 1;
 export const FORMAT_V2 = 2;
@@ -33,27 +32,12 @@ export class SnapshotResponse {
   }
 
   isEmpty() {
-    return this.results.length === 0;
-  }
-
-  /**
-   * Handle missing results from snapshot by creating a minimal result
-   * Incase forwarding is needed
-   */
-  ensureResultsNotEmpty(plate) {
-    if (this.results.length === 0) {
-      this.results.push({
-        plate: plate,
-        score: 0.9,
-        // box: { xmin: 0, ymin: 0, ymax: 0, xmax: 0 },
-      });
-    }
+    return !this.findValidResult();
   }
 
   overwritePlate(plate) {
     const overwriteScore = 0.9;
     if (this.format === FORMAT_V1) {
-      this.ensureResultsNotEmpty(plate);
       this.result["plate"] = plate;
       if (
         this.result["candidates"] === undefined ||
@@ -94,24 +78,14 @@ export class SnapshotResponse {
     } else {
       throw new Error("Unexpected format");
     }
-
-    // TODO Overwrite plate scores
-    //this.result['score'] = null
-    //this.result['dscore'] = null
-    // this.result['candidates'][0]['score'] = score
   }
 
   /**
    * Pick first result with vehicle
-   * @param results
    * @returns {*}
    */
-  pickValidResult(results) {
-    let pickedResult = results.find((el) => el["vehicle"]);
-    if (!pickedResult) {
-      throw new InvalidResults("No result with vehicle");
-    }
-    return pickedResult;
+  findValidResult() {
+    return this.results.find((el) => el["vehicle"]);
   }
 
   /**
@@ -119,19 +93,16 @@ export class SnapshotResponse {
    * @returns {*}
    */
   get result() {
-    return this.pickValidResult(this.results);
+    return this.findValidResult();
   }
 
   overwriteDirection(direction, licensePlateNumber) {
-    this.ensureResultsNotEmpty(licensePlateNumber);
     this.result["direction"] = direction;
     // TODO Overwrite plate scores
     //this.result['direction_score'] = null
   }
 
   overwriteOrientation(orientation, licensePlateNumber) {
-    this.ensureResultsNotEmpty(licensePlateNumber);
-
     if (
       this.result["orientation"] === undefined ||
       this.result["orientation"].length === 0

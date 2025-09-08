@@ -1,8 +1,8 @@
 import { SnapshotApi, SnapshotResponse } from "./snapshot";
 import { ENABLED_CAMERAS } from "./cameras";
-import { InvalidResults, UnexpectedApiResponse } from "./exceptions";
+import { UnexpectedApiResponse } from "./exceptions";
 import { ParkPowApi } from "./parkpow";
-import { validInt } from "./utils";
+import { validInt, uploadToS3 } from "./utils";
 
 function mergeConfigs(param, env) {
   if (param) {
@@ -69,29 +69,21 @@ function loggedResponse(data, status = 400) {
  * @returns {boolean}
  */
 function overwriteOps(forwardingEnabled, ssRes, cameraData, params) {
-  // Create camera result to forward if Snapshot empty
-  if (forwardingEnabled && ssRes.isEmpty()) {
+  if (params.overwritePlate) {
+    forwardingEnabled = true;
     ssRes.overwritePlate(cameraData.plate);
-    ssRes.overwriteOrientation(cameraData.orientation, cameraData.plate);
-    ssRes.overwriteDirection(cameraData.direction, cameraData.plate);
-  } else {
-    if (params.overwritePlate) {
-      forwardingEnabled = true;
-      ssRes.overwritePlate(cameraData.plate);
-    }
-    if (params.overwriteOrientation) {
-      forwardingEnabled = true;
-      ssRes.overwriteOrientation(cameraData.orientation, cameraData.plate);
-    }
-    if (params.overwriteDirection) {
-      forwardingEnabled = true;
-      ssRes.overwriteDirection(cameraData.direction, cameraData.plate);
-    }
-    if (params.parkpowCameraIds) {
-      forwardingEnabled = true;
-    }
   }
-
+  if (params.overwriteOrientation) {
+    forwardingEnabled = true;
+    ssRes.overwriteOrientation(cameraData.orientation, cameraData.plate);
+  }
+  if (params.overwriteDirection) {
+    forwardingEnabled = true;
+    ssRes.overwriteDirection(cameraData.direction, cameraData.plate);
+  }
+  if (params.parkpowCameraIds) {
+    forwardingEnabled = true;
+  }
   return forwardingEnabled;
 }
 
@@ -127,8 +119,25 @@ export default {
         if (CameraClass) {
           let cameraData;
           try {
+            const dataStr = JSON.stringify(data);
             cameraData = new CameraClass(request, data);
             console.log(cameraData.debugLog);
+            if (
+              env.S3_BUCKET &&
+              env.S3_ENDPOINT &&
+              env.S3_REGION &&
+              env.S3_ACCESS_KEY &&
+              env.S3_SECRET_KEY
+            ) {
+              uploadToS3(
+                dataStr,
+                env,
+                processorSelection,
+                cameraData.cameraId,
+              ).catch(() =>
+                console.error("Error - Could not log camera data."),
+              );
+            }
           } catch (e) {
             const errMsg =
               processorSelection > -1
@@ -150,55 +159,43 @@ export default {
               async (response) => new SnapshotResponse(await response.json()),
             )
             .then(async (ssRes) => {
-              // check config to forward to ParkPow
-              let parkPowForwardingEnabled = overwriteOps(
-                !!params.parkpowForwarding,
-                ssRes,
-                cameraData,
-                params,
-              );
-
-              let resData;
-              // By default, the response should be Snapshot response
-              //  unless manually forwarded to ParkPow then it's ParkPow response
-              if (parkPowForwardingEnabled) {
-                let parkPow = new ParkPowApi(
-                  env.PARKPOW_TOKEN,
-                  env.PARKPOW_URL,
-                  validInt(env.PARKPOW_RETRY_LIMIT, 5),
-                  validInt(env.RETRY_DELAY, 2000),
+              if (!ssRes.isEmpty()) {
+                // If to enable forwarding to ParkPow
+                let parkPowForwardingEnabled = overwriteOps(
+                  !!params.parkpowForwarding,
+                  ssRes,
+                  cameraData,
+                  params,
                 );
-                let parkPowCameraIds = [ssRes.cameraId];
-                if (params.parkpowCameraIds) {
-                  parkPowCameraIds = params.parkpowCameraIds.split(",");
-                }
-                const promises = parkPowCameraIds.map((parkPowCameraId) =>
-                  parkPow
-                    .logVehicle(
+                if (parkPowForwardingEnabled) {
+                  let parkPow = new ParkPowApi(
+                    env.PARKPOW_TOKEN,
+                    env.PARKPOW_URL,
+                    validInt(env.PARKPOW_RETRY_LIMIT, 5),
+                    validInt(env.RETRY_DELAY, 2000),
+                  );
+                  let parkPowCameraIds = [ssRes.cameraId];
+                  if (params.parkpowCameraIds) {
+                    parkPowCameraIds = params.parkpowCameraIds.split(",");
+                  }
+                  const promises = parkPowCameraIds.map((parkPowCameraId) =>
+                    parkPow.logVehicle(
                       cameraData.imageBase64,
                       ssRes.result,
                       parkPowCameraId,
                       ssRes.timestamp,
-                    )
-                    .catch((error) => {
-                      return { error: error.message };
-                    }),
-                );
-                resData = await Promise.all(promises);
-              } else {
-                resData = ssRes.data;
+                    ),
+                  );
+                  // Log ParkPow Responses for debugging purposes
+                  console.log(JSON.stringify(await Promise.all(promises)));
+                }
               }
-              const resString = JSON.stringify(resData);
-              console.log(resString);
-              return new Response(resString, {
+              return new Response(JSON.stringify(ssRes.data), {
                 headers: { "Content-Type": "application/json" },
               });
             })
             .catch((error) => {
-              if (error instanceof InvalidResults) {
-                // Prevent cameras retrying empty or invalid results
-                return loggedResponse(error.message, 200);
-              } else if (error instanceof UnexpectedApiResponse) {
+              if (error instanceof UnexpectedApiResponse) {
                 return loggedResponse(error.message, error.status);
               } else {
                 throw error;

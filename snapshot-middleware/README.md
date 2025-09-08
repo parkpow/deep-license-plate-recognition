@@ -28,6 +28,8 @@ To login again `wrangler login`, Logout using `wrangler logout` or delete `.wran
 # Snapshot Cloud Token - Find it here https://app.platerecognizer.com/service/snapshot-cloud/
 SNAPSHOT_TOKEN=
 PARKPOW_TOKEN=
+S3_ACCESS_KEY=
+S3_SECRET_KEY=
 ```
 
 ### Texts
@@ -38,6 +40,9 @@ PARKPOW_URL=
 SNAPSHOT_RETRY_LIMIT=5
 PARKPOW_RETRY_LIMIT=5
 RETRY_DELAY=2000
+S3_BUCKET = "<bucket-with-snapshot-middleware-folder>"
+S3_ENDPOINT = "us-east-1.linodeobjects.com"
+S3_REGION = "us-east-1"
 
 ```
 
