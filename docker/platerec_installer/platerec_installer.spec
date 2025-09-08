@@ -9,8 +9,6 @@ import sys
 
 block_cipher = None
 
-print(f'SYS PLATFORM: {sys.platform}')
-
 if sys.platform == 'win32':
     site_packages = 'C:/Python37/Lib/site-packages/'
     pathex = ['Z:\\src']
@@ -18,7 +16,7 @@ elif sys.platform == 'linux':
     site_packages = '/root/.pyenv/versions/3.7.5/lib/python3.7/site-packages/'
     pathex = ['/src']
 else: # MacOs on GH Actions
-    site_packages = '/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/site-packages/'
+    site_packages = __import__('sysconfig').get_path('purelib')
     pathex = [os.path.abspath(SPECPATH)]
 
 a = Analysis(  # noqa
