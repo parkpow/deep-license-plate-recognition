@@ -5,7 +5,9 @@ export const FORMAT_V2 = 2;
 
 export class SnapshotResponse {
   constructor(data) {
-    this._data = data;
+    this._raw = data;
+    // make a copy to avoid modifying original
+    this._data = JSON.parse(JSON.stringify(this._raw));
     console.log(JSON.stringify(data));
     if (data["results"].length === 0) {
       this.format = FORMAT_V1;

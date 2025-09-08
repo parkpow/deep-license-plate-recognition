@@ -191,7 +191,7 @@ export default {
                   console.log(JSON.stringify(await Promise.all(promises)));
                 }
               }
-              return new Response(JSON.stringify(ssRes.data), {
+              return new Response(JSON.stringify(ssRes._raw), {
                 headers: { "Content-Type": "application/json" },
               });
             })
