@@ -98,7 +98,6 @@ describe("Overwrite Parameters", async () => {
   const overwriteParamNonEmpty = [
     // param, input, expectedResult
     ["overwrite_plate", overwrittenPlateResult],
-
     ["overwrite_direction", overwrittenDirectionResult],
     ["overwrite_orientation", overwrittenOrientationResult],
   ];
@@ -131,8 +130,6 @@ describe("Overwrite Parameters", async () => {
 
       expect(response.status).toBe(200);
       expect(await response.json()).toStrictEqual(mockedSnapshotResponse);
-
-      expect(logVehicleSpy).toHaveBeenCalled();
 
       expect(logVehicleSpy).toHaveBeenCalledWith(
         expect.any(String),
