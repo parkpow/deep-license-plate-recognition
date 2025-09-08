@@ -110,7 +110,7 @@ class Survision extends Camera {
   get direction() {
     const direction = this.data["anpr"]["decision"]["@direction"];
     if (direction === "unknown") {
-      return PARKPOW_ORIENTATION_UNKNOWN;
+      return null;
     } else if (direction === "rear") {
       return 90;
     } else if (direction === "front") {

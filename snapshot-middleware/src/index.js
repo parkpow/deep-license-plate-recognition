@@ -24,8 +24,9 @@ function requestParams(request, parkpowForwardingEnv, configEnv) {
     overwritePlate: searchParams.get("overwrite_plate"),
     overwriteDirection: searchParams.get("overwrite_direction"),
     overwriteOrientation: searchParams.get("overwrite_orientation"),
-    parkpowForwarding:
-      searchParams.get("parkpow_forwarding") || validInt(parkpowForwardingEnv),
+    parkpowForwarding: validInt(
+      searchParams.get("parkpow_forwarding") ?? parkpowForwardingEnv,
+    ),
     parkpowCameraIds: searchParams.get("parkpow_camera_ids"),
   };
 }
