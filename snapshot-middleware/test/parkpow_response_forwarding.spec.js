@@ -12,7 +12,6 @@ import {
   expect,
   test,
   vi,
-  it,
 } from "vitest";
 
 import worker from "../src/index";
