@@ -67,7 +67,7 @@ describe("Forwards snapshot response to user as worker response", async () => {
       let response = await worker.fetch(req, env, ctx);
       // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
       await waitOnExecutionContext(ctx);
-      expect(await response.status).toBe(status);
+      expect(response.status).toBe(status);
       expect(await response.text()).toStrictEqual(mockSnapshotResponse);
     },
   );

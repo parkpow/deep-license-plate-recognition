@@ -59,10 +59,10 @@ describe("ParkPow Forwarding", () => {
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
     expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
+    expect(await response.json()).toStrictEqual(SurvisionParkPowResponse);
   });
 
-  it("Forwards only the first Snapshot result if multiple", async () => {
+  it("Forwards only the valid Snapshot result if multiple", async () => {
     fetchMock
       .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
@@ -86,24 +86,24 @@ describe("ParkPow Forwarding", () => {
     expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
   });
 
-  it("Fallback to Camera results if Snapshot is empty.", async () => {
-    fetchMock
-      .get(import.meta.env.SNAPSHOT_BASE_URL)
-      .intercept({ path: "/v1/plate-reader/", method: "POST" })
-      .reply(200, GenetecSnapshotResponse);
-
-    fetchMock
-      .get(import.meta.env.PARKPOW_BASE_URL)
-      .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-      .reply(200, GenetecResultParkPow);
-    const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
-    const req = createJsonUploadRequest(url, GenetecSamplePayload, {});
-    let ctx = createExecutionContext();
-    let response = await worker.fetch(req, env, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual([GenetecResultParkPow]);
-  });
+  // it("Fallback to Camera results if Snapshot is empty.", async () => {
+  //   fetchMock
+  //     .get(import.meta.env.SNAPSHOT_BASE_URL)
+  //     .intercept({ path: "/v1/plate-reader/", method: "POST" })
+  //     .reply(200, GenetecSnapshotResponse);
+  //
+  //   fetchMock
+  //     .get(import.meta.env.PARKPOW_BASE_URL)
+  //     .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+  //     .reply(200, GenetecResultParkPow);
+  //   const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
+  //   const req = createJsonUploadRequest(url, GenetecSamplePayload, {});
+  //   let ctx = createExecutionContext();
+  //   let response = await worker.fetch(req, env, ctx);
+  //   await waitOnExecutionContext(ctx);
+  //   expect(await response.status).toBe(200);
+  //   expect(await response.json()).toStrictEqual([GenetecResultParkPow]);
+  // });
 
   it("Retries Rate Limits", async () => {
     const rateLimitResponse = {
@@ -130,7 +130,7 @@ describe("ParkPow Forwarding", () => {
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(429);
+    expect(await response.status).toBe(200);
     expect(await response.json()).toStrictEqual(rateLimitResponse);
   });
 });

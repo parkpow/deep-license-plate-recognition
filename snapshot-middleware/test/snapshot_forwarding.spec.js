@@ -49,7 +49,7 @@ describe("Snapshot Upload", () => {
 
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(await response.text()).toBe("Error - Required POST");
   });
 
@@ -62,7 +62,7 @@ describe("Snapshot Upload", () => {
     const response = await worker.fetch(request, env, ctx);
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(await response.text()).toBe(
       "Error - Expected Content-Type application/json and Content-Length > 0",
     );
@@ -81,7 +81,7 @@ describe("Snapshot Upload", () => {
     const response = await worker.fetch(request, env, ctx);
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(await response.text()).toBe(
       "Error - Expected Content-Type application/json and Content-Length > 0",
     );
@@ -116,7 +116,7 @@ describe("Snapshot Upload", () => {
         let response = await worker.fetch(req, env, ctx);
         // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
         await waitOnExecutionContext(ctx);
-        expect(await response.status).toBe(200);
+        expect(response.status).toBe(200);
         // By default, the response should be Snapshot response
         //  unless manually forwarded to ParkPow then it's ParkPow response
         expect(await response.json()).toStrictEqual(mockSnapshotResponse);
@@ -146,7 +146,7 @@ describe("Snapshot Upload", () => {
     let response = await worker.fetch(req, env, ctx);
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(429);
+    expect(response.status).toBe(429);
     expect(await response.json()).toStrictEqual(rateLimitResponse);
   });
 
@@ -162,7 +162,7 @@ describe("Snapshot Upload", () => {
     let response = await worker.fetch(req, env, ctx);
     // Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(await response.text()).toStrictEqual(
       "Processor Error - 2 - Specified Processor Unable Process Camera Data",
     );

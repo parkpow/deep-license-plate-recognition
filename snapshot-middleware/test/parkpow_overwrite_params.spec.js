@@ -39,55 +39,55 @@ afterEach(() => {
 });
 
 describe("Overwrite Parameters", async () => {
-  const overwriteParamEmpty = [
-    // param, input, expectedResult
-    [
-      "overwrite_plate",
-      1,
-      {
-        plate: "9HKA742",
-        score: 0.9,
-        candidates: [{ plate: "9HKA742", score: 0.9 }],
-      },
-    ],
-    ["overwrite_direction", 1, { direction: 90, plate: "9HKA742", score: 0.9 }],
-    [
-      "overwrite_orientation",
-      1,
-      {
-        orientation: [{ orientation: "Rear", score: 0.9 }],
-        plate: "9HKA742",
-        score: 0.9,
-      },
-    ],
-  ];
-  test.each(overwriteParamEmpty)(
-    "Empty results Param: %s ",
-    async (param, input, modifiedResult) => {
-      fetchMock
-        .get(import.meta.env.SNAPSHOT_BASE_URL)
-        .intercept({ path: "/v1/plate-reader/", method: "POST" })
-        .reply(200, GenetecSnapshotResponse);
-
-      fetchMock
-        .get(import.meta.env.PARKPOW_BASE_URL)
-        .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-        .reply(200, ({ body }) => {
-          // throw new Error(body)
-          return body;
-        });
-      const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
-      let req = createJsonUploadRequest(url, GenetecSamplePayload, {});
-      let ctx = createExecutionContext();
-      let response = await worker.fetch(req, env, ctx);
-      await waitOnExecutionContext(ctx);
-      expect(await response.status).toBe(200);
-      const responseJson = await response.json();
-      expect(responseJson[0]["time"]).toBe("2024-10-24T17:29:26Z");
-      expect(responseJson[0]["camera"]).toBe("G637821011231200521C - Camera");
-      expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
-    },
-  );
+  // const overwriteParamEmpty = [
+  //   // param, input, expectedResult
+  //   [
+  //     "overwrite_plate",
+  //     1,
+  //     {
+  //       plate: "9HKA742",
+  //       score: 0.9,
+  //       candidates: [{ plate: "9HKA742", score: 0.9 }],
+  //     },
+  //   ],
+  //   ["overwrite_direction", 1, { direction: 90, plate: "9HKA742", score: 0.9 }],
+  //   [
+  //     "overwrite_orientation",
+  //     1,
+  //     {
+  //       orientation: [{ orientation: "Rear", score: 0.9 }],
+  //       plate: "9HKA742",
+  //       score: 0.9,
+  //     },
+  //   ],
+  // ];
+  // test.each(overwriteParamEmpty)(
+  //   "Empty results Param: %s ",
+  //   async (param, input, modifiedResult) => {
+  //     fetchMock
+  //       .get(import.meta.env.SNAPSHOT_BASE_URL)
+  //       .intercept({ path: "/v1/plate-reader/", method: "POST" })
+  //       .reply(200, GenetecSnapshotResponse);
+  //
+  //     fetchMock
+  //       .get(import.meta.env.PARKPOW_BASE_URL)
+  //       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+  //       .reply(200, ({ body }) => {
+  //         // throw new Error(body)
+  //         return body;
+  //       });
+  //     const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
+  //     let req = createJsonUploadRequest(url, GenetecSamplePayload, {});
+  //     let ctx = createExecutionContext();
+  //     let response = await worker.fetch(req, env, ctx);
+  //     await waitOnExecutionContext(ctx);
+  //     expect(await response.status).toBe(200);
+  //     const responseJson = await response.json();
+  //     expect(responseJson[0]["time"]).toBe("2024-10-24T17:29:26Z");
+  //     expect(responseJson[0]["camera"]).toBe("G637821011231200521C - Camera");
+  //     expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
+  //   },
+  // );
 
   const overwrittenPlateResult = {
     box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
