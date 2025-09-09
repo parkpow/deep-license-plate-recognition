@@ -16,7 +16,7 @@ elif sys.platform == 'linux':
     site_packages = '/root/.pyenv/versions/3.7.5/lib/python3.7/site-packages/'
     pathex = ['/src']
 else: # MacOs on GH Actions
-    site_packages = '/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/'
+    site_packages = __import__('sysconfig').get_path('purelib') + '/'
     pathex = [os.path.abspath(SPECPATH)]
 
 a = Analysis(  # noqa
