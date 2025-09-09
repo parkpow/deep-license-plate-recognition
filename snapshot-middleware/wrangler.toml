@@ -20,7 +20,7 @@ PARKPOW_RETRY_LIMIT=5
 RETRY_DELAY=2000
 PARKPOW_FORWARDING=1
 SNAPSHOT_CONFIG='{"detection_mode":"vehicle"}'
-S3_BUCKET = "vehicle-angle"
+S3_BUCKET = "<bucket-with-snapshot-middleware-folder>"
 S3_ENDPOINT = "us-east-1.linodeobjects.com"
 S3_REGION = "us-east-1"
 
