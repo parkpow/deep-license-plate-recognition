@@ -21,7 +21,7 @@ python3 -m benchmark.benchmark_snapshot --blur --sdk-url http://localhost:8001
 **PlateRecognizer Blur**: v1.0.8  
 **PlateRecognizer Snapshot**: v1.54.0
 
-## Local Machine Benchmark - 12th Gen Intel Core i3-1215U (6 Cores, 8 Threads, 16 GiB RAM)
+### Local Machine Benchmark - 12th Gen Intel Core i3-1215U (6 Cores, 8 Threads, 16 GiB RAM)
 Processor: Intel Core i3-1215U @ 1.20GHz  
 Manufacturer: GenuineIntel  
 NumCores: 6  
@@ -29,7 +29,7 @@ NumLogicals: 8
 CPUFrequency: 4400  
 Passmark: 10432  
 
-### WORKERS = 1 
+#### WORKERS = 1 
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -41,7 +41,7 @@ Image: `assets/car-4k.jpg`
 | 3840x2160  | 598.4 | 60.96, 8.65                | 510.27, 580.17                   |
 
 
-### WORKERS = 1
+#### WORKERS = 1
 Image: `assets/cars-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -53,7 +53,7 @@ Image: `assets/cars-4k.jpg`
 | 3840x2160  | 631.3 | 54.01, 8.31                | 375.21, 410.12                   |
 
 
-### WORKERS = 2
+#### WORKERS = 2
 Image: `assets/cars-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -67,7 +67,7 @@ Image: `assets/cars-4k.jpg`
 
 ## Previous Version Benchmarks
 
-## AWS Instance Type - t2-large 2-vCPU(2 core) 8 GiB Memory
+### AWS Instance Type - t2-large 2-vCPU(2 core) 8 GiB Memory
 Processor: Intel Xeon CPU E5-2686 v4 @ 2.30GHz  
 NumSockets: 1  
 Manufacturer: GenuineIntel  
@@ -76,7 +76,7 @@ NumLogicals: 2
 CPUFrequency: 2300  
 Passmark: 2420.9990  
 
-### WORKERS = 1
+#### WORKERS = 1
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -86,7 +86,7 @@ Image: `assets/car-4k.jpg`
 | 1920x1080  | 528.0 | 115.30, 46.70              | 692.35, 236.80                   |
 | 2560x1440  | 975.7 | 112.86, 46.75              | 746.27, 235.77                   |
 
-### WORKERS = 2
+#### WORKERS = 2
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -96,7 +96,7 @@ Image: `assets/car-4k.jpg`
 | 1920x1080  | 435.9 | 149.61, 61.38              | 781.14, 390.07                   |
 | 2560x1440  | 786.3 | 194.81, 83.06              | 868.37, 441.07                   |
 
-## AWS Instance Type - t3-xlarge 4-vCPU(2 core) 16 GiB Memory
+### AWS Instance Type - t3-xlarge 4-vCPU(2 core) 16 GiB Memory
 Processor: Intel Xeon Platinum 8259CL @ 2.50GHz  
 NumSockets: 1  
 Manufacturer: GenuineIntel  
@@ -105,7 +105,7 @@ NumLogicals: 4
 CPUFrequency: 2499  
 Passmark: 4039.57  
 
-### WORKERS = 1
+#### WORKERS = 1
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -115,7 +115,7 @@ Image: `assets/car-4k.jpg`
 | 1920x1080  | 519.1 | 212.69,57.34               | 497.72, 227.89                   |
 | 2560x1440  | 964.2 | 209.77, 47.42              | 568.27, 238.00                   |
 
-### WORKERS = 2
+#### WORKERS = 2
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
@@ -125,7 +125,7 @@ Image: `assets/car-4k.jpg`
 | 1920x1080  | 387.6 | 303.41, 83.80              | 1297.73, 404.14                  |
 | 2560x1440  | 717.5 | 338.79, 104.97             | 1362.45, 448.89                  |
 
-### WORKERS = 4
+#### WORKERS = 4
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |
