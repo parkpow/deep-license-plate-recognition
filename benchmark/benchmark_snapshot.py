@@ -78,7 +78,7 @@ def call_duration(path, sdk_url, config, mmc, blur):
 
 def benchmark(args, executor):
     image = Image.open(args.image)
-    for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440)]:
+    for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440), (3840, 2160)]:
         image.resize(resolution).save("/tmp/platerec-benchmark.jpg")
         if args.blur:
             configs = [{}]
@@ -86,7 +86,6 @@ def benchmark(args, executor):
             configs = [{}, dict(mode="fast")]
 
         for config in configs:
-            now = default_timer()
             stats = list(
                 executor.map(
                     partial(
@@ -99,7 +98,6 @@ def benchmark(args, executor):
                     ["/tmp/platerec-benchmark.jpg"] * args.iterations,
                 )
             )
-            duration = (default_timer() - now) * 1000
             yield dict(
                 resolution="%sx%s" % resolution,
                 mode=config.get("mode", "regular"),
