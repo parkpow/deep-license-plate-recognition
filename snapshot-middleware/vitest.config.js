@@ -19,6 +19,8 @@ export default defineWorkersConfig({
             RETRY_DELAY: 0,
             PARKPOW_RETRY_LIMIT: 2,
             SNAPSHOT_RETRY_LIMIT: 2,
+            PARKPOW_FORWARDING: "1",
+            SNAPSHOT_CONFIG: '{"detection_mode":"vehicle"}',
           },
         },
       },

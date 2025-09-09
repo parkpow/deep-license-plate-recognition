@@ -4,16 +4,20 @@ import {
   waitOnExecutionContext,
   fetchMock,
 } from "cloudflare:test";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  test,
+} from "vitest";
 
 import worker from "../src/index";
 
-import GenetecSamplePayload from "./assets/Genetec.json";
-import GenetecSnapshotResponse from "./assets/GenetecSnapshot.json";
-import GenetecResultParkPow from "./assets/GenetecResultParkPow.json";
 import SurvisionSamplePayload from "./assets/Survision.json";
 import SurvisionSnapshotResponse from "./assets/SurvisionSnapshot.json";
-import SurvisionSnapshotResponseX2 from "./assets/SurvisionSnapshotX2.json";
 import SurvisionParkPowResponse from "./assets/SurvisionParkPow.json";
 
 import {
@@ -21,6 +25,7 @@ import {
   SURVISION_HEADERS_DEFAULT,
   createJsonUploadRequest,
 } from "./utils";
+import { validInt } from "../src/utils.js";
 
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
@@ -35,10 +40,45 @@ afterEach(() => {
 });
 
 describe("ParkPow Forwarding", () => {
-  /**
-   * Normal Forwarding of unchanged ParkPow response by sending `?parkpow_forwarding=1`
-   */
-  it("Forwards Normal(non-empty results) Snapshot Response", async () => {
+  const workerParams = [
+    // param, value
+    [null, null],
+    ["parkpow_forwarding", 1],
+  ];
+  test.each(workerParams)(
+    "Respond with Snapshot Response Always: %s => %s",
+    async (param, value) => {
+      fetchMock
+        .get(import.meta.env.SNAPSHOT_BASE_URL)
+        .intercept({ path: "/v1/plate-reader/", method: "POST" })
+        .reply(200, SurvisionSnapshotResponse);
+
+      let url;
+      if (param && value) {
+        url = `${WORKER_REQUEST_INPUT}?${param}=${value}`;
+
+        fetchMock
+          .get(import.meta.env.PARKPOW_BASE_URL)
+          .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
+          .reply(200, SurvisionParkPowResponse);
+      } else {
+        url = WORKER_REQUEST_INPUT;
+      }
+
+      const req = createJsonUploadRequest(
+        url,
+        SurvisionSamplePayload,
+        SURVISION_HEADERS_DEFAULT,
+      );
+      let ctx = createExecutionContext();
+      let response = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual(SurvisionSnapshotResponse);
+    },
+  );
+
+  it("Retries ParkPow Rate Limits", async () => {
     fetchMock
       .get(import.meta.env.SNAPSHOT_BASE_URL)
       .intercept({ path: "/v1/plate-reader/", method: "POST" })
@@ -47,79 +87,8 @@ describe("ParkPow Forwarding", () => {
     fetchMock
       .get(import.meta.env.PARKPOW_BASE_URL)
       .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-      .reply(200, SurvisionParkPowResponse);
-
-    const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
-    const req = createJsonUploadRequest(
-      url,
-      SurvisionSamplePayload,
-      SURVISION_HEADERS_DEFAULT,
-    );
-    let ctx = createExecutionContext();
-    let response = await worker.fetch(req, env, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
-  });
-
-  it("Forwards only the first Snapshot result if multiple", async () => {
-    fetchMock
-      .get(import.meta.env.SNAPSHOT_BASE_URL)
-      .intercept({ path: "/v1/plate-reader/", method: "POST" })
-      .reply(200, SurvisionSnapshotResponseX2);
-
-    fetchMock
-      .get(import.meta.env.PARKPOW_BASE_URL)
-      .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-      .reply(200, SurvisionParkPowResponse);
-
-    const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
-    const req = createJsonUploadRequest(
-      url,
-      SurvisionSamplePayload,
-      SURVISION_HEADERS_DEFAULT,
-    );
-    let ctx = createExecutionContext();
-    let response = await worker.fetch(req, env, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual([SurvisionParkPowResponse]);
-  });
-
-  it("Fallback to Camera results if Snapshot is empty.", async () => {
-    fetchMock
-      .get(import.meta.env.SNAPSHOT_BASE_URL)
-      .intercept({ path: "/v1/plate-reader/", method: "POST" })
-      .reply(200, GenetecSnapshotResponse);
-
-    fetchMock
-      .get(import.meta.env.PARKPOW_BASE_URL)
-      .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-      .reply(200, GenetecResultParkPow);
-    const url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
-    const req = createJsonUploadRequest(url, GenetecSamplePayload, {});
-    let ctx = createExecutionContext();
-    let response = await worker.fetch(req, env, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(200);
-    expect(await response.json()).toStrictEqual([GenetecResultParkPow]);
-  });
-
-  it("Retries Rate Limits", async () => {
-    const rateLimitResponse = {
-      detail: "Error Message",
-      status_code: 429,
-    };
-    fetchMock
-      .get(import.meta.env.SNAPSHOT_BASE_URL)
-      .intercept({ path: "/v1/plate-reader/", method: "POST" })
-      .reply(200, SurvisionSnapshotResponse);
-
-    fetchMock
-      .get(import.meta.env.PARKPOW_BASE_URL)
-      .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-      .reply(429, JSON.stringify(rateLimitResponse))
-      .times(3);
+      .reply(429, JSON.stringify({}))
+      .times(validInt(import.meta.env.PARKPOW_RETRY_LIMIT, 5));
 
     let url = WORKER_REQUEST_INPUT + "?parkpow_forwarding=1";
     let req = createJsonUploadRequest(
@@ -130,7 +99,9 @@ describe("ParkPow Forwarding", () => {
     let ctx = createExecutionContext();
     let response = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
-    expect(await response.status).toBe(429);
-    expect(await response.json()).toStrictEqual(rateLimitResponse);
+    expect(response.status).toBe(200);
+
+    // If not retry happens upto PARKPOW_RETRY_LIMIT there will be an error from interceptor
+    // UndiciError: 1 interceptor is pending:
   });
 });

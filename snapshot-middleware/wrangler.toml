@@ -1,7 +1,8 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "snapshot-middleware"
 main = "src/index.js"
-compatibility_date = "2024-10-11"
+# Check updates here https://developers.cloudflare.com/workers/configuration/compatibility-flags/#flags-history
+compatibility_date = "2025-08-15"
 compatibility_flags = [ "nodejs_compat" ]
 upload_source_maps = true
 # logpush = true
@@ -17,6 +18,11 @@ PARKPOW_URL=""
 SNAPSHOT_RETRY_LIMIT=5
 PARKPOW_RETRY_LIMIT=5
 RETRY_DELAY=2000
+PARKPOW_FORWARDING=1
+SNAPSHOT_CONFIG='{"detection_mode":"vehicle"}'
+S3_BUCKET = "<bucket-with-snapshot-middleware-folder>"
+S3_ENDPOINT = "us-east-1.linodeobjects.com"
+S3_REGION = "us-east-1"
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/

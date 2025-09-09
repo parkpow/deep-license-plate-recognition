@@ -20,7 +20,7 @@ export class ParkPowApi {
     }
     // Include API VERSION
     this.apiBase = `${this.apiBase}/api/v1/`;
-    console.debug("Api Base: " + this.apiBase);
+    // console.debug("Api Base: " + this.apiBase);
   }
 
   /**
@@ -33,7 +33,7 @@ export class ParkPowApi {
    * @returns {Promise<*>}
    */
   async logVehicle(encodedImage, result, cameraId, timestamp) {
-    console.debug("logVehicle called with result:", result);
+    console.debug(JSON.stringify(result));
     const endpoint = "log-vehicle/";
     const data = {
       camera: cameraId,
@@ -50,9 +50,21 @@ export class ParkPowApi {
       },
     };
     const url = this.apiBase + endpoint;
-    return fetchWithRetry(url, init, this.retryLimit, this.retryDelay).then(
-      (res) => res.json(),
-    );
+    return fetchWithRetry(url, init, this.retryLimit, this.retryDelay)
+      .then(async (res) => {
+        return {
+          success: true,
+          body: await res.json(),
+          status: res.status,
+        };
+      })
+      .catch((error) => {
+        return {
+          success: false,
+          body: error.message,
+          status: error.status,
+        };
+      });
   }
 }
 

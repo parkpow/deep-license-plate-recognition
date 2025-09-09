@@ -49,11 +49,16 @@ class Camera {
   static validRequest(request, data) {
     throw new Error("validRequest must be implemented in a subclass");
   }
+  /**
+   * Log Camera data without image to keep it within log limits
+   */
+  get debugLog() {
+    throw new Error("debugLog must be implemented in a subclass");
+  }
 }
 
 function alertForImplementation(dataString) {
   // Throw error to capture payload for fixing
-  console.error(dataString);
   throw new Error(`Not Implemented: ${dataString}`);
 }
 
@@ -72,15 +77,31 @@ class Survision extends Camera {
   }
 
   static validRequest(request, data) {
-    return !!request.headers.get(Survision.SERIAL_NUMBER_HEADER);
+    return (
+      !!request.headers.get(Survision.SERIAL_NUMBER_HEADER) &&
+      "anpr" in data &&
+      "decision" in data["anpr"]
+    );
+  }
+
+  get debugLog() {
+    let copy = { ...this.data };
+    // Clear image
+    copy["anpr"]["decision"]["jpeg"] = "";
+    return JSON.stringify(copy);
   }
 
   get plate() {
     return this.data["anpr"]["decision"]["@plate"];
   }
   get orientation() {
-    if (this.direction === PARKPOW_ORIENTATION_UNKNOWN) {
-      return null;
+    const direction = this.data["anpr"]["decision"]["@direction"];
+    if (direction === "unknown") {
+      return PARKPOW_ORIENTATION_UNKNOWN;
+    } else if (direction === "rear") {
+      return PARKPOW_ORIENTATION_REAR;
+    } else if (direction === "front") {
+      return PARKPOW_ORIENTATION_FRONT;
     } else {
       alertForImplementation(JSON.stringify(this.data));
     }
@@ -89,7 +110,11 @@ class Survision extends Camera {
   get direction() {
     const direction = this.data["anpr"]["decision"]["@direction"];
     if (direction === "unknown") {
-      return PARKPOW_ORIENTATION_UNKNOWN;
+      return null;
+    } else if (direction === "rear") {
+      return 90;
+    } else if (direction === "front") {
+      return 270;
     } else {
       alertForImplementation(JSON.stringify(this.data));
     }
@@ -109,12 +134,6 @@ class Genetec extends Camera {
     }
     //  "11:49:22", Format HH/MM/SS
     const [hours, minutes, seconds] = data["TimeUtc"].split(":");
-    console.debug(`year: ${year}`);
-    console.debug(`month: ${month}`);
-    console.debug(`day: ${day}`);
-    console.debug(`hours: ${hours}`);
-    console.debug(`minutes: ${minutes}`);
-    console.debug(`seconds: ${seconds}`);
     const createdDate = new Date(
       validInt(year),
       validInt(month) - 1,
@@ -123,7 +142,6 @@ class Genetec extends Camera {
       validInt(minutes),
       validInt(seconds),
     ).toISOString();
-    console.debug(`createdDate: ${createdDate}`);
     const imageBase64 = data["ContextImage"];
     super(cameraId, imageBase64, createdDate, data);
   }
@@ -132,15 +150,22 @@ class Genetec extends Camera {
     return GENETEC;
   }
 
+  get debugLog() {
+    let copy = { ...this.data };
+    // Clear image
+    copy["ContextImage"] = "";
+    copy["PlateImage"] = "";
+    return JSON.stringify(copy);
+  }
   get plate() {
     return this.data["Plate"];
   }
   get orientation() {
-    const relativeMotion = this.data["Attributes"]["Relative Motion"];
-    if (relativeMotion === "Moving Away") {
+    const orientation = this.data["Attributes"]["Vehicle Orientation"];
+    if (orientation === "BackSide") {
       // Assume Car is facing where it's going
       return PARKPOW_ORIENTATION_REAR;
-    } else if (relativeMotion === "Approaching") {
+    } else if (orientation === "Approaching") {
       // Assume Car is facing where it's going
       return PARKPOW_ORIENTATION_FRONT;
     } else {

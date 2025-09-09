@@ -12,6 +12,7 @@ import {
   expect,
   it,
   test,
+  vi,
 } from "vitest";
 
 import worker from "../src/index";
@@ -26,6 +27,8 @@ import {
   createJsonUploadRequest,
 } from "./utils";
 
+import { ParkPowApi } from "../src/parkpow";
+
 beforeAll(() => {
   // throw errors if an outbound request isn't mocked
   fetchMock.disableNetConnect();
@@ -39,237 +42,101 @@ afterEach(() => {
 });
 
 describe("Overwrite Parameters", async () => {
+  let logVehicleSpy;
+
+  beforeEach(() => {
+    logVehicleSpy = vi
+      .spyOn(ParkPowApi.prototype, "logVehicle")
+      .mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    logVehicleSpy.mockRestore();
+  });
+
   const overwriteParamEmpty = [
-    // param, input, expectedResult
-    [
-      "overwrite_plate",
-      1,
-      {
-        plate: "9HKA742",
-        score: 0.9,
-        candidates: [{ plate: "9HKA742", score: 0.9 }],
-      },
-    ],
-    ["overwrite_direction", 1, { direction: 90, plate: "9HKA742", score: 0.9 }],
-    [
-      "overwrite_orientation",
-      1,
-      {
-        orientation: [{ orientation: "Rear", score: 0.9 }],
-        plate: "9HKA742",
-        score: 0.9,
-      },
-    ],
+    // param, input
+    ["overwrite_plate", 1],
+    ["overwrite_direction", 1],
+    ["overwrite_orientation", 1],
   ];
   test.each(overwriteParamEmpty)(
     "Empty results Param: %s ",
-    async (param, input, modifiedResult) => {
+    async (param, input) => {
       fetchMock
         .get(import.meta.env.SNAPSHOT_BASE_URL)
         .intercept({ path: "/v1/plate-reader/", method: "POST" })
         .reply(200, GenetecSnapshotResponse);
 
-      fetchMock
-        .get(import.meta.env.PARKPOW_BASE_URL)
-        .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-        .reply(200, ({ body }) => {
-          // throw new Error(body)
-          return body;
-        });
       const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
       let req = createJsonUploadRequest(url, GenetecSamplePayload, {});
       let ctx = createExecutionContext();
+
       let response = await worker.fetch(req, env, ctx);
       await waitOnExecutionContext(ctx);
-      expect(await response.status).toBe(200);
+      expect(response.status).toBe(200);
       const responseJson = await response.json();
-      expect(responseJson[0]["time"]).toBe("2024-10-24T17:29:26Z");
-      expect(responseJson[0]["camera"]).toBe("G637821011231200521C - Camera");
-      expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
+      expect(responseJson["results"].length).toBe(0);
+
+      // ParkPow API call should not happen because of empty Snapshot results
+      expect(logVehicleSpy).not.toHaveBeenCalled();
     },
   );
 
-  const overwrittenPlateResult = {
-    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
-    plate: "MW818WM",
-    region: { code: "fr", score: 0.816 },
-    score: 1,
-    candidates: [
-      { score: 1, plate: "MW818WM" },
-      { score: 0.864, plate: "mw81bwm" },
-      {
-        score: 0.864,
-        plate: "mw8i8wm",
-      },
-      { score: 0.864, plate: "mwb18wm" },
-      { score: 0.728, plate: "mw8ibwm" },
-      {
-        score: 0.728,
-        plate: "mwb1bwm",
-      },
-      { score: 0.728, plate: "mwbi8wm" },
-      { score: 0.593, plate: "mwbibwm" },
-    ],
-    dscore: 0.883,
-    vehicle: {
-      score: 0.414,
-      type: "Unknown",
-      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
-    },
-    model_make: [
-      { make: "generic", model: "Invalid", score: 0.761 },
-      {
-        make: "generic",
-        model: "Unknown",
-        score: 0.008,
-      },
-    ],
-    color: [
-      { color: "black", score: 0.426 },
-      { color: "white", score: 0.385 },
-      {
-        color: "silver",
-        score: 0.066,
-      },
-    ],
-    orientation: [
-      { orientation: "Rear", score: 0.685 },
-      {
-        orientation: "Unknown",
-        score: 0.246,
-      },
-      { orientation: "Front", score: 0.07 },
-    ],
-    direction: 81,
-    direction_score: 0.999,
-  };
+  const overwrittenPlateResult = { plate: "MW818WM" };
   const overwrittenDirectionResult = {
-    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
-    plate: "mw818wm",
-    region: { code: "fr", score: 0.816 },
-    score: 1,
-    candidates: [
-      { score: 1, plate: "mw818wm" },
-      { score: 0.864, plate: "mw81bwm" },
-      {
-        score: 0.864,
-        plate: "mw8i8wm",
-      },
-      { score: 0.864, plate: "mwb18wm" },
-      { score: 0.728, plate: "mw8ibwm" },
-      {
-        score: 0.728,
-        plate: "mwb1bwm",
-      },
-      { score: 0.728, plate: "mwbi8wm" },
-      { score: 0.593, plate: "mwbibwm" },
-    ],
-    dscore: 0.883,
-    vehicle: {
-      score: 0.414,
-      type: "Unknown",
-      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
-    },
-    model_make: [
-      { make: "generic", model: "Invalid", score: 0.761 },
-      {
-        make: "generic",
-        model: "Unknown",
-        score: 0.008,
-      },
-    ],
-    color: [
-      { color: "black", score: 0.426 },
-      { color: "white", score: 0.385 },
-      {
-        color: "silver",
-        score: 0.066,
-      },
-    ],
-    orientation: [
-      { orientation: "Rear", score: 0.685 },
-      {
-        orientation: "Unknown",
-        score: 0.246,
-      },
-      { orientation: "Front", score: 0.07 },
-    ],
-    direction: "Unknown",
-    direction_score: 0.999,
+    direction: null,
   };
   const overwrittenOrientationResult = {
-    box: { xmin: 693, ymin: 681, xmax: 988, ymax: 759 },
-    plate: "mw818wm",
-    region: { code: "fr", score: 0.816 },
-    score: 1,
-    candidates: [
-      { score: 1, plate: "mw818wm" },
-      { score: 0.864, plate: "mw81bwm" },
-      { score: 0.864, plate: "mw8i8wm" },
-      { score: 0.864, plate: "mwb18wm" },
-      { score: 0.728, plate: "mw8ibwm" },
-      { score: 0.728, plate: "mwb1bwm" },
-      { score: 0.728, plate: "mwbi8wm" },
-      { score: 0.593, plate: "mwbibwm" },
-    ],
-    dscore: 0.883,
-    vehicle: {
-      score: 0.414,
-      type: "Unknown",
-      box: { xmin: 385, ymin: 142, xmax: 1446, ymax: 921 },
-    },
-    model_make: [
-      { make: "generic", model: "Invalid", score: 0.761 },
-      { make: "generic", model: "Unknown", score: 0.008 },
-    ],
-    color: [
-      { color: "black", score: 0.426 },
-      { color: "white", score: 0.385 },
-      { color: "silver", score: 0.066 },
-    ],
     orientation: [
-      { orientation: null, score: 0.685 },
+      { orientation: "Unknown", score: 0.685 },
       { orientation: "Unknown", score: 0.246 },
       { orientation: "Front", score: 0.07 },
     ],
-    direction: 81,
-    direction_score: 0.999,
   };
 
   const overwriteParamNonEmpty = [
     // param, input, expectedResult
-    ["overwrite_plate", 1, overwrittenPlateResult],
-    ["overwrite_direction", 1, overwrittenDirectionResult],
-    ["overwrite_orientation", 1, overwrittenOrientationResult],
+    ["overwrite_plate", overwrittenPlateResult],
+    ["overwrite_direction", overwrittenDirectionResult],
+    ["overwrite_orientation", overwrittenOrientationResult],
   ];
   test.each(overwriteParamNonEmpty)(
     "Non-Empty results Param: %s",
-    async (param, input, modifiedResult) => {
+    async (param, modifiedProp) => {
+      let mockedSnapshotResponse = SurvisionSnapshotResponse;
+      if (param === "overwrite_plate") {
+        const deepCopy = JSON.parse(JSON.stringify(SurvisionSnapshotResponse));
+        deepCopy["results"][0]["plate"] = "DIFFPLATE";
+        deepCopy["results"][0]["candidates"][0]["plate"] = "DIFFPLATE";
+        mockedSnapshotResponse = deepCopy;
+      }
+
       fetchMock
         .get(import.meta.env.SNAPSHOT_BASE_URL)
         .intercept({ path: "/v1/plate-reader/", method: "POST" })
-        .reply(200, SurvisionSnapshotResponse);
+        .reply(200, mockedSnapshotResponse);
 
-      const client = fetchMock.get(import.meta.env.PARKPOW_BASE_URL);
-      client
-        .intercept({ path: "/api/v1/log-vehicle/", method: "POST" })
-        .reply(200, ({ body }) => {
-          return body;
-        });
-      const url = `${WORKER_REQUEST_INPUT}?${param}=${input}`;
+      const url = `${WORKER_REQUEST_INPUT}?${param}=1`;
       let req = createJsonUploadRequest(
         url,
         SurvisionSamplePayload,
         SURVISION_HEADERS_DEFAULT,
       );
+
       let ctx = createExecutionContext();
       let response = await worker.fetch(req, env, ctx);
       await waitOnExecutionContext(ctx);
-      expect(await response.status).toBe(200);
-      const responseJson = await response.json();
-      expect(responseJson[0]["time"]).toBe("2024-10-17T23:04:50.098000Z");
-      expect(responseJson[0]["camera"]).toBe("sv1-searial-1");
-      expect(responseJson[0]["results"]).toStrictEqual([modifiedResult]);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual(mockedSnapshotResponse);
+
+      expect(logVehicleSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining(modifiedProp),
+        expect.any(String),
+        expect.any(String),
+      );
     },
   );
 });

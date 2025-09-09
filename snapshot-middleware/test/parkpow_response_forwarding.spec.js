@@ -11,6 +11,7 @@ import {
   describe,
   expect,
   test,
+  vi,
 } from "vitest";
 
 import worker from "../src/index";
@@ -35,10 +36,12 @@ afterEach(() => {
   fetchMock.deactivate();
 });
 
-describe("ParkPow Response message and status is forwarded to worker response", async () => {
+describe("ParkPow Response is logged for debugging", async () => {
   const parkPowStatusCases = [
-    [300, JSON.stringify({ detail: "Response 300" }), 1],
-    [403, JSON.stringify({ detail: "Invalid token." }), 1],
+    [200, JSON.stringify({ status: "New Visit Added" }), 1],
+    [300, "Response 300", 1],
+    [400, "Error - Exception Message.", 1],
+    [403, "Invalid token.", 1],
     [
       429,
       JSON.stringify({
@@ -47,15 +50,16 @@ describe("ParkPow Response message and status is forwarded to worker response", 
       }),
       3,
     ],
-    [500, JSON.stringify({ detail: "Response 500" }), 3],
+    [500, "Response 500", 3],
     [504, '<doc type="html">...', 3],
   ];
   test.each(parkPowStatusCases)(
-    "ParkPow Status: %s is forwarded as worker response",
+    "ParkPow Status: %s is not forwarded as worker response status",
     async (status, parkPowResponse, times) => {
+      const consoleSpy = vi.spyOn(console, "log");
+
       // const mockAgent = new MockAgent({ connections: 1 })
       // mockAgent.disableNetConnect();
-
       const client1 = fetchMock.get(import.meta.env.SNAPSHOT_BASE_URL);
       client1
         .intercept({ path: "/v1/plate-reader/", method: "POST" })
@@ -76,8 +80,30 @@ describe("ParkPow Response message and status is forwarded to worker response", 
       let ctx = createExecutionContext();
       let response = await worker.fetch(req, env, ctx);
       await waitOnExecutionContext(ctx);
-      expect(await response.status).toBe(status);
-      expect(await response.text()).toStrictEqual(parkPowResponse);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual(SurvisionSnapshotResponse);
+
+      let resSuccess,
+        resStatus = 200,
+        resBody;
+      if (status === 200) {
+        resSuccess = true;
+        resBody = JSON.parse(parkPowResponse);
+      } else {
+        resSuccess = false;
+        resStatus = status;
+        resBody = parkPowResponse;
+      }
+
+      let res = [
+        {
+          success: resSuccess,
+          body: resBody,
+          status: resStatus,
+        },
+      ];
+      expect(consoleSpy).toHaveBeenLastCalledWith(JSON.stringify(res));
+      consoleSpy.mockRestore();
     },
   );
 });
