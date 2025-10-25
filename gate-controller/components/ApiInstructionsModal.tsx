@@ -45,9 +45,9 @@ export function ApiInstructionsModal({ relay, isOpen, onClose }: ApiInstructions
         async function getToken() {
             try {
                 const token = await invoke('get_webhook_token');
-                // Assuming the server runs on localhost:3030
+                // Assuming the server runs on localhost:4848
                 // This could be made configurable in the future
-                setWebhookUrl(`http://localhost:3030/webhook/${token}`);
+                setWebhookUrl(`http://localhost:4848/webhook/${token}`);
             } catch (error) {
                 console.error("Failed to get webhook token:", error);
                 setWebhookUrl('Could not retrieve webhook URL.');
