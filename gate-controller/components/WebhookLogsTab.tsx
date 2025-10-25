@@ -49,7 +49,7 @@ export function WebhookLogsTab() {
                     <div className='text-center text-muted-foreground pt-12'>Listening for webhook events...</div>
                 ) : (
                     logs.map((log, index) => (
-                        <div key={index} className='flex items-start gap-3 p-2 rounded-md' style={{backgroundColor: log.success ? 'hsl(var(--success))' : 'hsl(var(--destructive))'}}>
+                        <div key={index} className={`flex items-start gap-3 p-2 rounded-md ${log.success ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                             {log.success ? <CheckCircle2 className='w-5 h-5 mt-1 flex-shrink-0' /> : <XCircle className='w-5 h-5 mt-1 flex-shrink-0' />}
                             <div className='flex-grow'>
                                 <p className='font-mono text-xs opacity-80'>{new Date(log.timestamp).toLocaleString()}</p>
