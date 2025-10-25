@@ -83,7 +83,7 @@ export function RelaySettingsTab() {
 {`curl -X POST http://localhost:4848/webhook \ 
   -H "Content-Type: application/json" \ 
   -H "Authorization: Bearer ${token || '<YOUR_TOKEN>'}" \ 
-  -d '{ "id": "HURTM", "action": "on", "channel": 1 }'`}
+  -d '{ "id": "<YOUR_RELAY_ID>", "action": "on", "channel": 1 }'`}
             </code></pre>
         </CardContent>
       </Card>
