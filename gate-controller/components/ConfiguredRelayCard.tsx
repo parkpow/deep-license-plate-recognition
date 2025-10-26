@@ -158,9 +158,6 @@ export function ConfiguredRelayCard({
       </CardHeader>
 
       {isExpanded &&
-        (relay.type === "ch340" ||
-          relay.type === "hw348" ||
-          relay.type === "cp210x") &&
         relay.channels &&
         relay.channels > 0 && (
           <CardContent className="p-3 pt-0">
