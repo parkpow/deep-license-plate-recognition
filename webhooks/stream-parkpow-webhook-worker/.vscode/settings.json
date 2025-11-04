@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "wrangler.json": "jsonc"
+  },
+  "biome.configurationPath": "biome.json"
+}
