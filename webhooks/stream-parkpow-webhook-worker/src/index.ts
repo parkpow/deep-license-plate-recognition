@@ -1,47 +1,42 @@
-/**
- * Secure middleware to forward Stream webhook results to ParkPow
- * Adds authentication token from environment secrets
- */
+import type { Context } from "hono";
+import { Hono } from "hono";
+import type { StatusCode } from "hono/utils/http-status";
 
-interface Env {
-  PARKPOW_ENDPOINT: string;
-  PARKPOW_TOKEN: string;
-  STREAM_TOKEN: string;
-}
+const app = new Hono();
 
-export default {
-  async fetch(request, env, _ctx): Promise<Response> {
-    if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
-    }
+// Worker auth. middleware (Stream token)
+app.use(async (c: Context, next: () => Promise<void>) => {
+  const auth = c.req.header("Authorization");
+  if (auth !== `Token ${c.env.STREAM_TOKEN}` || c.req.method !== "POST")
+    return c.text("Unauthorized", 401);
+  await next();
+});
 
-    try {
-      const streamAuthHeader = request.headers.get("Authorization");
-      if (!streamAuthHeader || streamAuthHeader !== `Token ${env.STREAM_TOKEN}`) {
-        return new Response("Unauthorized", { status: 401 });
-      }
+app.post("/", async (c: Context) => {
+  if (!c.env.PARKPOW_TOKEN) return c.text("Proxy missing parkpow credentials", 400);
 
-      const payload = await request.json();
+  // Clone headers except Authorization
+  const incomingHeaders = new Headers();
+  for (const [key, value] of c.req.raw.headers.entries())
+    if (key.toLowerCase() !== "authorization") incomingHeaders.set(key, value);
+  incomingHeaders.set("Authorization", `Token ${c.env.PARKPOW_TOKEN}`);
 
-      const parkpowRequest = new Request(env.PARKPOW_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${env.PARKPOW_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
+  try {
+    // Forward request to ParkPow
+    const resp = await fetch(c.env.PARKPOW_ENDPOINT, {
+      method: c.req.method,
+      headers: incomingHeaders,
+      body: c.req.raw.body,
+    });
 
-      const response = await fetch(parkpowRequest);
+    // Forward response from ParkPow
+    const responseBody = await resp.text();
+    const headersObj: Record<string, string> = {};
+    for (const [key, value] of resp.headers.entries()) headersObj[key] = value;
+    return c.newResponse(responseBody, resp.status as StatusCode, headersObj);
+  } catch (err) {
+    return c.text(err instanceof Error ? err.message : "Unknown error", 502);
+  }
+});
 
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    } catch (error) {
-      console.error("Error forwarding webhook:", error);
-      return new Response("Internal server error", { status: 500 });
-    }
-  },
-} satisfies ExportedHandler<Env>;
+export default app;

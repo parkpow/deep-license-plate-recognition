@@ -165,3 +165,6 @@ dist
 .env*
 !.env.example
 .wrangler/
+
+# rollbar mcp etc.
+mcp.json
