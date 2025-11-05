@@ -6,15 +6,21 @@
 interface Env {
   PARKPOW_ENDPOINT: string;
   PARKPOW_TOKEN: string;
+  STREAM_TOKEN: string;
 }
 
 export default {
-  async fetch(request, env, ctx): Promise<Response> {
+  async fetch(request, env, _ctx): Promise<Response> {
     if (request.method !== "POST") {
       return new Response("Method not allowed", { status: 405 });
     }
 
     try {
+      const streamAuthHeader = request.headers.get("Authorization");
+      if (!streamAuthHeader || streamAuthHeader !== `Token ${env.STREAM_TOKEN}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
       const payload = await request.json();
 
       const parkpowRequest = new Request(env.PARKPOW_ENDPOINT, {

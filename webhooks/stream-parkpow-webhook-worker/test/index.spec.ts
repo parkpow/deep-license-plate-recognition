@@ -1,8 +1,4 @@
-import {
-  createExecutionContext,
-  env,
-  waitOnExecutionContext,
-} from "cloudflare:test";
+import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import worker from "../src/index";
 
@@ -12,12 +8,14 @@ describe("Stream to ParkPow webhook worker", () => {
   let testEnv: {
     PARKPOW_ENDPOINT: string;
     PARKPOW_TOKEN: string;
+    STREAM_TOKEN: string;
   };
 
   beforeEach(() => {
     testEnv = {
       PARKPOW_ENDPOINT: "https://app.parkpow.com/api/v1/webhook-receiver/",
-      PARKPOW_TOKEN: "test-token-123",
+      PARKPOW_TOKEN: "parkpow-token-123",
+      STREAM_TOKEN: "stream-token-456",
     };
   });
 
@@ -33,7 +31,7 @@ describe("Stream to ParkPow webhook worker", () => {
     expect(await response.text()).toBe("Method not allowed");
   });
 
-  it("should forward POST request with authentication header", async () => {
+  it("should forward POST request with correct incoming Authorization header", async () => {
     const testPayload = {
       uid: "test-stream-id",
       timestamp: Date.now(),
@@ -42,7 +40,10 @@ describe("Stream to ParkPow webhook worker", () => {
 
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify(testPayload),
     });
 
@@ -82,15 +83,44 @@ describe("Stream to ParkPow webhook worker", () => {
 
     if (capturedRequest) {
       expect(capturedRequest.headers.get("Authorization")).toBe(
-        `Token ${testEnv.PARKPOW_TOKEN}`
+        `Token ${testEnv.PARKPOW_TOKEN}`,
       );
-      expect(capturedRequest.headers.get("Content-Type")).toBe(
-        "application/json"
-      );
+      expect(capturedRequest.headers.get("Content-Type")).toBe("application/json");
 
       const forwardedBody = await capturedRequest.json();
       expect(forwardedBody).toEqual(testPayload);
     }
+  });
+
+  it("should reject POST request with missing Authorization header", async () => {
+    const testPayload = { test: "data" };
+    const request = new IncomingRequest("http://example.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testPayload),
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized");
+  });
+
+  it("should reject POST request with invalid Authorization header", async () => {
+    const testPayload = { test: "data" };
+    const request = new IncomingRequest("http://example.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Token wrong-token",
+      },
+      body: JSON.stringify(testPayload),
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized");
   });
 
   it("should handle fetch errors gracefully", async () => {
@@ -98,7 +128,10 @@ describe("Stream to ParkPow webhook worker", () => {
 
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify(testPayload),
     });
 
@@ -121,7 +154,10 @@ describe("Stream to ParkPow webhook worker", () => {
   it("should handle invalid JSON payload", async () => {
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: "invalid json",
     });
 
@@ -136,7 +172,10 @@ describe("Stream to ParkPow webhook worker", () => {
   it("should preserve ParkPow response status and headers", async () => {
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify({ test: "data" }),
     });
 
@@ -173,7 +212,10 @@ describe("Stream to ParkPow webhook worker", () => {
   it("should handle missing PARKPOW_TOKEN", async () => {
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify({ test: "data" }),
     });
 
@@ -181,6 +223,7 @@ describe("Stream to ParkPow webhook worker", () => {
     const envWithoutToken = {
       PARKPOW_ENDPOINT: testEnv.PARKPOW_ENDPOINT,
       PARKPOW_TOKEN: "",
+      STREAM_TOKEN: testEnv.STREAM_TOKEN,
     };
 
     const originalFetch = globalThis.fetch;
@@ -214,7 +257,6 @@ describe("Stream to ParkPow webhook worker", () => {
     expect(response.status).toBe(200);
     expect(capturedRequest).not.toBeNull();
     if (capturedRequest) {
-      // Should still send Authorization header, just with empty token
       expect(capturedRequest.headers.get("Authorization")).toBe("Token");
     }
   });
@@ -222,7 +264,10 @@ describe("Stream to ParkPow webhook worker", () => {
   it("should handle ParkPow 401 Unauthorized response", async () => {
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify({ test: "data" }),
     });
 
@@ -259,7 +304,10 @@ describe("Stream to ParkPow webhook worker", () => {
   it("should handle ParkPow 403 Forbidden response", async () => {
     const request = new IncomingRequest("http://example.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${testEnv.STREAM_TOKEN}`,
+      },
       body: JSON.stringify({ test: "data" }),
     });
 
@@ -274,10 +322,13 @@ describe("Stream to ParkPow webhook worker", () => {
             ? input.url
             : "") === testEnv.PARKPOW_ENDPOINT
       ) {
-        return new Response(JSON.stringify({ detail: "Token not authorized for this resource" }), {
-          status: 403,
-          statusText: "Forbidden",
-        });
+        return new Response(
+          JSON.stringify({ detail: "Token not authorized for this resource" }),
+          {
+            status: 403,
+            statusText: "Forbidden",
+          },
+        );
       }
       return originalFetch(input);
     };
@@ -290,6 +341,7 @@ describe("Stream to ParkPow webhook worker", () => {
     expect(response.status).toBe(403);
     expect(response.statusText).toBe("Forbidden");
     const body = await response.json();
+
     expect(body).toEqual({ detail: "Token not authorized for this resource" });
   });
 });
