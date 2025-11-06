@@ -15,10 +15,8 @@ app.use(async (c: Context, next: () => Promise<void>) => {
 app.post("/", async (c: Context) => {
   if (!c.env.PARKPOW_TOKEN) return c.text("Proxy missing parkpow credentials", 400);
 
-  // Clone headers except Authorization
-  const incomingHeaders = new Headers();
-  for (const [key, value] of c.req.raw.headers.entries())
-    if (key.toLowerCase() !== "authorization") incomingHeaders.set(key, value);
+  // Update authorization header for ParkPow
+  const incomingHeaders = new Headers(c.req.raw.headers);
   incomingHeaders.set("Authorization", `Token ${c.env.PARKPOW_TOKEN}`);
 
   try {
@@ -29,11 +27,8 @@ app.post("/", async (c: Context) => {
       body: c.req.raw.body,
     });
 
-    // Forward response from ParkPow
-    const responseBody = await resp.text();
-    const headersObj: Record<string, string> = {};
-    for (const [key, value] of resp.headers.entries()) headersObj[key] = value;
-    return c.newResponse(responseBody, resp.status as StatusCode, headersObj);
+  // Stream response from ParkPow
+  return new Response(resp.body, resp);
   } catch (err) {
     return c.text(err instanceof Error ? err.message : "Unknown error", 502);
   }
