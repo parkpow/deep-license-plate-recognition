@@ -199,4 +199,3 @@ pub fn start_server(app_handle: AppHandle) {
         }
     });
 }
-

@@ -68,4 +68,3 @@ jobs:
       with:
         name: PlateRecognizer-Installer-MacOS
         path: docker/platerec_installer/dist/*
-

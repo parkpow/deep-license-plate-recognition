@@ -22,11 +22,11 @@ pub fn trigger_cp210x_action(
             .map_err(|e| format!("Failed to open serial port '{}': {}", port_name, e))?;
         connections_guard.insert(port_name.to_string(), port);
         // Wait for the serial device to initialize
-        std::thread::sleep(std::time::Duration::from_millis(200)); 
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
     let serial_port = connections_guard.get_mut(port_name).unwrap();
-    
+
     let action_val = if action == "on" { 1 } else { 0 };
     let cmd_str = format!("AT+CH{}={}\r\n", channel, action_val);
     let command = cmd_str.as_bytes();
