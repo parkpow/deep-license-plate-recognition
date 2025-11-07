@@ -1,10 +1,10 @@
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { deleteFromR2 } from "@/lib/cloudflare/deleteFromR2";
 import { uploadToR2 } from "@/lib/cloudflare/uploadToR2";
 import { findImageKeysByWebhookUUID } from "@/lib/image-to-remove";
 import { prisma } from "@/lib/prisma";
-import { WebhookData } from "@/types/webhook";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { WebhookData } from "@/types/webhook";
 
 // Get the maximum number of webhook requests from environment variable or default to 50
 const MAX_WEBHOOK_REQUESTS = Number.parseInt(
@@ -17,13 +17,9 @@ export async function POST(request: NextRequest) {
     const url = new URL(request.url);
     const uuid = url.pathname.split("/").pop()!;
 
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(uuid)) {
-      return NextResponse.json(
-        { error: "Invalid UUID format" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid UUID format" }, { status: 400 });
     }
 
     const webhook = await prisma.webhook.findUnique({
@@ -105,10 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error processing webhook:", error);
-    return NextResponse.json(
-      { error: "Failed to process webhook" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Failed to process webhook" }, { status: 400 });
   }
 }
 
@@ -118,13 +111,9 @@ export async function GET(request: NextRequest) {
     const uuid = url.pathname.split("/").pop()!;
 
     // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(uuid)) {
-      return NextResponse.json(
-        { error: "Invalid UUID format" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid UUID format" }, { status: 400 });
     }
 
     // Find webhook
@@ -163,10 +152,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(webhookData);
   } catch (error) {
     console.error("Error in GET handler:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -176,13 +162,9 @@ export async function DELETE(request: NextRequest) {
     const uuid = url.pathname.split("/").pop()!;
 
     // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(uuid)) {
-      return NextResponse.json(
-        { error: "Invalid UUID format" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid UUID format" }, { status: 400 });
     }
 
     // Find webhook
@@ -204,17 +186,12 @@ export async function DELETE(request: NextRequest) {
         where: { webhookId: webhook.id },
       })
       .then(() => {
-        console.log(
-          `Deleted ${keys.length} images for webhook with UUID: ${keys}`,
-        );
+        console.log(`Deleted ${keys.length} images for webhook with UUID: ${keys}`);
       });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error in DELETE handler:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

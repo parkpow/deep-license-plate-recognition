@@ -1,8 +1,17 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  ChevronDown,
+  ChevronUp,
+  ClipboardCopy,
+  HardDrive,
+  Trash2,
+  Usb,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { ApiInstructionsModal } from "@/components/ApiInstructionsModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,17 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  HardDrive,
-  Usb,
-  Trash2,
-  ClipboardCopy,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
-import { ApiInstructionsModal } from "@/components/ApiInstructionsModal";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 interface ConfiguredRelay {
   id: string;
@@ -44,10 +44,7 @@ export function ConfiguredRelayCard({
   const [showApiInstructions, setShowApiInstructions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleAction = async (
-    action: "on" | "off",
-    channel: number | null = null,
-  ) => {
+  const handleAction = async (action: "on" | "off", channel: number | null = null) => {
     try {
       await invoke("trigger_relay_action", {
         payload: { id: relay.id, action, channel },
@@ -141,15 +138,13 @@ export function ConfiguredRelayCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently remove the relay{" "}
-                    <strong>{relay.id}</strong> from your configuration.
+                    This will permanently remove the relay <strong>{relay.id}</strong>{" "}
+                    from your configuration.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleRemove}>
-                    Continue
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleRemove}>Continue</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -157,38 +152,36 @@ export function ConfiguredRelayCard({
         </div>
       </CardHeader>
 
-      {isExpanded &&
-        relay.channels &&
-        relay.channels > 0 && (
-          <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-              {[...Array(relay.channels)].map((_, i) => {
-                const channel = i + 1;
-                return (
-                  <div key={channel} className="flex flex-col gap-1">
-                    <span className="text-xs font-mono text-center text-muted-foreground">
-                      Ch {channel}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-xs h-7 px-2"
-                      onClick={() => handleAction("on", channel)}
-                    >
-                      ON
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700 text-xs h-7 px-2"
-                      onClick={() => handleAction("off", channel)}
-                    >
-                      OFF
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        )}
+      {isExpanded && relay.channels && relay.channels > 0 && (
+        <CardContent className="p-3 pt-0">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+            {[...Array(relay.channels)].map((_, i) => {
+              const channel = i + 1;
+              return (
+                <div key={channel} className="flex flex-col gap-1">
+                  <span className="text-xs font-mono text-center text-muted-foreground">
+                    Ch {channel}
+                  </span>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-xs h-7 px-2"
+                    onClick={() => handleAction("on", channel)}
+                  >
+                    ON
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-xs h-7 px-2"
+                    onClick={() => handleAction("off", channel)}
+                  >
+                    OFF
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      )}
 
       <ApiInstructionsModal
         relay={relay}

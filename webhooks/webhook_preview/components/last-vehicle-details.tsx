@@ -1,23 +1,23 @@
 "use client";
 
+import { Camera, Car, Clock, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getPlateNumber,
-  getVehicleType,
-  getVehicleMake,
-  getVehicleModel,
-  getVehicleColor,
-  getCameraId,
   formatDate,
-  getTimestamp,
+  getCameraId,
+  getImageurl,
+  getPlateNumber,
+  getPlateScore,
   getRegion,
   getRegionScore,
-  getPlateScore,
+  getTimestamp,
+  getVehicleColor,
+  getVehicleMake,
+  getVehicleModel,
   getVehicleOrientation,
-  getImageurl,
+  getVehicleType,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
-import { Car, Camera, Clock, Tag } from "lucide-react";
 
 interface LastVehicleDetailsProps {
   data: WebhookData;
@@ -67,9 +67,7 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
           <div>
             <div className="mb-6 flex justify-center">
               <div className="bg-gray-800 text-white px-8 py-4 rounded-lg shadow-lg">
-                <div className="text-xs text-gray-300 mb-1 text-center">
-                  PLATE
-                </div>
+                <div className="text-xs text-gray-300 mb-1 text-center">PLATE</div>
                 <div className="font-mono font-bold text-4xl tracking-wider text-center uppercase">
                   {plateNumber}
                 </div>
@@ -83,9 +81,7 @@ export function LastVehicleDetails({ data }: LastVehicleDetailsProps) {
                   <div className="font-medium text-sm">Plate Info</div>
                 </div>
                 <div className="text-sm space-y-1">
-                  {plateScore && (
-                    <div>Score: {(plateScore * 100).toFixed(1)}%</div>
-                  )}
+                  {plateScore && <div>Score: {(plateScore * 100).toFixed(1)}%</div>}
                   {region && <div>Region: {region}</div>}
                   {regionScore && (
                     <div>Region Score: {(regionScore * 100).toFixed(1)}%</div>

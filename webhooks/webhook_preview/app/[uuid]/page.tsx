@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Header } from "@/components/header";
-import { Layout } from "@/components/layout";
-import { LicensePlateSidebar } from "@/components/license-plate-sidebar";
-import { LastVehicleDetails } from "@/components/last-vehicle-details";
+import { Copy, Trash } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard-summary";
 import { EmptyState } from "@/components/empty-state";
-import type { WebhookData } from "@/types/webhook";
+import { Header } from "@/components/header";
+import { LastVehicleDetails } from "@/components/last-vehicle-details";
+import { Layout } from "@/components/layout";
+import { LicensePlateSidebar } from "@/components/license-plate-sidebar";
 import { useToast } from "@/hooks/use-toast";
-import { useParams, useRouter } from "next/navigation";
-import { Copy, Trash } from "lucide-react";
+import type { WebhookData } from "@/types/webhook";
 
 export default function WebhookDataPage() {
   const params = useParams();
@@ -223,8 +223,7 @@ export default function WebhookDataPage() {
         if (webhookResponse.ok) {
           toast({
             title: "Test Data Sent Successfully",
-            description:
-              "Sample license plate data has been sent to your webhook",
+            description: "Sample license plate data has been sent to your webhook",
           });
 
           // Refresh to show the test data
@@ -289,13 +288,10 @@ export default function WebhookDataPage() {
               <button
                 onClick={() => {
                   if (baseUrl) {
-                    navigator.clipboard.writeText(
-                      `${baseUrl}/api/webhook/${uuid}`,
-                    );
+                    navigator.clipboard.writeText(`${baseUrl}/api/webhook/${uuid}`);
                     toast({
                       title: "Copy!",
-                      description:
-                        "URL of the webhook copied to the clipboard.",
+                      description: "URL of the webhook copied to the clipboard.",
                     });
                   }
                 }}

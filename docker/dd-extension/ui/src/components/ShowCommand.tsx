@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import { useState } from "react";
+import { Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-import {
-  Row,
-} from "react-bootstrap";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Loader from "./Loader";
 
 interface ShowCommandProps {
@@ -35,26 +33,29 @@ export default function ShowCommand({
       });
   }
 
-  function runCommand(){
+  function runCommand() {
     setRunningCommand(true);
     // Generate list of run options
     console.debug(command);
-    const cmd:Array<string> = command.match(/[^ ]+/g)?.slice(2) || [];
+    const cmd: Array<string> = command.match(/[^ ]+/g)?.slice(2) || [];
     // Run in the background
-    if (!cmd.includes('-d')){
-      cmd.unshift('-d')
+    if (!cmd.includes("-d")) {
+      cmd.unshift("-d");
     }
 
-    ddClient.docker.cli.exec("run", cmd).then(async (result) => {
-      console.debug(result);
-      setRunningCommand(false);
-      ddClient.desktopUI.toast.success('Command Ran Successfully.');
-      await ddClient.desktopUI.navigate.viewContainer(result.stdout.trim())
-    }).catch(e => {
-      setRunningCommand(false);
-      console.error(e);
-      ddClient.desktopUI.toast.error(`Run Command Failed: ${e.stderr.trim()}`);
-    })
+    ddClient.docker.cli
+      .exec("run", cmd)
+      .then(async (result) => {
+        console.debug(result);
+        setRunningCommand(false);
+        ddClient.desktopUI.toast.success("Command Ran Successfully.");
+        await ddClient.desktopUI.navigate.viewContainer(result.stdout.trim());
+      })
+      .catch((e) => {
+        setRunningCommand(false);
+        console.error(e);
+        ddClient.desktopUI.toast.error(`Run Command Failed: ${e.stderr.trim()}`);
+      });
   }
 
   const curlCommand = curlPort ? (
@@ -76,8 +77,8 @@ export default function ShowCommand({
         <div className="mt-3 card" style={{ display: "block" }}>
           <div className="card-body">
             <p className="card-title">
-              You can now start {curlPort ? 'Snapshot' : 'Stream'}. Open a terminal and type the command
-              below. You can save this command for future use.
+              You can now start {curlPort ? "Snapshot" : "Stream"}. Open a terminal and
+              type the command below. You can save this command for future use.
             </p>
             <code className="card-text d-block">{command}</code>
             <div className="mt-3">

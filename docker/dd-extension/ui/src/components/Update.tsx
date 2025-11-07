@@ -1,13 +1,7 @@
-import React, { useState } from "react";
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import { useState } from "react";
+import { Button, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-import {
-
-  Row,
-
-  Button,
-
-} from "react-bootstrap";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 
 import Loader from "./Loader";
 
@@ -27,7 +21,7 @@ export default function Update({ isEnabled, image }: UpdateProps) {
     ddClient.docker.cli
       .exec("pull", [image])
       .then((result) => {
-        console.debug(result)
+        console.debug(result);
         setLoading(false);
       })
       .catch((err) => {
@@ -40,11 +34,7 @@ export default function Update({ isEnabled, image }: UpdateProps) {
   return (
     <Form.Group as={Row} className="mb-3 {'d-none': uninstall }">
       <div className="col-2">
-        <Button
-          className="btn btn-secondary"
-          type="button"
-          onClick={handleUpdateImage}
-        >
+        <Button className="btn btn-secondary" type="button" onClick={handleUpdateImage}>
           <Loader isLoading={isLoading} />
           Update
         </Button>

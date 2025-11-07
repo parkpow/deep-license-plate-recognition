@@ -1,12 +1,10 @@
 import React, { useState } from "react";
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import { Button, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-import {
-  Row,
-  Button,
-} from "react-bootstrap";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 
 import Loader from "./Loader";
+
 interface UninstallProps {
   isEnabled: boolean;
   image: string;
@@ -50,11 +48,7 @@ export default function Uninstall({ isEnabled, image }: UninstallProps) {
   return (
     <Form.Group as={Row} className="mb-3">
       <div className="col-2">
-        <Button
-          className="btn btn-danger"
-          type="button"
-          onClick={handleUninstall}
-        >
+        <Button className="btn btn-danger" type="button" onClick={handleUninstall}>
           <Loader isLoading={isLoading} />
           Uninstall
         </Button>

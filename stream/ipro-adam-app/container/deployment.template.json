@@ -76,9 +76,7 @@
                   "BlkioWeight": 0,
                   "BlkioWeightDevice": [],
                   "CapAdd": null,
-                  "CapDrop": [
-                    "net_raw"
-                  ],
+                  "CapDrop": ["net_raw"],
                   "Capabilities": null,
                   "Cgroup": "",
                   "CgroupParent": "",

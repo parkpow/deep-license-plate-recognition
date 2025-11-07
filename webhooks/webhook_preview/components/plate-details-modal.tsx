@@ -1,5 +1,8 @@
 "use client";
 
+import { Camera, Car, Info, Map } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -7,25 +10,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getPlateNumber,
-  getVehicleType,
-  getVehicleMake,
-  getVehicleModel,
-  getVehicleColor,
-  getCameraId,
   formatDate,
-  getTimestamp,
+  getCameraId,
+  getImageurl,
+  getPlateNumber,
+  getPlateScore,
   getRegion,
   getRegionScore,
-  getPlateScore,
+  getTimestamp,
+  getVehicleColor,
+  getVehicleMake,
+  getVehicleModel,
   getVehicleOrientation,
-  getImageurl,
+  getVehicleType,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
-import { Car, Camera, Map, Info } from "lucide-react";
 
 interface PlateDetailsModalProps {
   data: WebhookData;
@@ -33,11 +33,7 @@ interface PlateDetailsModalProps {
   onClose: () => void;
 }
 
-export function PlateDetailsModal({
-  data,
-  isOpen,
-  onClose,
-}: PlateDetailsModalProps) {
+export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalProps) {
   const plateNumber = getPlateNumber(data);
   const plateScore = getPlateScore(data);
   const vehicleType = getVehicleType(data);
@@ -86,10 +82,7 @@ export function PlateDetailsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs
-          defaultValue="details"
-          className="flex-1 overflow-hidden flex flex-col"
-        >
+        <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="image">Image</TabsTrigger>
@@ -204,8 +197,7 @@ export function PlateDetailsModal({
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Confidence:</dt>
                       <dd>
-                        {hasValidResults &&
-                        data.data.results[0].score !== undefined
+                        {hasValidResults && data.data.results[0].score !== undefined
                           ? `${(data.data.results[0].score * 100).toFixed(1)}%`
                           : "N/A"}
                       </dd>
@@ -222,9 +214,7 @@ export function PlateDetailsModal({
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Received:</dt>
-                      <dd>
-                        {data.receivedAt ? formatDate(data.receivedAt) : "N/A"}
-                      </dd>
+                      <dd>{data.receivedAt ? formatDate(data.receivedAt) : "N/A"}</dd>
                     </div>
                   </dl>
                 </CardContent>

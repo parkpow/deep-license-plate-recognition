@@ -2,14 +2,14 @@
 
 import { Card } from "@/components/ui/card";
 import {
-  getPlateNumber,
-  getTimestamp,
+  cn,
   formatDate,
+  getPlateNumber,
   getRegion,
+  getTimestamp,
   getVehicleOrientation,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
-import { cn } from "@/lib/utils";
 
 interface UniversalPlateCardProps {
   data: WebhookData;
@@ -28,8 +28,7 @@ export function UniversalPlateCard({
   const orientation = getVehicleOrientation(data);
 
   // Determine if this is a vehicle without a plate
-  const hasNoPlate =
-    plateNumber === "Unknown Plate" || plateNumber === "NO PLATE";
+  const hasNoPlate = plateNumber === "Unknown Plate" || plateNumber === "NO PLATE";
 
   return (
     <Card
@@ -44,9 +43,7 @@ export function UniversalPlateCard({
       <div
         className={cn(
           "p-3 text-center",
-          hasNoPlate
-            ? "bg-amber-50"
-            : "bg-gradient-to-b from-gray-200 to-white",
+          hasNoPlate ? "bg-amber-50" : "bg-gradient-to-b from-gray-200 to-white",
         )}
       >
         <div className="font-mono font-bold text-2xl tracking-wider text-black uppercase">

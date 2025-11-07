@@ -26,8 +26,7 @@ const fetchWithRetry = (url, init, tries = 3) =>
         return response;
       } else {
         // 1. throw a new exception
-        if (response.status === 429)
-          throw new Error429("Rate Limited", response);
+        if (response.status === 429) throw new Error429("Rate Limited", response);
         if (response.status >= 500 && response.status <= 599)
           throw new Error5xx(`Server Error - ${response.status}`, response);
         // 2. reject instead of throw, preferred
@@ -37,10 +36,7 @@ const fetchWithRetry = (url, init, tries = 3) =>
     })
     .catch((error) => {
       // Retry network error or 5xx errors
-      if (
-        (error instanceof Error429 || error instanceof Error5xx) &&
-        tries > 0
-      ) {
+      if ((error instanceof Error429 || error instanceof Error5xx) && tries > 0) {
         console.error(`Retry Response status: ${error.message}`);
         // if the rate limit is reached or exceeded, the system will have to obey to a 5 second cooldown period before attempting the API requests again.
         const delay = 5100;
@@ -63,16 +59,10 @@ class ParkPowApi {
     } else {
       this.apiBase = "https://app.parkpow.com/api/v1/";
     }
-    console.debug("Api Base: " + this.apiBase);
+    console.debug(`Api Base: ${this.apiBase}`);
   }
 
-  async logVehicle(
-    encodedImage,
-    licensePlateNumber,
-    confidence,
-    camera,
-    timestamp,
-  ) {
+  async logVehicle(encodedImage, licensePlateNumber, confidence, camera, timestamp) {
     const endpoint = "log-vehicle/";
     const pTime = new Date(timestamp * 1000).toISOString();
     const data = {
@@ -87,7 +77,7 @@ class ParkPowApi {
       ],
       time: pTime,
     };
-    let init = {
+    const init = {
       body: JSON.stringify(data),
       method: "POST",
       headers: {
@@ -120,7 +110,7 @@ class VerkadaApi {
       end_time: timestamp + 1,
     };
     const endpoint = "https://api.verkada.com/cameras/v1/analytics/lpr/images";
-    let init = {
+    const init = {
       headers: {
         accept: "application/json",
         "x-api-key": this.apiKey,
@@ -145,10 +135,10 @@ class VerkadaApi {
 }
 
 async function processWebhook(data, verkada, parkpow, rollbar) {
-  let cameraId = data["camera_id"];
-  let createdAt = data["created"];
-  let confidence = data["confidence"];
-  let licensePlateNumber = data["license_plate_number"];
+  const cameraId = data["camera_id"];
+  const createdAt = data["created"];
+  const confidence = data["confidence"];
+  const licensePlateNumber = data["license_plate_number"];
 
   return verkada
     .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
