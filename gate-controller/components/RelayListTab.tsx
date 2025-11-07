@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { PlusCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AddRelayDialog } from "@/components/AddRelayDialog";
 import { ConfiguredRelayCard } from "@/components/ConfiguredRelayCard";
@@ -18,18 +18,18 @@ export function RelayListTab() {
   const [relays, setRelays] = useState<ConfiguredRelay[]>([]);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
 
-  const fetchConfiguredRelays = async () => {
+  const fetchConfiguredRelays = useCallback(async () => {
     try {
       const configuredRelays = await invoke<ConfiguredRelay[]>("get_configured_relays");
       setRelays(configuredRelays);
     } catch (error) {
       toast.error("Failed to load relay configuration", { description: String(error) });
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchConfiguredRelays();
-  }, []);
+  }, [fetchConfiguredRelays]);
 
   return (
     <div className="w-full h-full flex flex-col space-y-4">

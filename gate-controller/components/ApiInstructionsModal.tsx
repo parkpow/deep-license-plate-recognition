@@ -54,7 +54,7 @@ export function ApiInstructionsModal({
   isOpen,
   onClose,
 }: ApiInstructionsModalProps) {
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [_webhookUrl, setWebhookUrl] = useState("");
   const isMultiChannel =
     relay.type === "ch340" || relay.type === "hw348" || relay.type === "cp210x";
 

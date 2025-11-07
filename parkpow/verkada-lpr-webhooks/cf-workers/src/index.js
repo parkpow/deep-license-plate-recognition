@@ -55,7 +55,7 @@ class ParkPowApi {
       this.token = token;
     }
     if (sdkUrl) {
-      this.apiBase = sdkUrl + "/api/v1/";
+      this.apiBase = `${sdkUrl}/api/v1/`;
     } else {
       this.apiBase = "https://app.parkpow.com/api/v1/";
     }
@@ -82,7 +82,7 @@ class ParkPowApi {
       method: "POST",
       headers: {
         "Content-type": "application/json",
-        Authorization: "Token " + this.token,
+        Authorization: `Token ${this.token}`,
       },
     };
     const url = this.apiBase + endpoint;
@@ -121,12 +121,9 @@ class VerkadaApi {
     return fetchWithRetry(url, init).then(async (res) => {
       const data = await res.json();
       console.log(`Data: ${JSON.stringify(data)}`);
-      for (const detection of data["detections"]) {
-        if (
-          detection["timestamp"] === timestamp &&
-          detection["license_plate"] === plate
-        ) {
-          return detection["image_url"];
+      for (const detection of data.detections) {
+        if (detection.timestamp === timestamp && detection.license_plate === plate) {
+          return detection.image_url;
         }
       }
       return Promise.reject("Detection not found");
@@ -135,15 +132,15 @@ class VerkadaApi {
 }
 
 async function processWebhook(data, verkada, parkpow, rollbar) {
-  const cameraId = data["camera_id"];
-  const createdAt = data["created"];
-  const confidence = data["confidence"];
-  const licensePlateNumber = data["license_plate_number"];
+  const cameraId = data.camera_id;
+  const createdAt = data.created;
+  const confidence = data.confidence;
+  const licensePlateNumber = data.license_plate_number;
 
   return verkada
     .getSeenLicensePlateImage(cameraId, createdAt, licensePlateNumber)
     .then((imageUrl) => {
-      console.log("Download Image from URL: " + imageUrl);
+      console.log(`Download Image from URL: ${imageUrl}`);
       return VerkadaApi.downloadImage(imageUrl);
     })
     .then((imageBase64) => {
@@ -167,12 +164,12 @@ export default {
   // Our fetch handler is invoked on a HTTP request: we can send a message to a queue
   // during (or after) a request.
   // https://developers.cloudflare.com/queues/platform/javascript-apis/#producer
-  async fetch(request, env, ctx) {
+  async fetch(request, env, _ctx) {
     if (request.method === "POST") {
       const contentType = request.headers.get("content-type");
       if (contentType.includes("application/json")) {
         const data = await request.json();
-        const webhookType = data["webhook_type"];
+        const webhookType = data.webhook_type;
         if (webhookType !== "lpr") {
           return new Response(`Unexpected webhook type: ${webhookType}`, {
             status: 400,
@@ -202,7 +199,7 @@ export default {
     for (const message of batch.messages) {
       // Process each message (we'll just log these)
       console.log(`Message: ${JSON.stringify(message.body)}`);
-      const data = message.body["data"];
+      const data = message.body.data;
       const result = await processWebhook(data, verkada, parkpow, rollbar);
       console.info(`Logged Vehicle: ${JSON.stringify(result)}`);
       // Explicitly acknowledge the message as delivered

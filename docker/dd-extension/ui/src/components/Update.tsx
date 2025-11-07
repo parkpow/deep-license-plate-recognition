@@ -10,11 +10,10 @@ interface UpdateProps {
   image: string;
 }
 export default function Update({ isEnabled, image }: UpdateProps) {
-  if (!isEnabled) {
-    return null;
-  }
   const [isLoading, setLoading] = useState(false);
   const ddClient = useDockerDesktopClient();
+
+  if (!isEnabled) return null;
 
   const handleUpdateImage = () => {
     setLoading(true);
@@ -34,12 +33,21 @@ export default function Update({ isEnabled, image }: UpdateProps) {
   return (
     <Form.Group as={Row} className="mb-3 {'d-none': uninstall }">
       <div className="col-2">
-        <Button className="btn btn-secondary" type="button" onClick={handleUpdateImage}>
+        <Button
+          className="btn btn-secondary"
+          type="button"
+          onClick={handleUpdateImage}
+          id="update-image-btn"
+          disabled={isLoading}
+        >
           <Loader isLoading={isLoading} />
           Update
         </Button>
       </div>
-      <label className="col-auto align-self-center form-label">
+      <label
+        className="col-auto align-self-center form-label"
+        htmlFor="update-image-btn"
+      >
         Update the Docker image.
       </label>
     </Form.Group>

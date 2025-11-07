@@ -16,11 +16,9 @@ export default function ShowCommand({
   curlPort,
 }: ShowCommandProps) {
   const [isRunningCommand, setRunningCommand] = useState(false);
-
-  if (!validated) {
-    return null;
-  }
   const ddClient = useDockerDesktopClient();
+
+  if (!validated) return null;
 
   function copyToClipboard() {
     navigator.clipboard

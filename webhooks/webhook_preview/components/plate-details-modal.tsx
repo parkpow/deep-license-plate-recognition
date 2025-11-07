@@ -1,6 +1,7 @@
 "use client";
 
-import { Camera, Car, Info, Map } from "lucide-react";
+import { Camera, Car, Info, Map as MapIcon } from "lucide-react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -157,7 +158,7 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center">
-                    <Map className="h-4 w-4 mr-2" />
+                    <MapIcon className="h-4 w-4 mr-2" />
                     Movement Information
                   </CardTitle>
                 </CardHeader>
@@ -230,10 +231,14 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
           <TabsContent value="image" className="flex-1 overflow-auto">
             <div className="flex justify-center items-center">
               {imageurl ? (
-                <img
+                <Image
                   src={imageurl}
                   alt={`Vehicle for plate ${plateNumber}`}
-                  className="rounded-lg shadow-lg w-full h-auto max-h-[500px] object-contain"
+                  width={800}
+                  height={500}
+                  className="rounded-lg shadow-lg w-full h-auto object-contain"
+                  style={{ maxHeight: 500, width: "100%", height: "auto" }}
+                  unoptimized
                 />
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg w-full h-[300px] flex items-center justify-center text-gray-500 italic">

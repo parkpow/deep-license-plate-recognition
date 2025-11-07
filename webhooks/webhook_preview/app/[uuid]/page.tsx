@@ -286,6 +286,7 @@ export default function WebhookDataPage() {
                 {baseUrl ? `${baseUrl}/api/webhook/${uuid}` : `Loading...`}
               </div>
               <button
+                type="button"
                 onClick={() => {
                   if (baseUrl) {
                     navigator.clipboard.writeText(`${baseUrl}/api/webhook/${uuid}`);
@@ -301,6 +302,7 @@ export default function WebhookDataPage() {
                 <Copy className="w-4 h-4" />
               </button>
               <button
+                type="button"
                 onClick={handleDataClear}
                 className="h-10 w-10 flex items-center justify-center bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
                 title="Limpar Dados"

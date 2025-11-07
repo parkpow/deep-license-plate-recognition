@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, Col, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
 import { openBrowserUrl } from "../helpers";
@@ -48,13 +48,13 @@ export default function Snapshot() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTokenValidated(false);
     const { name, value } = e.target;
-    if (name == "license") {
+    if (name === "license") {
       setLicenseKey(value);
-    } else if (name == "token") {
+    } else if (name === "token") {
       setToken(value);
-    } else if (name == "port") {
+    } else if (name === "port") {
       setCurlPort(value);
-    } else if (name == "restart-policy") {
+    } else if (name === "restart-policy") {
       setRestartPolicy(value);
     }
   };
@@ -64,13 +64,7 @@ export default function Snapshot() {
     setArchitecture(e.target.value);
   };
 
-  // type SnapshotData = {
-  //   port: string;
-  //   license: string;
-  //   token: string;
-  //   image: string;
-  // }
-  const generateDockerImage = () => {
+  const generateDockerImage = useCallback(() => {
     let dockerImage = "platerecognizer/";
     if (
       country === "Global" ||
@@ -83,45 +77,49 @@ export default function Snapshot() {
     }
     setDockerimage(dockerImage);
     return dockerImage;
-  };
-  const generateDockerRunCommand = (dockerImage: string) => {
-    let restartOption;
-    switch (restartPolicy) {
-      case "no":
-        restartOption = "";
-        break;
-      default:
-        restartOption = `--restart=${restartPolicy} `;
-        break;
-    }
-    const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
-    let platformSpecificCommand = "";
+  }, [country, architecture]);
 
-    switch (architecture) {
-      case "alpr-jetson":
-      case "alpr-jetson:r35":
-        platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
-        break;
-      case "alpr-gpu":
-        platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-        break;
-      case "alpr":
-      case "alpr-no-avx":
-      case "alpr-arm":
-      case "alpr-zcu104":
-        platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-        break;
-      default:
-        break;
-    }
+  const generateDockerRunCommand = useCallback(
+    (dockerImage: string) => {
+      let restartOption: string;
+      switch (restartPolicy) {
+        case "no":
+          restartOption = "";
+          break;
+        default:
+          restartOption = `--restart=${restartPolicy} `;
+          break;
+      }
+      const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
+      let platformSpecificCommand = "";
 
-    setCommand(`${baseCommand} ${platformSpecificCommand}`);
-  };
+      switch (architecture) {
+        case "alpr-jetson":
+        case "alpr-jetson:r35":
+          platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
+          break;
+        case "alpr-gpu":
+          platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+          break;
+        case "alpr":
+        case "alpr-no-avx":
+        case "alpr-arm":
+        case "alpr-zcu104":
+          platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+          break;
+        default:
+          break;
+      }
+
+      setCommand(`${baseCommand} ${platformSpecificCommand}`);
+    },
+    [restartPolicy, curlPort, architecture, licenseKey, token],
+  );
 
   useEffect(() => {
     const imagem = generateDockerImage();
     generateDockerRunCommand(imagem);
-  }, [country, architecture, token, curlPort, licenseKey, restartPolicy]);
+  }, [generateDockerImage, generateDockerRunCommand]);
 
   // Load any existing data from local storage on component mount
   useEffect(() => {
@@ -148,8 +146,8 @@ export default function Snapshot() {
 
     ddClient.extension.vm?.service?.post("/verify-token", data).then((res: any) => {
       console.debug(res);
-      const valid = res["valid"];
-      const message = res["message"];
+      const valid = res.valid;
+      const message = res.message;
       if (valid) {
         localStorage.setItem(
           "snapshot",
@@ -241,7 +239,7 @@ export default function Snapshot() {
             label="No (Docker Default)"
             id="rps1"
             value="no"
-            checked={restartPolicy == "no"}
+            checked={restartPolicy === "no"}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -250,7 +248,7 @@ export default function Snapshot() {
             label="Unless Stopped"
             id="rps2"
             value="unless-stopped"
-            checked={restartPolicy == "unless-stopped"}
+            checked={restartPolicy === "unless-stopped"}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -259,7 +257,7 @@ export default function Snapshot() {
             label="Always"
             id="rps3"
             value="always"
-            checked={restartPolicy == "always"}
+            checked={restartPolicy === "always"}
             onChange={handleInputChange}
           />
           <Form.Check
@@ -268,7 +266,7 @@ export default function Snapshot() {
             label="On Failure"
             id="rps4"
             value="on-failure"
-            checked={restartPolicy == "on-failure"}
+            checked={restartPolicy === "on-failure"}
             onChange={handleInputChange}
           />
         </Col>
@@ -306,9 +304,9 @@ export default function Snapshot() {
               architecture === "alpr-jetson:r35" || architecture === "alpr-no-avx"
             }
           >
-            {countryOptions.map((option, index) => (
-              <option key={index} value={option.value}>
-                {option.label}
+            {countryOptions.map(({ value, label }) => (
+              <option key={label} value={value}>
+                {label}
               </option>
             ))}
           </Form.Select>
@@ -320,9 +318,9 @@ export default function Snapshot() {
             name="image"
             defaultValue={architecture}
           >
-            {architectureOptionsSnapshot.map((option, index) => (
-              <option key={index} value={option.value}>
-                {option.label}
+            {architectureOptionsSnapshot.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </Form.Select>
@@ -333,12 +331,15 @@ export default function Snapshot() {
 
       <Form.Group as={Row} className="mb-3">
         <div className="col-2">
-          <Button className="btn btn-primary" type="submit">
+          <Button className="btn btn-primary" type="submit" id="validateSnapshotBtn">
             <Loader isLoading={isLoading} />
             Show Docker Command
           </Button>
         </div>
-        <label className="col-auto align-self-center form-label">
+        <label
+          className="col-auto align-self-center form-label"
+          htmlFor="validateSnapshotBtn"
+        >
           Confirm settings and show docker command.
         </label>
       </Form.Group>

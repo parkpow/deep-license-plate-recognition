@@ -32,7 +32,7 @@ export function WebhookLogsTab() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
-  }, [logs]);
+  }, []);
 
   return (
     <div className="p-4 h-full flex flex-col space-y-4">
@@ -58,9 +58,9 @@ export function WebhookLogsTab() {
               Listening for webhook events...
             </div>
           ) : (
-            logs.map((log, index) => (
+            logs.map((log) => (
               <div
-                key={index}
+                key={log.timestamp}
                 className={`flex items-start gap-3 p-2 rounded-md ${log.success ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"}`}
               >
                 {log.success ? (

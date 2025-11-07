@@ -1,6 +1,6 @@
-import { NextRequest } from "next/server";
-import { addClient, removeClient } from "@/lib/sse-store";
 import { randomUUID } from "crypto";
+import type { NextRequest } from "next/server";
+import { addClient, removeClient } from "@/lib/sse-store";
 
 export async function GET(req: NextRequest) {
   const uuid = req.nextUrl.searchParams.get("uuid");

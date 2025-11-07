@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,14 +18,14 @@ export function RelaySettingsTab() {
   const [token, setToken] = useState<string | null>(null);
   const [showToken, setShowToken] = useState(false);
 
-  const fetchToken = async () => {
+  const fetchToken = useCallback(async () => {
     try {
       const currentToken = await invoke<string | null>("get_webhook_token");
       setToken(currentToken);
     } catch (error) {
       toast.error("Failed to load webhook token", { description: String(error) });
     }
-  };
+  }, []);
 
   const regenerateToken = async () => {
     try {
@@ -46,7 +46,7 @@ export function RelaySettingsTab() {
 
   useEffect(() => {
     fetchToken();
-  }, []);
+  }, [fetchToken]);
 
   return (
     <div className="p-4 space-y-6 h-full overflow-y-auto">

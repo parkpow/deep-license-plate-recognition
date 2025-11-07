@@ -1,7 +1,7 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,7 +62,7 @@ export function AddRelayDialog({
   const [ch340Channels, setCh340Channels] = useState(1);
   const [cp210xChannels, setCp210xChannels] = useState(1);
 
-  const refreshSerialPorts = async () => {
+  const refreshSerialPorts = useCallback(async () => {
     try {
       const ports = await invoke<string[]>("list_serial_ports");
       setAvailablePorts(ports);
@@ -72,9 +72,9 @@ export function AddRelayDialog({
         description: String(error),
       });
     }
-  };
+  }, []);
 
-  const refreshUsbRelays = async () => {
+  const refreshUsbRelays = useCallback(async () => {
     try {
       const relays = await invoke<UsbRelayInfo[]>("list_hw348_relays");
       setAvailableUsbRelays(relays);
@@ -82,14 +82,14 @@ export function AddRelayDialog({
     } catch (error) {
       toast.error("Failed to list HW-348 relays", { description: String(error) });
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (open) {
       refreshSerialPorts();
       refreshUsbRelays();
     }
-  }, [open]);
+  }, [open, refreshSerialPorts, refreshUsbRelays]);
 
   const handleAddCh340 = async () => {
     if (!selectedPort) {

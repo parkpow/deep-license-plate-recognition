@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const rawData = formData.get("json");
       let imageFile = null;
-      for (const [key, value] of formData.entries()) {
+      for (const [_key, value] of formData.entries()) {
         if (value instanceof Blob) {
           imageFile = value;
           break;
