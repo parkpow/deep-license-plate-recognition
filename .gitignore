@@ -14,3 +14,5 @@ output/
 
 .env
 dot_config.csv
+
+node_modules/
