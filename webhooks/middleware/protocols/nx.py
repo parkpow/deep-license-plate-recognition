@@ -16,7 +16,7 @@ logging.basicConfig(
 
 session = requests.Session()
 
-parkpow_license_plates = set()
+parkpow_license_plates: set[str] = set()
 
 
 def convert_to_timestamp_milliseconds(time_string: str) -> int:

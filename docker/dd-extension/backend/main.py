@@ -3,7 +3,8 @@ import os
 import sys
 
 from flask import Flask, request
-from utils import verify_token
+
+from .utils import verify_token
 
 LOG_LEVEL = os.environ.get("LOGGING", "DEBUG").upper()
 
