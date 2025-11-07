@@ -116,9 +116,9 @@ def load_config() -> dict[str, Any]:
         # Main reading logic (remains the same)
         if config.has_option(section, option):
             try:
-                if data_type == int:
+                if data_type is int:
                     value = config.getint(section, option)
-                elif data_type == bool:
+                elif data_type is bool:
                     value = config.getboolean(section, option)
                 else:
                     value = config.get(section, option)  # type: ignore

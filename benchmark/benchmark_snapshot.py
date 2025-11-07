@@ -80,10 +80,7 @@ def benchmark(args, executor):
     image = Image.open(args.image)
     for resolution in [(800, 600), (1280, 720), (1920, 1080), (2560, 1440), (3840, 2160)]:
         image.resize(resolution).save("/tmp/platerec-benchmark.jpg")
-        if args.blur:
-            configs = [{}]
-        else:
-            configs = [{}, dict(mode="fast")]
+        configs = [{}] if args.blur else [{}, dict(mode="fast")]
 
         for config in configs:
             stats = list(
@@ -99,7 +96,7 @@ def benchmark(args, executor):
                 )
             )
             yield dict(
-                resolution="%sx%s" % resolution,
+                resolution=f"{resolution[0]}x{resolution[1]}",
                 mode=config.get("mode", "regular"),
                 min=min(stats),
                 max=max(stats),

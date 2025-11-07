@@ -117,9 +117,7 @@ def verify_token(token, license_key, get_license=True, product="stream"):
         return False, "API token and license key is required."
     try:
         req = Request(
-            "https://api.platerecognizer.com/v1/{}/{}/".format(
-                path, license_key.strip()
-            )
+            f"https://api.platerecognizer.com/v1/{path}/{license_key.strip()}/"
         )
         req.add_header("Authorization", f"Token {token.strip()}")
         urlopen(req).read()

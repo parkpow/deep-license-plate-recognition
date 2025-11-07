@@ -136,7 +136,7 @@ def init_writer(filename, fps):
     return ffmpegcv.noblock(ffmpegcv.VideoWriter, filename, "h264", fps)
 
 
-def process_video(video, action):
+def process_video(video, action):  # noqa: C901 TODO: Break down to reduce cyclomatic complexity
     filename = video.filename
     lgr.debug(f"Processing video: {filename}")
 

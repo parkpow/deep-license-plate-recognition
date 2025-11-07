@@ -280,11 +280,7 @@ class FTPProcessor(FileTransferProcessor):
         # check if OS is Linux or Windows
         for info in file_list:
             info_first_possition = info[0]
-            if info_first_possition.startswith("d") or info_first_possition.startswith(
-                "-"
-            ):
-                return True
-            return False
+            return bool(info_first_possition.startswith("d") or info_first_possition.startswith("-"))
 
     def set_ftp_binary_file(self, file, image):
         """Retrieve a file in binary transfer mode

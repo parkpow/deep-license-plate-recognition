@@ -22,7 +22,7 @@ def process_request(
 ) -> tuple[str, int]:
     # Prepare the payload for the API request
     plate = json_data["data"]["results"][0].get("plate")
-    if plate and type(plate) != str:
+    if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
     payload = json.dumps(
         {

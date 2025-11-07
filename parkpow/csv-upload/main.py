@@ -118,10 +118,7 @@ def parse_row_result(row: list):
         file = row[1]
         plate = ast.literal_eval(row[5])
         position_sec = row[3]
-        if len(row[4]):
-            direction = row[4]
-        else:
-            direction = None
+        direction = row[4] if len(row[4]) else None
         vehicle = ast.literal_eval(row[6])
 
         # if plate["props"] is None: # TODO how to handle such a case
@@ -132,10 +129,7 @@ def parse_row_result(row: list):
         # candidates,source_url,position_sec,direction
         file = row[4]
         position_sec = row[13]
-        if len(row[14]):
-            direction = row[14]
-        else:
-            direction = None
+        direction = row[14] if len(row[14]) else None
         region = ast.literal_eval(row[9])
         plate = {
             "box": ast.literal_eval(row[5]),
