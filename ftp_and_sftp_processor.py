@@ -30,7 +30,7 @@ lgr = logging.getLogger(__name__)
 
 
 def get_files_and_dirs(
-    func: Callable[[Any, list, list, list], None]
+    func: Callable[[Any, list, list, list], None],
 ) -> Callable[[Any], tuple[list, list, list]]:
     def wrapper(self):
         file_list = self.list_files()
@@ -172,7 +172,6 @@ class FileTransferProcessor(ABC):
             with tempfile.NamedTemporaryFile(
                 suffix="_" + ftp_file, mode="rb+"
             ) as image:
-
                 self.set_ftp_binary_file(ftp_file, image)
                 api_res = recognition_api(
                     image,
@@ -195,7 +194,6 @@ class FileTransferProcessor(ABC):
             print(json.dumps(results, indent=2))
 
     def get_month_literal(self, month_number):
-
         month_mapping = {
             "01": "jan",
             "02": "feb",
@@ -280,7 +278,10 @@ class FTPProcessor(FileTransferProcessor):
         # check if OS is Linux or Windows
         for info in file_list:
             info_first_possition = info[0]
-            return bool(info_first_possition.startswith("d") or info_first_possition.startswith("-"))
+            return bool(
+                info_first_possition.startswith("d")
+                or info_first_possition.startswith("-")
+            )
 
     def set_ftp_binary_file(self, file, image):
         """Retrieve a file in binary transfer mode
@@ -405,7 +406,6 @@ class SFTPProcessor(FileTransferProcessor):
         self.sftp.getfo(wd + "/" + file, image)
 
     def list_files(self):
-
         file_list = []
 
         try:
@@ -429,7 +429,6 @@ class SFTPProcessor(FileTransferProcessor):
 
     @get_files_and_dirs
     def retrieve_files(self, file_list, dirs, nondirs):
-
         for info in file_list:
             name = info[-1]
             if info[0].startswith("d"):
@@ -575,7 +574,6 @@ ftp_and_sftp_processor.py -c sftp -U usr1  -P pass -H 192.168.0.59 -f /tmp/image
 
 
 def ftp_process(args):
-
     args_dict = vars(args)
 
     if args.protocol == "ftp":

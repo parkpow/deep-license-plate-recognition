@@ -164,7 +164,6 @@ def install():
     for ind, choice in enumerate(hardwares):
         print(f"{ind + 1}) {choice}")
     while True:
-
         choice = str(input("What is the hardware of this machine  > ") or "")
 
         if choice == "5":

@@ -37,7 +37,6 @@ def extract_data_plate(
     int | None,
     int | None,
 ]:
-
     data_section = json_data.get("data", {})
     results = data_section.get("results")
 
@@ -99,7 +98,6 @@ def extract_data_plate(
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
-
     if not all_files:
         logging.error(
             "No files dictionary provided. 'vehicle' and 'plate' image_type are required."

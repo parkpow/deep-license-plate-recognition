@@ -160,7 +160,6 @@ def camera_spec():
 
 
 def base_config(config_path: Path, config=None):
-
     spec = ConfigObj()
     spec["timezone"] = 'string(default="UTC")'
     spec["version"] = "integer(default=2)"

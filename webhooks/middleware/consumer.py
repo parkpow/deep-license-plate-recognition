@@ -65,7 +65,6 @@ def handle_webhook():
             return jsonify({"error": "Invalid JSON format"}), 400
 
     try:
-
         webhook_header = {
             "mac_address": request.headers.get("mac-address"),
             "camera_name": request.headers.get("camera-name"),

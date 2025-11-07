@@ -39,7 +39,6 @@ def handle_event():
     if request.method == "GET":
         return jsonify({"error": "Method not allowed"}), 405
     else:
-
         if "upload" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 
@@ -64,12 +63,11 @@ def handle_event():
             return jsonify({"error": "camera_id not found in set_parkpow"}), 400
 
         headers = {
-            "Authorization": f'Token {set_parkpow[camera_id]["token"]}',
+            "Authorization": f"Token {set_parkpow[camera_id]['token']}",
             "Content-Type": None,
         }
 
         try:
-
             response = requests.post(
                 set_parkpow[camera_id]["url"],
                 headers=headers,

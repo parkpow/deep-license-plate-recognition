@@ -117,7 +117,7 @@ class WebhookTester:
             "ALPR-license-plate-reader-images-API.jpg"
         )
         response = self.send_request("get", url)
-        print(f"This request includes a {len(response.content)/ 1024:.1f} KB image.")
+        print(f"This request includes a {len(response.content) / 1024:.1f} KB image.")
         return {"upload": ("image.jpg", BytesIO(response.content))}
 
     def send_request(
@@ -151,7 +151,7 @@ class WebhookTester:
             raise WebhookError("The request timed out.") from exc
         except requests.exceptions.TooManyRedirects as exc:
             raise WebhookError(
-                "The given URL might be misconfigured. " "Try a different one."
+                "The given URL might be misconfigured. Try a different one."
             ) from exc
         except requests.exceptions.RequestException as request_exception:
             raise WebhookError(str(request_exception)) from request_exception
@@ -160,7 +160,7 @@ class WebhookTester:
 
     def execute(self) -> None:
         """Used to test the webhook."""
-        print(f'{" Sending Webhook (JSON + Image) ":-^80s}')
+        print(f"{' Sending Webhook (JSON + Image) ':-^80s}")
 
         payload = self.get_webhook_payload()
         files = self.get_files_payload()
