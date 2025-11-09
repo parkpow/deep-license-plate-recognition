@@ -70,6 +70,7 @@ def handle_webhook():
             "mac_address": request.headers.get("mac-address"),
             "camera_name": request.headers.get("camera-name"),
             "serial_number": request.headers.get("serial-number"),
+            "camera_id": request.headers.get("camera-id"),
         }
 
         webhook_header = {k: v for k, v in webhook_header.items() if v is not None}

@@ -115,6 +115,16 @@ def process_request(
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
+    header = json_data.get("webhook_header", {})
+    if not isinstance(header, dict):
+        header = {}
+    
+    camera_id = header.get("camera_id")
+    
+    if camera_id is None:
+        logging.error("The camera_id is required but was not provided in header.")
+        return "The camera_id is required.", 400
+
     # Ensure the necessary environment variables are set
     if not server_host or not login or not password:
         logging.error(
@@ -126,7 +136,7 @@ def process_request(
     server_id = server_info(server_host, ssl)
 
     license_plate = plate.upper()
-    url = f"{server_host}/rest/v2/devices/{json_data['data']['camera_id']}/bookmarks"
+    url = f"{server_host}/rest/v2/devices/{camera_id}/bookmarks"
     payload = {
         "serverId": server_id,
         "name": license_plate,

@@ -20,10 +20,21 @@ def convert_to_timestamp_microseconds(time_string):
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+    header = json_data.get("webhook_header", {})
+    if not isinstance(header, dict):
+        header = {}
+    
+    camera_id = header.get("camera_id")
+    
+    if camera_id is None:
+        logging.error("The camera_id is required but was not provided in header.")
+        return "The camera_id is required.", 400
+
     # Prepare the payload for the API request
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
+    
     payload = json.dumps(
         {
             "requestDateMicros": convert_to_timestamp_microseconds(
@@ -41,7 +52,7 @@ def process_request(
                     "attributes": {
                         "sourceObject": {
                             "type": "CAMERA",
-                            "id": json_data["data"]["camera_id"],
+                            "id": camera_id,
                         },
                         "linkedObjects": [],
                         "props": [{"name": "licensePlate", "value": plate}],
