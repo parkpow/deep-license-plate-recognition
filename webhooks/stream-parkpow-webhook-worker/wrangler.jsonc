@@ -1,0 +1,19 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stream-parkpow-webhook-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-04",
+  "observability": {
+    "enabled": true
+  },
+  "placement": {
+    "mode": "smart"
+  },
+  "vars": {
+    "PARKPOW_ENDPOINT": "https://app.parkpow.com/api/v1/webhook-receiver/"
+  }
+}
