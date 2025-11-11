@@ -230,7 +230,7 @@ class Handler(PatternMatchingEventHandler):
         try:
             _queue.put(event.src_path)
         except queue.Full:
-            print(f"Queue is full. Skipping {event.scr_path}.")
+            print(f"Queue is full. Skipping {event.src_path}.")
 
 
 def main(args, debug=False):
