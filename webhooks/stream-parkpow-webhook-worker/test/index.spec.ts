@@ -9,10 +9,7 @@ const testEnv = {
   STREAM_TOKEN: "stream-token-123",
 };
 
-async function executeWorkerRequest(
-  request: Request,
-  env: typeof testEnv = testEnv,
-) {
+async function executeWorkerRequest(request: Request, env: typeof testEnv = testEnv) {
   const ctx = createExecutionContext();
   const response = await worker.fetch(request, env, ctx);
   await waitOnExecutionContext(ctx);
@@ -224,12 +221,12 @@ function createMultipartBody(boundary: string, imageBuffer: Uint8Array): Uint8Ar
   const CRLF = "\r\n";
   const bodyParts: (string | Uint8Array)[] = [
     `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="json"${CRLF}` +
-    `Content-Type: application/json${CRLF}${CRLF}` +
-    `{"foo":"bar"}${CRLF}` +
-    `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="upload"; filename="taxi.jpg"${CRLF}` +
-    `Content-Type: image/jpeg${CRLF}${CRLF}`,
+      `Content-Disposition: form-data; name="json"${CRLF}` +
+      `Content-Type: application/json${CRLF}${CRLF}` +
+      `{"foo":"bar"}${CRLF}` +
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="upload"; filename="taxi.jpg"${CRLF}` +
+      `Content-Type: image/jpeg${CRLF}${CRLF}`,
     imageBuffer,
     `${CRLF}--${boundary}--${CRLF}`,
   ];

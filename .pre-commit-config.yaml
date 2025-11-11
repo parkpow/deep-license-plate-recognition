@@ -24,6 +24,13 @@ repos:
     hooks:
       - id: mypy
 
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.1.8
+    hooks:
+      - id: clang-format
+        args: ["--style={BasedOnStyle: Google, ColumnLimit: 100}"]  # Use Google's C++ style guide with 100 char line length
+        files: \.(cpp|hpp|cc|cxx|h|c)
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -35,10 +42,3 @@ repos:
       - id: check-added-large-files
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-
-  # - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  #   rev: v1.1.8
-  #   hooks:
-  #     - id: clang-format
-  #       args: ["--style={BasedOnStyle: Google, ColumnLimit: 100}"]  # Use Google's C++ style guide with 100 char line length
-  #       files: \.(cpp|hpp|cc|cxx|h|c)

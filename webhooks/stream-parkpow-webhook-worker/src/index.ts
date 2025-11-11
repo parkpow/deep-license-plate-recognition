@@ -27,8 +27,8 @@ app.post("/", async (c: Context) => {
       body: c.req.raw.body,
     });
 
-  // Stream response from ParkPow
-  return new Response(resp.body, resp);
+    // Stream response from ParkPow
+    return new Response(resp.body, resp);
   } catch (err) {
     return c.text(err instanceof Error ? err.message : "Unknown error", 502);
   }
