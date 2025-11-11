@@ -1,6 +1,6 @@
 "use client";
 
-import { listen } from "@tauri-apps/api/event";
+import { type Event, listen } from "@tauri-apps/api/event";
 import { CheckCircle2, Trash2, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,23 +16,25 @@ interface WebhookLog {
 export function WebhookLogsTab() {
   const [logs, setLogs] = useState<WebhookLog[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldScrollRef = useRef(false);
 
   useEffect(() => {
-    const unlisten = listen<WebhookLog>("webhook-log", (event) => {
-      setLogs((prevLogs) => [event.payload, ...prevLogs].slice(0, 100)); // Keep last 100 logs
+    const unlisten = listen<WebhookLog>("webhook-log", (event: Event<WebhookLog>) => {
+      setLogs((prevLogs: WebhookLog[]) => [event.payload, ...prevLogs].slice(0, 100)); // Keep last 100 logs
+      shouldScrollRef.current = true;
     });
 
     return () => {
-      unlisten.then((f) => f());
+      unlisten.then((f: () => void) => f());
     };
   }, []);
 
   useEffect(() => {
-    // Scroll to top when new logs arrive
-    if (scrollRef.current) {
+    if (shouldScrollRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = 0;
+      shouldScrollRef.current = false;
     }
-  }, []);
+  });
 
   return (
     <div className="p-4 h-full flex flex-col space-y-4">
@@ -58,9 +60,9 @@ export function WebhookLogsTab() {
               Listening for webhook events...
             </div>
           ) : (
-            logs.map((log) => (
+            logs.map((log: WebhookLog, index: number) => (
               <div
-                key={log.timestamp}
+                key={`${log.timestamp}-${index}`}
                 className={`flex items-start gap-3 p-2 rounded-md ${log.success ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"}`}
               >
                 {log.success ? (
