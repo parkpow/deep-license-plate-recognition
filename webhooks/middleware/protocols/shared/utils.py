@@ -2,7 +2,6 @@ import logging
 from typing import Any, Optional
 
 def get_header(header_name: str, json_data: dict[str, Any]) -> Optional[str]:
-    
     header = json_data.get("webhook_header", {})
     return header.get(header_name)
 
