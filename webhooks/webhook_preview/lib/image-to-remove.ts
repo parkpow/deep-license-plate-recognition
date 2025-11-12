@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma"; // adapte o caminho se necessário
 
-export async function findImageKeysByWebhookUUID(uuid: string): Promise<string[]> {
+export async function findImageKeysByWebhookUUID(
+  uuid: string,
+): Promise<string[]> {
   const webhookWithImages = await prisma.webhook.findUnique({
     where: { uuid },
     select: {

@@ -1,16 +1,16 @@
 "use client";
 
-import { Copy, Trash } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { DashboardSummary } from "@/components/dashboard-summary";
-import { EmptyState } from "@/components/empty-state";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
-import { LastVehicleDetails } from "@/components/last-vehicle-details";
 import { Layout } from "@/components/layout";
 import { LicensePlateSidebar } from "@/components/license-plate-sidebar";
-import { useToast } from "@/hooks/use-toast";
+import { LastVehicleDetails } from "@/components/last-vehicle-details";
+import { DashboardSummary } from "@/components/dashboard-summary";
+import { EmptyState } from "@/components/empty-state";
 import type { WebhookData } from "@/types/webhook";
+import { useToast } from "@/hooks/use-toast";
+import { useParams, useRouter } from "next/navigation";
+import { Copy, Trash } from "lucide-react";
 
 export default function WebhookDataPage() {
   const params = useParams();
@@ -223,7 +223,8 @@ export default function WebhookDataPage() {
         if (webhookResponse.ok) {
           toast({
             title: "Test Data Sent Successfully",
-            description: "Sample license plate data has been sent to your webhook",
+            description:
+              "Sample license plate data has been sent to your webhook",
           });
 
           // Refresh to show the test data
@@ -286,13 +287,15 @@ export default function WebhookDataPage() {
                 {baseUrl ? `${baseUrl}/api/webhook/${uuid}` : `Loading...`}
               </div>
               <button
-                type="button"
                 onClick={() => {
                   if (baseUrl) {
-                    navigator.clipboard.writeText(`${baseUrl}/api/webhook/${uuid}`);
+                    navigator.clipboard.writeText(
+                      `${baseUrl}/api/webhook/${uuid}`,
+                    );
                     toast({
                       title: "Copy!",
-                      description: "URL of the webhook copied to the clipboard.",
+                      description:
+                        "URL of the webhook copied to the clipboard.",
                     });
                   }
                 }}
@@ -302,7 +305,6 @@ export default function WebhookDataPage() {
                 <Copy className="w-4 h-4" />
               </button>
               <button
-                type="button"
                 onClick={handleDataClear}
                 className="h-10 w-10 flex items-center justify-center bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
                 title="Limpar Dados"

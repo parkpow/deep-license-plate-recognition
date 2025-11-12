@@ -1,9 +1,9 @@
-import type React from "react";
+import type React from "react"
 
 interface LayoutProps {
-  header: React.ReactNode;
-  sidebar: React.ReactNode;
-  main: React.ReactNode;
+  header: React.ReactNode
+  sidebar: React.ReactNode
+  main: React.ReactNode
 }
 
 export function Layout({ header, sidebar, main }: LayoutProps) {
@@ -18,10 +18,8 @@ export function Layout({ header, sidebar, main }: LayoutProps) {
         <div className="flex-1 p-6 overflow-y-auto">{main}</div>
 
         {/* Right sidebar - only internal content is scrollable */}
-        <div className="w-80 border-l bg-white flex flex-col overflow-hidden">
-          {sidebar}
-        </div>
+        <div className="w-80 border-l bg-white flex flex-col overflow-hidden">{sidebar}</div>
       </div>
     </div>
-  );
+  )
 }

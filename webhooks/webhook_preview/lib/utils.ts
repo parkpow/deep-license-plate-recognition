@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { isType1, isType2, type WebhookData } from "@/types/webhook";
+import { WebhookData, isType1, isType2 } from "@/types/webhook";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -101,7 +101,9 @@ export function getRegion(data: WebhookData): string | null {
 
     if (isType2(data)) {
       const firstResult = data.data.results[0];
-      return firstResult.plate?.props?.region?.[0]?.value?.toUpperCase() ?? null;
+      return (
+        firstResult.plate?.props?.region?.[0]?.value?.toUpperCase() ?? null
+      );
     }
 
     return null;

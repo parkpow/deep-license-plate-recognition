@@ -1,9 +1,5 @@
 "use client";
 
-import { Camera, Car, Info, Map as MapIcon } from "lucide-react";
-import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -11,22 +7,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  formatDate,
-  getCameraId,
-  getImageurl,
   getPlateNumber,
-  getPlateScore,
-  getRegion,
-  getRegionScore,
-  getTimestamp,
-  getVehicleColor,
+  getVehicleType,
   getVehicleMake,
   getVehicleModel,
+  getVehicleColor,
+  getCameraId,
+  formatDate,
+  getTimestamp,
+  getRegion,
+  getRegionScore,
+  getPlateScore,
   getVehicleOrientation,
-  getVehicleType,
+  getImageurl,
 } from "@/lib/utils";
 import type { WebhookData } from "@/types/webhook";
+import { Car, Camera, Map, Info } from "lucide-react";
 
 interface PlateDetailsModalProps {
   data: WebhookData;
@@ -34,7 +33,11 @@ interface PlateDetailsModalProps {
   onClose: () => void;
 }
 
-export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalProps) {
+export function PlateDetailsModal({
+  data,
+  isOpen,
+  onClose,
+}: PlateDetailsModalProps) {
   const plateNumber = getPlateNumber(data);
   const plateScore = getPlateScore(data);
   const vehicleType = getVehicleType(data);
@@ -83,7 +86,10 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+        <Tabs
+          defaultValue="details"
+          className="flex-1 overflow-hidden flex flex-col"
+        >
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="image">Image</TabsTrigger>
@@ -158,7 +164,7 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center">
-                    <MapIcon className="h-4 w-4 mr-2" />
+                    <Map className="h-4 w-4 mr-2" />
                     Movement Information
                   </CardTitle>
                 </CardHeader>
@@ -198,7 +204,8 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Confidence:</dt>
                       <dd>
-                        {hasValidResults && data.data.results[0].score !== undefined
+                        {hasValidResults &&
+                        data.data.results[0].score !== undefined
                           ? `${(data.data.results[0].score * 100).toFixed(1)}%`
                           : "N/A"}
                       </dd>
@@ -215,7 +222,9 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Received:</dt>
-                      <dd>{data.receivedAt ? formatDate(data.receivedAt) : "N/A"}</dd>
+                      <dd>
+                        {data.receivedAt ? formatDate(data.receivedAt) : "N/A"}
+                      </dd>
                     </div>
                   </dl>
                 </CardContent>
@@ -231,14 +240,10 @@ export function PlateDetailsModal({ data, isOpen, onClose }: PlateDetailsModalPr
           <TabsContent value="image" className="flex-1 overflow-auto">
             <div className="flex justify-center items-center">
               {imageurl ? (
-                <Image
+                <img
                   src={imageurl}
                   alt={`Vehicle for plate ${plateNumber}`}
-                  width={800}
-                  height={500}
-                  className="rounded-lg shadow-lg w-full h-auto object-contain"
-                  style={{ maxHeight: 500, width: "100%", height: "auto" }}
-                  unoptimized
+                  className="rounded-lg shadow-lg w-full h-auto max-h-[500px] object-contain"
                 />
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg w-full h-[300px] flex items-center justify-center text-gray-500 italic">

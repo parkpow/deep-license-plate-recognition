@@ -1,4 +1,4 @@
-import type { WebhookData } from "@/types/webhook";
+import { WebhookData } from "@/types/webhook";
 
 type Client = {
   id: string;

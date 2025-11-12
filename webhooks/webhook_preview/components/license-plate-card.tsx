@@ -1,54 +1,41 @@
-"use client";
+"use client"
 
-import { Car, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ChevronDown, ChevronUp, Car } from "lucide-react"
 import {
   formatDate,
-  getCameraId,
   getPlateNumber,
-  getTimestamp,
-  getVehicleColor,
+  getVehicleType,
   getVehicleMake,
   getVehicleModel,
-  getVehicleType,
-} from "@/lib/utils";
-import type { WebhookData } from "@/types/webhook";
+  getVehicleColor,
+  getCameraId,
+  getTimestamp,
+} from "@/lib/utils"
+import type { WebhookData } from "@/types/webhook"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface LicensePlateCardProps {
-  data: WebhookData;
+  data: WebhookData
 }
 
 export function LicensePlateCard({ data }: LicensePlateCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false)
 
   // Add defensive checks for data access
-  const plateNumber = getPlateNumber(data);
-  const vehicleType = getVehicleType(data);
-  const vehicleMake = getVehicleMake(data);
-  const vehicleModel = getVehicleModel(data);
-  const vehicleColor = getVehicleColor(data);
-  const cameraId = getCameraId(data);
-  const timestamp = formatDate(getTimestamp(data));
+  const plateNumber = getPlateNumber(data)
+  const vehicleType = getVehicleType(data)
+  const vehicleMake = getVehicleMake(data)
+  const vehicleModel = getVehicleModel(data)
+  const vehicleColor = getVehicleColor(data)
+  const cameraId = getCameraId(data)
+  const timestamp = formatDate(getTimestamp(data))
 
   // Check if we have valid results to display
-  const hasValidResults = data?.data?.results?.[0];
+  const hasValidResults = data?.data?.results?.[0]
 
   return (
     <Card className="w-full">
@@ -69,12 +56,7 @@ export function LicensePlateCard({ data }: LicensePlateCardProps) {
         <div className="text-xs text-muted-foreground mt-1">Camera: {cameraId}</div>
       </CardContent>
       <CardFooter className="pt-0 flex justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs"
-        >
+        <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)} className="text-xs">
           {expanded ? (
             <>
               <ChevronUp className="h-4 w-4 mr-1" /> Less
@@ -95,9 +77,7 @@ export function LicensePlateCard({ data }: LicensePlateCardProps) {
             <DialogHeader>
               <DialogTitle>Raw JSON Data</DialogTitle>
             </DialogHeader>
-            <pre className="bg-muted p-4 rounded-md overflow-auto text-xs">
-              {JSON.stringify(data, null, 2)}
-            </pre>
+            <pre className="bg-muted p-4 rounded-md overflow-auto text-xs">{JSON.stringify(data, null, 2)}</pre>
           </DialogContent>
         </Dialog>
       </CardFooter>
@@ -108,25 +88,21 @@ export function LicensePlateCard({ data }: LicensePlateCardProps) {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="text-muted-foreground">Direction</div>
               <div>
-                {data.data.results[0].direction !== null &&
-                data.data.results[0].direction !== undefined
+                {data.data.results[0].direction !== null && data.data.results[0].direction !== undefined
                   ? `${data.data.results[0].direction}°`
                   : "N/A"}
               </div>
 
               <div className="text-muted-foreground">Speed</div>
               <div>
-                {data.data.results[0].speed !== null &&
-                data.data.results[0].speed !== undefined
+                {data.data.results[0].speed !== null && data.data.results[0].speed !== undefined
                   ? `${data.data.results[0].speed} km/h`
                   : "N/A"}
               </div>
 
               <div className="text-muted-foreground">Source</div>
               <div className="truncate">
-                {(typeof data.data.results[0].source_url === "string" &&
-                  data.data.results[0].source_url) ||
-                  "N/A"}
+                {(typeof data.data.results[0].source_url === "string" && data.data.results[0].source_url) || "N/A"}
               </div>
 
               <div className="text-muted-foreground">Event</div>
@@ -136,5 +112,5 @@ export function LicensePlateCard({ data }: LicensePlateCardProps) {
         </div>
       )}
     </Card>
-  );
+  )
 }

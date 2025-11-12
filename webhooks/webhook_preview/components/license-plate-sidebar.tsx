@@ -1,11 +1,11 @@
 "use client";
 
-import { Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { PlateDetailsModal } from "@/components/plate-details-modal";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { UniversalPlateCard } from "@/components/universal-plate-card";
+import { PlateDetailsModal } from "@/components/plate-details-modal";
 import type { WebhookData } from "@/types/webhook";
+import { Search } from "lucide-react";
 
 interface LicensePlateSidebarProps {
   data: WebhookData[];
@@ -74,7 +74,9 @@ export function LicensePlateSidebar({
 
   useEffect(() => {
     if (data.length > prevDataRef.current.length) {
-      const previousTimestamps = new Set(prevDataRef.current.map((d) => d.receivedAt));
+      const previousTimestamps = new Set(
+        prevDataRef.current.map((d) => d.receivedAt),
+      );
       const newEntry = data.find((d) => !previousTimestamps.has(d.receivedAt));
 
       if (newEntry?.receivedAt) {
@@ -103,7 +105,8 @@ export function LicensePlateSidebar({
             />
           </div>
           <div className="text-xs text-muted-foreground mt-1 text-right">
-            {filteredData.length} {filteredData.length === 1 ? "plate" : "plates"}
+            {filteredData.length}{" "}
+            {filteredData.length === 1 ? "plate" : "plates"}
           </div>
         </div>
 
@@ -121,7 +124,9 @@ export function LicensePlateSidebar({
             <div className="space-y-3">
               {filteredData.map((item, index) => {
                 // Generate a unique ID for each plate
-                const plateId = `plate-${index}-${item.receivedAt || Date.now()}`;
+                const plateId = `plate-${index}-${
+                  item.receivedAt || Date.now()
+                }`;
                 // Check if this is the new plate
                 const isNewPlate = item.receivedAt === newPlateId;
 
