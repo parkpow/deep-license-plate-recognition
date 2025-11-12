@@ -194,7 +194,7 @@ export function AddRelayDialog({
                 </div>
                 <div className="flex items-center gap-4">
                     <label htmlFor="channels-ch340" className="text-sm font-medium">Channels</label>
-                    <Input 
+                    <Input
                         id="channels-ch340"
                         type="number"
                         value={ch340Channels}
@@ -269,7 +269,7 @@ export function AddRelayDialog({
                 </div>
                 <div className="flex items-center gap-4">
                     <label htmlFor="channels" className="text-sm font-medium">Channels</label>
-                    <Input 
+                    <Input
                         id="channels"
                         type="number"
                         value={cp210xChannels}

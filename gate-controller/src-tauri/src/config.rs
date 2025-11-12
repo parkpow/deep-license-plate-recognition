@@ -53,7 +53,7 @@ pub fn append_to_log(app: &AppHandle, log_line: &str) -> Result<(), String> {
         .append(true)
         .open(path)
         .map_err(|e| e.to_string())?;
-    
+
     writeln!(file, "{}", log_line).map_err(|e| e.to_string())
 }
 

@@ -53,10 +53,10 @@ export function RelaySettingsTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <Input 
-              type={showToken ? 'text' : 'password'} 
-              readOnly 
-              value={token || 'No token generated yet'} 
+            <Input
+              type={showToken ? 'text' : 'password'}
+              readOnly
+              value={token || 'No token generated yet'}
               className="font-mono"
             />
             <Button variant="outline" size="icon" onClick={() => setShowToken(!showToken)} disabled={!token}>
@@ -80,9 +80,9 @@ export function RelaySettingsTab() {
         </CardHeader>
         <CardContent className='font-mono text-sm bg-muted p-4 rounded-lg'>
             <pre><code>
-{`curl -X POST http://localhost:4848/webhook \ 
-  -H "Content-Type: application/json" \ 
-  -H "Authorization: Bearer ${token || '<YOUR_TOKEN>'}" \ 
+{`curl -X POST http://localhost:4848/webhook \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${token || '<YOUR_TOKEN>'}" \
   -d '{ "id": "<YOUR_RELAY_ID>", "action": "on", "channel": 1 }'`}
             </code></pre>
         </CardContent>

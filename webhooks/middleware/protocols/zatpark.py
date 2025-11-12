@@ -3,10 +3,9 @@ import logging
 import os
 from datetime import datetime
 from typing import Any
+
 import requests
-
 from protocols.shared.utils import get_header, get_required_header
-
 
 service_url = os.getenv("ZATPARK_SERVICE_URL")
 
@@ -30,13 +29,7 @@ def convert_to_timestamp(time_string: str) -> int:
 def extract_data_plate(
     json_data: dict,
 ) -> tuple[
-    str | None,
-    str | None,
-    float | None,
-    str | None,
-    str | None,
-    int | None,
-    int | None,
+    str | None, str | None, float | None, str | None, str | None, int | None, int | None
 ]:
 
     data_section = json_data.get("data", {})
@@ -82,15 +75,7 @@ def extract_data_plate(
         region = plate_props.get("region", [{}])[0].get("value")
         orientation = vehicle_props.get("orientation", [{}])[0].get("value")
 
-    return (
-        region,
-        plate,
-        score,
-        orientation,
-        camera_id,
-        timestamp,
-        timestamp_local,
-    )
+    return (region, plate, score, orientation, camera_id, timestamp, timestamp_local)
 
 
 def process_request(
@@ -117,20 +102,16 @@ def process_request(
         imagens["plate"] = base64.b64encode(plate_img).decode("utf-8")
 
     try:
-        (
-            region,
-            plate,
-            score,
-            orientation,
-            camera_id,
-            timestamp,
-            timestamp_local,
-        ) = extract_data_plate(json_data)
+        (region, plate, score, orientation, camera_id, timestamp, timestamp_local) = (
+            extract_data_plate(json_data)
+        )
     except (ValueError, KeyError, IndexError) as e:
         logging.error(f"Failed to extract necessary data from JSON payload: {e}")
         return f"Invalid or incomplete JSON data: {e}", 400
 
-    mac_address, error = get_required_header("mac_address", json_data, log_context=f"for camera_id '{camera_id}'")
+    mac_address, error = get_required_header(
+        "mac_address", json_data, log_context=f"for camera_id '{camera_id}'"
+    )
     if error:
         return error
 

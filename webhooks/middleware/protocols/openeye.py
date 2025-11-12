@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 from typing import Any
 
-from protocols.shared.utils import get_required_header
 import requests
+from protocols.shared.utils import get_required_header
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -29,7 +29,7 @@ def process_request(
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
-    
+
     payload = json.dumps(
         {
             "requestDateMicros": convert_to_timestamp_microseconds(
@@ -45,10 +45,7 @@ def process_request(
                     ),
                     "eventType": "ANALYTIC_LICENSE_PLATE_DETECTED",
                     "attributes": {
-                        "sourceObject": {
-                            "type": "CAMERA",
-                            "id": camera_id,
-                        },
+                        "sourceObject": {"type": "CAMERA", "id": camera_id},
                         "linkedObjects": [],
                         "props": [{"name": "licensePlate", "value": plate}],
                     },

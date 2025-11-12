@@ -1,11 +1,15 @@
 import logging
-from typing import Any, Optional
+from typing import Any
 
-def get_header(header_name: str, json_data: dict[str, Any]) -> Optional[str]:
+
+def get_header(header_name: str, json_data: dict[str, Any]) -> str | None:
     header = json_data.get("webhook_header", {})
     return header.get(header_name)
 
-def get_required_header(header_name: str, json_data: dict[str, Any], log_context: str = "") -> tuple[str | None, tuple[str, int] | None]:
+
+def get_required_header(
+    header_name: str, json_data: dict[str, Any], log_context: str = ""
+) -> tuple[str | None, tuple[str, int] | None]:
     """
     Gets a required header. If missing, logs an error and returns an error tuple.
     """

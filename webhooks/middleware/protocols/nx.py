@@ -6,10 +6,10 @@ import os
 import sys
 from datetime import datetime
 from threading import Timer
-from protocols.shared.utils import get_required_header
 from typing import Any
 
 import requests
+from protocols.shared.utils import get_required_header
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s"
