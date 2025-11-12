@@ -129,9 +129,9 @@ def process_request(
         logging.error(f"Failed to extract necessary data from JSON payload: {e}")
         return f"Invalid or incomplete JSON data: {e}", 400
 
-    mac_address = get_required_header("mac_address", json_data)
-    if mac_address is None:
-        return "The MAC address is required.", 400
+    mac_address, error = get_required_header("mac_address", json_data, log_context=f"for camera_id '{camera_id}'")
+    if error:
+        return error
 
     camera_name = get_header("camera_name", json_data) or camera_id
     serial_number = get_header("serial_number", json_data) or mac_address
