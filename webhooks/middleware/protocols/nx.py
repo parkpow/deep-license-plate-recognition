@@ -116,9 +116,9 @@ def process_request(
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
-    camera_id = get_required_header("camera_id", json_data)
-    if camera_id is None:
-        return "The camera_id is required.", 400
+    camera_id, error = get_required_header("camera_id", json_data)
+    if error:
+        return error
 
     # Ensure the necessary environment variables are set
     if not server_host or not login or not password:
