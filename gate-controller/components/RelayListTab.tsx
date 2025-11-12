@@ -58,10 +58,10 @@ export function RelayListTab() {
             )}
         </div>
 
-        <AddRelayDialog 
-            open={isAddDialogOpen} 
-            onOpenChange={setAddDialogOpen} 
-            onRelayAdded={fetchConfiguredRelays} 
+        <AddRelayDialog
+            open={isAddDialogOpen}
+            onOpenChange={setAddDialogOpen}
+            onRelayAdded={fetchConfiguredRelays}
         />
     </div>
   );

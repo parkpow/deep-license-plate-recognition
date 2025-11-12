@@ -26,17 +26,46 @@ requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
 [tool.ruff]
-# Enable flake8-bugbear (`B`) rules.
+target-version = "py38"
+
+[tool.ruff.lint]
+mccabe.max-complexity = 16
+isort.split-on-trailing-comma = false
+ignore = ["E501", "E251", "E266", "E401", "DJ001", "W291"]
 select = [
-    "E", # pycodestyle
-    "F", # pyflakes
-    "I", # isort
-    "UP", # pyupgrade
-    "DJ", # flake8-django
-    "B" # flake8-bugbear
+  "B",
+  "E",
+  "F",
+  "I",
+  "N",
+  "W",
+  "C9",
+  "DJ",
+  "UP",
+  "SIM101",
+  "SIM102",
+  "SIM103",
+  "SIM108",
+  "SIM109",
+  "SIM113",
+  "SIM114",
+  "SIM201",
+  "SIM202",
+  "SIM208",
+  "SIM210",
+  "SIM211",
+  "SIM212",
+  "SIM220",
+  "SIM221",
+  "SIM910",
+  "SIM911",
 ]
 
-ignore = [
-    "E401",
-    "E501",
-]
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
+[tool.mypy]
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
+disable_error_code = ["annotation-unchecked"]

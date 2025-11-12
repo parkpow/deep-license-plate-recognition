@@ -24,5 +24,3 @@ Forward Verkada Webhook Events to ParkPow
     **pp-url**: ParkPow URL, Optional for ParkPow cloud.
 
 3. Add internet accessible URL to the container to your Verkada Webhooks settings](https://command.verkada.com/admin/org-settings/verkada-api)
-
-

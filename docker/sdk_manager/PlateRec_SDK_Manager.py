@@ -164,7 +164,6 @@ def install():
     for ind, choice in enumerate(hardwares):
         print(f"{ind + 1}) {choice}")
     while True:
-
         choice = str(input("What is the hardware of this machine  > ") or "")
 
         if choice == "5":
@@ -305,18 +304,14 @@ def uninstall():
     token, _ = get_token_input(get_license=False)
     if uninstall_choice == "1":
         stop_container(image)
-        cmd = "docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}".format(
-            token, image
-        )
+        cmd = f"docker run --rm -t -v license:/license -e TOKEN={token} -e UNINSTALL=1 {image}"
 
         os.system(cmd)
         return main()
 
     elif uninstall_choice == "2":
         container_id = stop_container(image)
-        cmd = "docker run --rm -t -v license:/license -e TOKEN={} -e UNINSTALL=1 {}".format(
-            token, image
-        )
+        cmd = f"docker run --rm -t -v license:/license -e TOKEN={token} -e UNINSTALL=1 {image}"
         os.system(cmd)
         container_id = get_container_id(image)
         if container_id:

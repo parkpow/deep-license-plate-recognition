@@ -78,7 +78,7 @@ def send_request(section):
     if "/api/v1/webhook-receiver" not in section["webhook_target"]:
         return
     headers = {
-        "Authorization": "Token %s" % section["webhook_header"].split("Token ")[-1]
+        "Authorization": f"Token {section['webhook_header'].split('Token ')[-1]}"
     }
     url = section["webhook_target"].replace("webhook-receiver", "parking-list")
     try:
@@ -160,7 +160,6 @@ def camera_spec():
 
 
 def base_config(config_path: Path, config=None):
-
     spec = ConfigObj()
     spec["timezone"] = 'string(default="UTC")'
     spec["version"] = "integer(default=2)"
@@ -184,13 +183,13 @@ def base_config(config_path: Path, config=None):
         error_message = "[STR0021] The config.ini file does not seem to be formatted correctly.  \n [Error details] \n"
         for section_list, key, error in errors:
             if error is False:
-                error = "key %s is missing." % key
+                error = f"key {key} is missing."
             elif key is not None:
                 section_list.append(key)
             section_string = "/".join(section_list)
             logging.error("%s: %s", section_string, error)
             error = f"{section_string}, param: {key}, message: {error}"
-            error_message += "\n%s" % error
+            error_message += f"\n{error}"
         return (
             None,
             error_message

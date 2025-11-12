@@ -29,7 +29,7 @@ NumLogicals: 8
 CPUFrequency: 4400  
 Passmark: 10432  
 
-#### WORKERS = 1 
+#### WORKERS = 1
 Image: `assets/car-4k.jpg`
 
 | Resolution | Speed | Peak CPU% (Blur, Snapshot) | Peak MEM in MiB (Blur, Snapshot) |

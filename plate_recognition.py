@@ -163,15 +163,15 @@ def save_cropped(api_res, path, args):
             box = result["box"]
             cropped = image.crop((box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             cropped.save(
-                dest / f'{result["plate"]}_{result["region"]["code"]}_{path.name}'
+                dest / f"{result['plate']}_{result['region']['code']}_{path.name}"
             )
         if args.crop_vehicle and result["vehicle"]["score"]:
             box = result["vehicle"]["box"]
             cropped = image.crop((box["xmin"], box["ymin"], box["xmax"], box["ymax"]))
             make_model = result.get("model_make", [None])[0]
-            filename = f'{i}_{result["vehicle"]["type"]}_{path.name}'
+            filename = f"{i}_{result['vehicle']['type']}_{path.name}"
             if make_model:
-                filename = f'{make_model["make"]}_{make_model["model"]}_' + filename
+                filename = f"{make_model['make']}_{make_model['model']}_" + filename
             cropped.save(dest / filename)
 
 

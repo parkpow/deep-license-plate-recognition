@@ -1,22 +1,19 @@
-import React, { useState } from "react";
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import { useState } from "react";
+import { Button, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-import {
-  Row,
-  Button,
-} from "react-bootstrap";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 
 import Loader from "./Loader";
+
 interface UninstallProps {
   isEnabled: boolean;
   image: string;
 }
 export default function Uninstall({ isEnabled, image }: UninstallProps) {
-  if (!isEnabled) {
-    return null;
-  }
   const [isLoading, setLoading] = useState(false);
   const ddClient = useDockerDesktopClient();
+
+  if (!isEnabled) return null;
 
   const handleUninstall = () => {
     setLoading(true);
@@ -54,12 +51,16 @@ export default function Uninstall({ isEnabled, image }: UninstallProps) {
           className="btn btn-danger"
           type="button"
           onClick={handleUninstall}
+          id="uninstall-button"
         >
           <Loader isLoading={isLoading} />
           Uninstall
         </Button>
       </div>
-      <label className="col-auto align-self-center form-label">
+      <label
+        className="col-auto align-self-center form-label"
+        htmlFor="uninstall-button"
+      >
         Remove the Docker image and mark the product as uninstalled.
       </label>
     </Form.Group>

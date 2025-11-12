@@ -76,7 +76,7 @@ async def list_visits(
     if page:
         params["page"] = page
 
-    print(f"Fetching visit, page {'1' if not page else page}:")
+    print(f"Fetching visit, page {page or '1'}:")
 
     response_and_connection = await api_request(
         http_function="GET", end_point=end_point, api_key=api_key, params=params

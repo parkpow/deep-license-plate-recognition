@@ -1,19 +1,13 @@
-import {
-  Row,
-  Col,
-  Button,
-} from "react-bootstrap";
-import React, { useState, useEffect } from "react";
-
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
-
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Button, Col, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
+import { openBrowserUrl } from "../helpers";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import Loader from "./Loader";
+import ShowCommand from "./ShowCommand";
 import Uninstall from "./Uninstall";
 import Update from "./Update";
-
-import { openBrowserUrl } from "../helpers";
-import ShowCommand from "./ShowCommand";
-import Loader from "./Loader";
 
 export default function Stream() {
   const STREAM_IMAGE = "platerecognizer/alpr-stream";
@@ -23,7 +17,7 @@ export default function Stream() {
   const [streamPath, setStreamPath] = useState<string>("");
   const [tokenValidated, setTokenValidated] = useState(false);
   const [isLoading, setLoading] = useState(false);
-  const [restartPolicy, setRestartPolicy] = useState('no');
+  const [restartPolicy, setRestartPolicy] = useState("no");
 
   const ddClient = useDockerDesktopClient();
 
@@ -34,7 +28,7 @@ export default function Stream() {
 
   const handleConfigureClick = () => {
     if (license) {
-      const url = "https://app.platerecognizer.com/stream-config/" + license;
+      const url = `https://app.platerecognizer.com/stream-config/${license}`;
       openBrowserUrl(ddClient, url);
     } else {
       ddClient.desktopUI.toast.error("License Key is required");
@@ -42,19 +36,19 @@ export default function Stream() {
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name == "license") {
+    if (name === "license") {
       setLicense(value);
-    } else if (name == "restart-policy") {
+    } else if (name === "restart-policy") {
       setRestartPolicy(value);
-    } else if (name == "token") {
+    } else if (name === "token") {
       setToken(value);
-    }else if (name == "streamPath") {
+    } else if (name === "streamPath") {
       setStreamPath(value);
     }
     setTokenValidated(false);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement> ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form: HTMLFormElement = event.currentTarget;
     const formData = new FormData(form);
@@ -62,40 +56,40 @@ export default function Stream() {
     const data: any = Object.fromEntries(formData.entries());
     // console.log(data);
     setLoading(true);
-    ddClient.extension.vm?.service
-      ?.post("/verify-token", data)
-      .then((res: any) => {
-        console.debug(res);
-        const valid = res["valid"];
-        const message = res["message"];
-        if (valid) {
-          localStorage.setItem('stream', JSON.stringify({
-            token:token,
-            streamPath:streamPath,
-            restartPolicy:restartPolicy,
-            license:license,
-          }));
-          // Pull image and update
-          ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
-            console.debug(result)
-            const autoBoot = restartPolicy != 'no'
-              ? " --restart " + restartPolicy
-              : "--rm";
-            const command = `docker run ${autoBoot} -t -v ${data.streamPath}:/user-data/ -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${STREAM_IMAGE}`;
-            setCommand(command);
-            setTokenValidated(valid);
-            setLoading(false);
-          });
-        } else {
+    ddClient.extension.vm?.service?.post("/verify-token", data).then((res: any) => {
+      console.debug(res);
+      const valid = res.valid;
+      const message = res.message;
+      if (valid) {
+        localStorage.setItem(
+          "stream",
+          JSON.stringify({
+            token: token,
+            streamPath: streamPath,
+            restartPolicy: restartPolicy,
+            license: license,
+          }),
+        );
+        // Pull image and update
+        ddClient.docker.cli.exec("pull", [STREAM_IMAGE]).then((result) => {
+          console.debug(result);
+          const autoBoot =
+            restartPolicy !== "no" ? ` --restart ${restartPolicy}` : "--rm";
+          const command = `docker run ${autoBoot} -t -v ${data.streamPath}:/user-data/ -e LICENSE_KEY=${data.license} -e TOKEN=${data.token} ${STREAM_IMAGE}`;
+          setCommand(command);
+          setTokenValidated(valid);
           setLoading(false);
-          ddClient.desktopUI.toast.error(`Verify Token: ${message}`);
-        }
-      });
+        });
+      } else {
+        setLoading(false);
+        ddClient.desktopUI.toast.error(`Verify Token: ${message}`);
+      }
+    });
   };
 
   // Load any existing data from local storage on component mount
   useEffect(() => {
-    const storedData = localStorage.getItem('stream');
+    const storedData = localStorage.getItem("stream");
     if (storedData) {
       const streamData = JSON.parse(storedData);
       setToken(streamData?.token);
@@ -177,41 +171,40 @@ export default function Stream() {
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='No (Docker Default)'
-            id='rp1'
-            value='no'
-            checked={restartPolicy == 'no'}
+            label="No (Docker Default)"
+            id="rp1"
+            value="no"
+            checked={restartPolicy === "no"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='Unless Stopped'
-            id='rp2'
-            value='unless-stopped'
-            checked={restartPolicy == 'unless-stopped'}
+            label="Unless Stopped"
+            id="rp2"
+            value="unless-stopped"
+            checked={restartPolicy === "unless-stopped"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='Always'
-            id='rp3'
-            value='always'
-            checked={restartPolicy == 'always'}
+            label="Always"
+            id="rp3"
+            value="always"
+            checked={restartPolicy === "always"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='On Failure'
-            id='rp4'
-            value='on-failure'
-            checked={restartPolicy == 'on-failure'}
+            label="On Failure"
+            id="rp4"
+            value="on-failure"
+            checked={restartPolicy === "on-failure"}
             onChange={handleInputChange}
           />
         </Col>
-
       </Form.Group>
 
       <ShowCommand curlPort={""} command={command} validated={tokenValidated} />
@@ -236,12 +229,19 @@ export default function Stream() {
 
       <Form.Group as={Row} className="mb-3">
         <div className="col-2">
-          <Button className="btn btn-primary" type="submit">
+          <Button
+            className="btn btn-primary"
+            type="submit"
+            id="button-submit-docker-command"
+          >
             <Loader isLoading={isLoading} />
             Show Docker Command
           </Button>
         </div>
-        <label className="col-auto align-self-center form-label">
+        <label
+          className="col-auto align-self-center form-label"
+          htmlFor="button-submit-docker-command"
+        >
           Confirm settings and show docker command.
         </label>
       </Form.Group>

@@ -1,13 +1,7 @@
-import React, { useState } from "react";
-import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
+import { useState } from "react";
+import { Button, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-import {
-
-  Row,
-
-  Button,
-
-} from "react-bootstrap";
+import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 
 import Loader from "./Loader";
 
@@ -16,18 +10,17 @@ interface UpdateProps {
   image: string;
 }
 export default function Update({ isEnabled, image }: UpdateProps) {
-  if (!isEnabled) {
-    return null;
-  }
   const [isLoading, setLoading] = useState(false);
   const ddClient = useDockerDesktopClient();
+
+  if (!isEnabled) return null;
 
   const handleUpdateImage = () => {
     setLoading(true);
     ddClient.docker.cli
       .exec("pull", [image])
       .then((result) => {
-        console.debug(result)
+        console.debug(result);
         setLoading(false);
       })
       .catch((err) => {
@@ -44,12 +37,17 @@ export default function Update({ isEnabled, image }: UpdateProps) {
           className="btn btn-secondary"
           type="button"
           onClick={handleUpdateImage}
+          id="update-image-btn"
+          disabled={isLoading}
         >
           <Loader isLoading={isLoading} />
           Update
         </Button>
       </div>
-      <label className="col-auto align-self-center form-label">
+      <label
+        className="col-auto align-self-center form-label"
+        htmlFor="update-image-btn"
+      >
         Update the Docker image.
       </label>
     </Form.Group>

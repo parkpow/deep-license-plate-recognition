@@ -43,11 +43,7 @@ class Snapshot:
         :param data:
         :return:
         """
-        if self.sdk_url:
-            api_base = self.sdk_url
-        else:
-            api_base = API_BASE
-
+        api_base = self.sdk_url or API_BASE
         url = f"{api_base}/v1/plate-reader/"
         lgr.debug(f"Url: {url}")
         tries = 1

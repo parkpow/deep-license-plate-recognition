@@ -1,9 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import { App } from './App';
-import 'bootstrap/dist/css/bootstrap.min.css';
-
+import { App } from "./App";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -12,6 +11,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       the `dockerDesktopTheme` class to your root <html> element to get
       some minimal Docker theming.
     */}
-      <App />
-  </React.StrictMode>
+    <App />
+  </React.StrictMode>,
 );

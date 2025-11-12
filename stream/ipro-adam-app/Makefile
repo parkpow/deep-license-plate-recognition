@@ -404,4 +404,3 @@ ifeq ($(findstring ambaCV5XC,$(TARGET_FOR_ADAM)), ambaCV5XC)
 else
   include $(ADAMAPP_TOP_DIR)/adam_make_package.mk
 endif
-

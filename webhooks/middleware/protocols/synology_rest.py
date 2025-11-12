@@ -18,7 +18,7 @@ def process_request(
 
     timestamp = json_data["data"]["timestamp_local"]
     plate = json_data["data"]["results"][0].get("plate")
-    if plate and type(plate) != str:
+    if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
     try:
@@ -30,10 +30,10 @@ def process_request(
 
     request_data = {"time": timestamp, "text1": plate}
 
-    HEADERS = {"Content-Type": "application/x-www-form-urlencoded; charset=utf-8"}
+    headers = {"Content-Type": "application/x-www-form-urlencoded; charset=utf-8"}
     data = parse.urlencode(request_data)
 
-    response = requests.post(url=url, headers=HEADERS, data=data, verify=False)
+    response = requests.post(url=url, headers=headers, data=data, verify=False)
 
     if response.status_code == 200:
         logging.info(f"Vehicle: {plate}. REST request successful.")

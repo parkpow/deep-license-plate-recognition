@@ -32,5 +32,3 @@ dotnet run --token=4805bee122### --file=../assets/demo.jpg --base64
 dotnet run --token=4805bee122### --file=../assets/demo.jpg --camera=camera46363
 
 ```
-
-

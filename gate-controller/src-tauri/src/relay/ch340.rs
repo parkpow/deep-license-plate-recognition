@@ -24,11 +24,11 @@ pub fn trigger_ch340_action(
             .map_err(|e| format!("Failed to open serial port '{}': {}", port_name, e))?;
         connections_guard.insert(port_name.to_string(), port);
         // Wait for the serial device to initialize
-        std::thread::sleep(std::time::Duration::from_millis(200)); 
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
     let serial_port = connections_guard.get_mut(port_name).unwrap();
-    
+
     let action_val = if action == "on" { 0x01 } else { 0x00 };
     let checksum = (0xA0u8 as u16 + channel as u16 + action_val as u16) as u8;
     let command = [0xA0, channel, action_val, checksum];

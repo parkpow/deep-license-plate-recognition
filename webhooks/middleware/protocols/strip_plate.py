@@ -61,7 +61,6 @@ def strip_data_in_jsonl_file(
 
 
 def convert_plate_format_to_vehicle_format(original: dict[str, Any]):
-
     new_payload = {
         "hook": deepcopy(original["hook"]),
         "data": {

@@ -52,7 +52,7 @@ def save_current_state(license_plates: set):
         logger.error(f"Error saving current state to {STATE_FILE}: {e}")
 
 
-def main():
+def main():  # noqa: C901 TODO: Break down to reduce cyclomatic complexity
     logger.info("Starting synchronization cycle.")
     all_monitoring_threads = []
 

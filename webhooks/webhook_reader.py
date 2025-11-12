@@ -42,7 +42,7 @@ class GetHandler(BaseHTTPRequestHandler):
                         print("Error creating directory:", upload_to)
 
                 with open(f"./{upload_to}/{filename}", "wb") as fp:
-                    print("Saving image to %s" % filename)
+                    print(f"Saving image to {filename}")
                     fp.write(buffer)
 
         else:

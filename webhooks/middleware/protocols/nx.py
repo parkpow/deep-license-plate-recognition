@@ -16,7 +16,7 @@ logging.basicConfig(
 
 session = requests.Session()
 
-parkpow_license_plates = set()
+parkpow_license_plates: set[str] = set()
 
 
 def convert_to_timestamp_milliseconds(time_string: str) -> int:
@@ -112,7 +112,7 @@ def process_request(
     tag = os.getenv("TAG")
 
     plate = json_data["data"]["results"][0].get("plate")
-    if plate and type(plate) != str:
+    if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
     # Ensure the necessary environment variables are set

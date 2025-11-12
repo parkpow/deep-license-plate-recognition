@@ -17,10 +17,7 @@ logging.basicConfig(
 
 
 def stream_api(image_path, args):
-    if args.mask:
-        data = dict(mask_id=args.mask)
-    else:
-        data = None
+    data = dict(mask_id=args.mask) if args.mask else None
 
     with open(image_path, "rb") as fp:
         response = requests.post(args.sdk_url, files=dict(upload=fp), data=data)

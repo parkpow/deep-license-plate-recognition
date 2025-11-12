@@ -134,14 +134,12 @@ def image_transfer(src_path, args):
         return
 
     if not args.output_file:
-
         payload = {"results": json.dumps(results), "camera": camera}
         files = {"image": (filename, open(src_path, "rb"), "application/octet-stream")}
         response = api_request(args, payload, files)
         if not response:
             return
     else:
-
         with jsonlines.open(args.output_file, mode="a") as json_file:
             json_file.write(results)
             response = results
@@ -156,12 +154,12 @@ def image_transfer(src_path, args):
         Path(archive_dir).mkdir(parents=True, exist_ok=True)
         os.rename(src_path, destination)
     except (PermissionError, OSError):
-        print("%s could not be moved to archive folder." % src_path)
+        print(f"{src_path} could not be moved to archive folder.")
     return dict(dest=destination, response=response)
 
 
 def alpr(path, args):
-    print("Sending %s" % path)
+    print(f"Sending {path}")
     try:
         if "localhost" in args.alpr_api:
             time.sleep(1)  # Wait for the whole image to arrive
@@ -187,7 +185,7 @@ def alpr(path, args):
         print("SDK: ConnectionError")
         return
     except PermissionError:
-        print("SDK: %s could not be read." % path)
+        print(f"SDK: {path} could not be read.")
         return
     except Exception as e:
         print(e)
@@ -232,7 +230,7 @@ class Handler(PatternMatchingEventHandler):
         try:
             _queue.put(event.src_path)
         except queue.Full:
-            print("Queue is full. Skipping %s." % event.scr_path)
+            print(f"Queue is full. Skipping {event.src_path}.")
 
 
 def main(args, debug=False):
@@ -269,9 +267,9 @@ def validate_env(args):
     messages = []
     Path(args.archive).mkdir(parents=True, exist_ok=True)
     if not Path(args.archive).exists():
-        messages.append("%s does not exist." % args.archive)
+        messages.append(f"{args.archive} does not exist.")
     if not Path(args.source).exists():
-        messages.append("%s does not exist." % args.source)
+        messages.append(f"{args.source} does not exist.")
 
     if not args.use_parkpow and not args.output_file:
         messages.append("Pass argument --use-parkpow or the argument --output-file")
@@ -287,7 +285,7 @@ def validate_env(args):
             response = None
         if not response or response.status_code != 200:
             messages.append(
-                "Make sure that the SDK is up and running (%s)." % args.alpr_api
+                f"Make sure that the SDK is up and running ({args.alpr_api})."
             )
     if args.use_parkpow:
         api_url = "https://app.parkpow.com/api/v1/log-vehicle"

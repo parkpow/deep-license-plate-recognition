@@ -160,7 +160,6 @@ class WebhookQueue:
 
 class RequestHandler(BaseHTTPRequestHandler):
     def __init__(self, wq: WebhookQueue, *args, **kwargs):
-
         self.wq = wq
         super().__init__(*args, **kwargs)
 

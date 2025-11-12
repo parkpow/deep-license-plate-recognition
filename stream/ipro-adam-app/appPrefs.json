@@ -1,34 +1,27 @@
 {
-	"preferenceVersion":{"major":"1","minor":"0"},
-	"preference":[
-		{
-			"prefName":"LICENSE_KEY",
-			"prefType":"String",
-			"appApiAccess":"ReadWrite",
-			"webApiAccess":"ReadWrite",
-			"defaultValue":""
-		},
-		{
-			"prefName":"TOKEN",
-			"prefType":"String",
-			"appApiAccess":"ReadWrite",
-			"webApiAccess":"ReadWrite",
-			"defaultValue":""
-		},
-		{
-			"prefName":"LOGGING",
-			"prefType":"Enumeration",
-			"appApiAccess":"ReadWrite",
-			"webApiAccess":"ReadWrite",
-			"enumerationList":[
-				"10",
-				"20",
-				"30",
-				"40",
-				"50"
-			],
-			"defaultValue":"10"
-		}
-
-	]
+  "preferenceVersion": { "major": "1", "minor": "0" },
+  "preference": [
+    {
+      "prefName": "LICENSE_KEY",
+      "prefType": "String",
+      "appApiAccess": "ReadWrite",
+      "webApiAccess": "ReadWrite",
+      "defaultValue": ""
+    },
+    {
+      "prefName": "TOKEN",
+      "prefType": "String",
+      "appApiAccess": "ReadWrite",
+      "webApiAccess": "ReadWrite",
+      "defaultValue": ""
+    },
+    {
+      "prefName": "LOGGING",
+      "prefType": "Enumeration",
+      "appApiAccess": "ReadWrite",
+      "webApiAccess": "ReadWrite",
+      "enumerationList": ["10", "20", "30", "40", "50"],
+      "defaultValue": "10"
+    }
+  ]
 }

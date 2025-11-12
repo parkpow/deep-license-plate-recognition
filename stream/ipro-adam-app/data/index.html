@@ -260,12 +260,12 @@
             btn.textContent = "Saving...";
 
             try {
-                let licenseKey = document.getElementById("licenseKey").value;
-                let licenseToken = document.getElementById("licenseToken").value;
-                let logLevel = document.getElementById("logLevel").value;
+                const licenseKey = document.getElementById("licenseKey").value;
+                const licenseToken = document.getElementById("licenseToken").value;
+                const logLevel = document.getElementById("logLevel").value;
 
-                let sendData = `${licenseKey},${licenseToken},${logLevel}`;
-                let bodyData = param1 + btoa(sendData);
+                const sendData = `${licenseKey},${licenseToken},${logLevel}`;
+                const bodyData = param1 + btoa(sendData);
 
                 const response = await fetch("/cgi-bin/adam.cgi", {
                     method: "POST",
@@ -283,7 +283,7 @@
                 location.reload();
 
             } catch (err) {
-                alert("Save failed: " + err.message);
+                alert(`Save failed: ${err.message}`);
                 btn.disabled = false;
                 btn.textContent = originalText;
             }

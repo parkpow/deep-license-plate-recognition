@@ -101,11 +101,7 @@ def process(args, path: Path, output: Path, logo=None):
         }
         if args.copy_metadata:
             data["copy_metadata"] = "true"
-
-        if args.api_key:
-            headers = {"Authorization": f"Token {args.api_key}"}
-        else:
-            headers = None
+        headers = {"Authorization": f"Token {args.api_key}"} if args.api_key else None
 
         response = requests.post(
             args.blur_url,

@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 
 
-def forward_to_SOAP_service(json_data, image):
+def forward_to_soap_service(json_data, image):
     # Retrieve environment variables for the SOAP service
     soap_service_url = os.getenv("SOAP_SERVICE_URL")
     soap_action = "http://tempuri.org/PostImage"
@@ -21,7 +21,7 @@ def forward_to_SOAP_service(json_data, image):
     timestamp = json_data["data"]["timestamp_local"]
     plate = json_data["data"]["results"][0].get("plate")
     score = json_data["data"]["results"][0].get("score")
-    if plate and type(plate) != str:
+    if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
         score = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["score"]
 
@@ -66,5 +66,5 @@ def process_request(
     if upload_file:
         image_base64 = base64.b64encode(upload_file).decode("utf-8")
 
-    response = forward_to_SOAP_service(json_data, image_base64)
+    response = forward_to_soap_service(json_data, image_base64)
     return response

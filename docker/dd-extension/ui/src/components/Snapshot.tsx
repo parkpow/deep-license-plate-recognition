@@ -1,135 +1,129 @@
-import {
-  Row,
-  Col,
-  Button,
-} from "react-bootstrap";
-
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Button, Col, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
-
-import React, { useState, useEffect } from "react";
+import { openBrowserUrl } from "../helpers";
 import { useDockerDesktopClient } from "../hooks/useDockerDesktopClient";
 import Loader from "./Loader";
+import ShowCommand from "./ShowCommand";
 import Uninstall from "./Uninstall";
 import Update from "./Update";
-import ShowCommand from "./ShowCommand";
-import { openBrowserUrl } from '../helpers'
 
 const countryOptions = [
-  { value: '', label: 'Select country' },
-  { value: 'Global', label: 'Global' },
-  { value: 'egypt', label: 'Egypt' },
-  { value: 'germany', label: 'Germany' },
-  { value: 'japan', label: 'Japan' },
-  { value: 'korea', label: 'Korea' },
-  { value: 'thailand', label: 'Thailand' },
-  { value: 'uae', label: 'United Arab Emirates' },
+  { value: "", label: "Select country" },
+  { value: "Global", label: "Global" },
+  { value: "egypt", label: "Egypt" },
+  { value: "germany", label: "Germany" },
+  { value: "japan", label: "Japan" },
+  { value: "korea", label: "Korea" },
+  { value: "thailand", label: "Thailand" },
+  { value: "uae", label: "United Arab Emirates" },
 ];
 
 const architectureOptionsSnapshot = [
-  { value: 'alpr', label: 'Intel x86 or amd64(x64)' },
-  { value: 'alpr-no-avx', label: 'Intel x86 or amd64(x64) no-avx' },
-  { value: 'alpr-gpu', label: 'Intel x86 or amd64(x64) with Nvidia GPU' },
-  { value: 'alpr-arm', label: 'ARM based CPUs, Raspberry Pi or Apple M1' },
-  { value: 'alpr-jetson', label: 'Nvidia Jetson (with GPU) for Jetpack 4.6 (r32)' },
-  { value: 'alpr-jetson:r35', label: 'Nvidia Jetson (with GPU) for Jetpack 5.x (r35)' },
-  { value: 'alpr-zcu104', label: 'ZCU' },
+  { value: "alpr", label: "Intel x86 or amd64(x64)" },
+  { value: "alpr-no-avx", label: "Intel x86 or amd64(x64) no-avx" },
+  { value: "alpr-gpu", label: "Intel x86 or amd64(x64) with Nvidia GPU" },
+  { value: "alpr-arm", label: "ARM based CPUs, Raspberry Pi or Apple M1" },
+  { value: "alpr-jetson", label: "Nvidia Jetson (with GPU) for Jetpack 4.6 (r32)" },
+  { value: "alpr-jetson:r35", label: "Nvidia Jetson (with GPU) for Jetpack 5.x (r35)" },
+  { value: "alpr-zcu104", label: "ZCU" },
 ];
 
-
 export default function Snapshot() {
-  const [licenseKey, setLicenseKey] = useState('');
-  const [token, setToken] = useState('');
+  const [licenseKey, setLicenseKey] = useState("");
+  const [token, setToken] = useState("");
   const [tokenValidated, setTokenValidated] = useState(false);
   const [isLoading, setLoading] = useState(false);
 
   const [command, setCommand] = useState<string>("");
   const [curlPort, setCurlPort] = useState("8080");
-  const [dockerimage, setDockerimage] = useState('');
-  const [country, setCountry] = useState('Global');
-  const [architecture, setArchitecture] = useState('alpr');
-  const [restartPolicy, setRestartPolicy] = useState('no');
+  const [dockerimage, setDockerimage] = useState("");
+  const [country, setCountry] = useState("Global");
+  const [architecture, setArchitecture] = useState("alpr");
+  const [restartPolicy, setRestartPolicy] = useState("no");
 
   const ddClient = useDockerDesktopClient();
 
-  const handleInputChange = (e:  React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTokenValidated(false);
     const { name, value } = e.target;
-    if (name == "license") {
+    if (name === "license") {
       setLicenseKey(value);
-    } else if (name == "token") {
-      setToken(value)
-    } else if (name == "port") {
+    } else if (name === "token") {
+      setToken(value);
+    } else if (name === "port") {
       setCurlPort(value);
-    } else if (name == "restart-policy") {
+    } else if (name === "restart-policy") {
       setRestartPolicy(value);
     }
   };
 
-  const handleArchitectureChange = (e:React.ChangeEvent<HTMLSelectElement>) => {
+  const handleArchitectureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTokenValidated(false);
     setArchitecture(e.target.value);
   };
 
-
-  // type SnapshotData = {
-  //   port: string;
-  //   license: string;
-  //   token: string;
-  //   image: string;
-  // }
-  const generateDockerImage = () => {
-    let dockerImage = 'platerecognizer/';
-    if (country === 'Global' || architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx') {
+  const generateDockerImage = useCallback(() => {
+    let dockerImage = "platerecognizer/";
+    if (
+      country === "Global" ||
+      architecture === "alpr-jetson:r35" ||
+      architecture === "alpr-no-avx"
+    ) {
       dockerImage += `${architecture}`;
     } else {
       dockerImage += `${architecture}:${country}`;
     }
-    setDockerimage(dockerImage)
-    return (dockerImage)
-  };
-  const generateDockerRunCommand = (dockerImage:string) => {
-    let restartOption;
-    switch (restartPolicy) {
-      case 'no':
-        restartOption = ''
-        break
-      default:
-        restartOption = `--restart=${restartPolicy} `
-        break
-    }
-    const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
-    let platformSpecificCommand = '';
+    setDockerimage(dockerImage);
+    return dockerImage;
+  }, [country, architecture]);
 
-    switch (architecture) {
-      case 'alpr-jetson':
-      case 'alpr-jetson:r35':
-        platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
-        break;
-      case 'alpr-gpu':
-        platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-        break;
-      case 'alpr':
-      case 'alpr-no-avx':
-      case 'alpr-arm':
-      case 'alpr-zcu104':
-        platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
-        break;
-      default:
-        break;
-    }
+  const generateDockerRunCommand = useCallback(
+    (dockerImage: string) => {
+      let restartOption: string;
+      switch (restartPolicy) {
+        case "no":
+          restartOption = "";
+          break;
+        default:
+          restartOption = `--restart=${restartPolicy} `;
+          break;
+      }
+      const baseCommand = `docker run ${restartOption}-t -p ${curlPort}:8080 -v license:/license`;
+      let platformSpecificCommand = "";
 
-    setCommand(`${baseCommand} ${platformSpecificCommand}`);
+      switch (architecture) {
+        case "alpr-jetson":
+        case "alpr-jetson:r35":
+          platformSpecificCommand = ` --runtime nvidia -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}   ${dockerImage}`;
+          break;
+        case "alpr-gpu":
+          platformSpecificCommand = ` --gpus all -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+          break;
+        case "alpr":
+        case "alpr-no-avx":
+        case "alpr-arm":
+        case "alpr-zcu104":
+          platformSpecificCommand = `  -e LICENSE_KEY=${licenseKey} -e TOKEN=${token}  ${dockerImage}`;
+          break;
+        default:
+          break;
+      }
 
-  };
+      setCommand(`${baseCommand} ${platformSpecificCommand}`);
+    },
+    [restartPolicy, curlPort, architecture, licenseKey, token],
+  );
 
   useEffect(() => {
-    const imagem = generateDockerImage()
-    generateDockerRunCommand(imagem)
-  }, [country, architecture, token, curlPort, licenseKey, restartPolicy]);
+    const imagem = generateDockerImage();
+    generateDockerRunCommand(imagem);
+  }, [generateDockerImage, generateDockerRunCommand]);
 
   // Load any existing data from local storage on component mount
   useEffect(() => {
-    const storedData = localStorage.getItem('snapshot');
+    const storedData = localStorage.getItem("snapshot");
     if (storedData) {
       const snapshotData = JSON.parse(storedData);
       setToken(snapshotData?.token);
@@ -141,7 +135,6 @@ export default function Snapshot() {
     }
   }, []);
 
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form: HTMLFormElement = event.currentTarget;
@@ -151,38 +144,39 @@ export default function Snapshot() {
     // console.log(data);
     setLoading(true);
 
-    ddClient.extension.vm?.service
-      ?.post("/verify-token", data)
-      .then((res: any) => {
-        console.debug(res);
-        const valid = res["valid"];
-        const message = res["message"];
-        if (valid) {
-          localStorage.setItem('snapshot', JSON.stringify({
-            token:token,
-            license:licenseKey,
-            restartPolicy:restartPolicy,
-            curlPort:curlPort,
-            country:country,
-            architecture:architecture
-          }));
-          // Pull image and update
-          ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {
-            console.debug(result)
-            setTokenValidated(valid);
-            setLoading(false);
-          });
-        } else {
+    ddClient.extension.vm?.service?.post("/verify-token", data).then((res: any) => {
+      console.debug(res);
+      const valid = res.valid;
+      const message = res.message;
+      if (valid) {
+        localStorage.setItem(
+          "snapshot",
+          JSON.stringify({
+            token: token,
+            license: licenseKey,
+            restartPolicy: restartPolicy,
+            curlPort: curlPort,
+            country: country,
+            architecture: architecture,
+          }),
+        );
+        // Pull image and update
+        ddClient.docker.cli.exec("pull", [dockerimage]).then((result) => {
+          console.debug(result);
+          setTokenValidated(valid);
           setLoading(false);
-          ddClient.desktopUI.toast.error(`Verify Token: ${message}`);
-        }
-      });
+        });
+      } else {
+        setLoading(false);
+        ddClient.desktopUI.toast.error(`Verify Token: ${message}`);
+      }
+    });
   };
   const handleCountryChange = (e: any) => {
     setTokenValidated(false);
     setCountry(e.target.value);
   };
-  const handleLinkClick = (e:  React.MouseEvent<HTMLAnchorElement>) => {
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     openBrowserUrl(ddClient, e.currentTarget.href);
   };
@@ -191,7 +185,10 @@ export default function Snapshot() {
       <Form.Group as={Row} className="mb-3" controlId="snapshotToken">
         <Form.Label column sm={4}>
           Please enter your Plate Recognizer{" "}
-          <a href="https://app.platerecognizer.com/service/snapshot-sdk/" onClick={handleLinkClick}>
+          <a
+            href="https://app.platerecognizer.com/service/snapshot-sdk/"
+            onClick={handleLinkClick}
+          >
             API Token
           </a>
           :
@@ -211,7 +208,10 @@ export default function Snapshot() {
       <Form.Group as={Row} className="mb-3" controlId="snapshotLicense">
         <Form.Label column sm={4}>
           Please enter your{" "}
-          <a href="https://app.platerecognizer.com/service/snapshot-sdk/" onClick={handleLinkClick}>
+          <a
+            href="https://app.platerecognizer.com/service/snapshot-sdk/"
+            onClick={handleLinkClick}
+          >
             Snapshot License Key
           </a>
           :
@@ -236,41 +236,40 @@ export default function Snapshot() {
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='No (Docker Default)'
-            id='rps1'
-            value='no'
-            checked={restartPolicy == 'no'}
+            label="No (Docker Default)"
+            id="rps1"
+            value="no"
+            checked={restartPolicy === "no"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='Unless Stopped'
-            id='rps2'
-            value='unless-stopped'
-            checked={restartPolicy == 'unless-stopped'}
+            label="Unless Stopped"
+            id="rps2"
+            value="unless-stopped"
+            checked={restartPolicy === "unless-stopped"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='Always'
-            id='rps3'
-            value='always'
-            checked={restartPolicy == 'always'}
+            label="Always"
+            id="rps3"
+            value="always"
+            checked={restartPolicy === "always"}
             onChange={handleInputChange}
           />
           <Form.Check
             type="radio"
             name="restart-policy"
-            label='On Failure'
-            id='rps4'
-            value='on-failure'
-            checked={restartPolicy == 'on-failure'}
+            label="On Failure"
+            id="rps4"
+            value="on-failure"
+            checked={restartPolicy === "on-failure"}
             onChange={handleInputChange}
           />
         </Col>
-
       </Form.Group>
 
       <Form.Group as={Row} className="mb-3" controlId="snapshotPort">
@@ -301,11 +300,13 @@ export default function Snapshot() {
             onChange={handleCountryChange}
             name="country"
             defaultValue={country}
-            disabled={architecture === 'alpr-jetson:r35' || architecture === 'alpr-no-avx'}
+            disabled={
+              architecture === "alpr-jetson:r35" || architecture === "alpr-no-avx"
+            }
           >
-            {countryOptions.map((option, index) => (
-              <option key={index} value={option.value}>
-                {option.label}
+            {countryOptions.map(({ value, label }) => (
+              <option key={label} value={value}>
+                {label}
               </option>
             ))}
           </Form.Select>
@@ -317,29 +318,28 @@ export default function Snapshot() {
             name="image"
             defaultValue={architecture}
           >
-            {architectureOptionsSnapshot.map((option, index) => (
-              <option key={index} value={option.value}>
-                {option.label}
+            {architectureOptionsSnapshot.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </Form.Select>
         </Col>
       </Form.Group>
 
-      <ShowCommand
-        curlPort={curlPort}
-        command={command}
-        validated={tokenValidated}
-      />
+      <ShowCommand curlPort={curlPort} command={command} validated={tokenValidated} />
 
       <Form.Group as={Row} className="mb-3">
         <div className="col-2">
-          <Button className="btn btn-primary" type="submit">
+          <Button className="btn btn-primary" type="submit" id="validateSnapshotBtn">
             <Loader isLoading={isLoading} />
             Show Docker Command
           </Button>
         </div>
-        <label className="col-auto align-self-center form-label">
+        <label
+          className="col-auto align-self-center form-label"
+          htmlFor="validateSnapshotBtn"
+        >
           Confirm settings and show docker command.
         </label>
       </Form.Group>

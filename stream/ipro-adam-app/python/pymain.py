@@ -12,12 +12,12 @@ import libAdamApiPython
 # sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 
 
-def debugDbg(str):
+def debug_dbg(str):
     # libAdamApiPython.adam_debug_print(libAdamApiPython.ADAM_LV_DBG, "[DBG] {}".format(str))
     print(f"[DBG] {str}")
 
 
-def debugErr(str):
+def debug_err(str):
     # libAdamApiPython.adam_debug_print(libAdamApiPython.ADAM_LV_ERR, "[ERR] {}".format(str))
     print(f"[ERR] {str}")
 
@@ -35,7 +35,7 @@ TOKEN_PREF = "TOKEN"
 LOGGING_PREF = "LOGGING"
 
 
-def stopCB():
+def stop_cb():
     global loop
     print("Stop callback")
     loop.exit()
@@ -54,7 +54,7 @@ def create_respone_header(body, status=200):
 
 
 def write_env_file(token, license_key, log_level):
-    debugDbg("Writing stream credentials to /ai_data/env-file.ini")
+    debug_dbg("Writing stream credentials to /ai_data/env-file.ini")
 
     env_vars = {
         "TOKEN": token,
@@ -70,13 +70,13 @@ def write_env_file(token, license_key, log_level):
             env_file.write(f"{key}={value}\n")
 
 
-def httpCB(reqType, reqData):
+def http_cb(req_type, req_data):
     global license_key
     global token
     global stream_log_level
 
-    print("HTTP callback: type=%d" % reqType)
-    debugDbg("HTTP callback: reqType=%d" % reqType)
+    print(f"HTTP callback: type={req_type}")
+    debug_dbg(f"HTTP callback: reqType={req_type}")
 
     # body = b'body'
     # header = "header"
@@ -96,47 +96,45 @@ def httpCB(reqType, reqData):
 
     try:
         # get data directory
-        appPath = libAdamApiPython.adam_get_app_data_dir_path()
-        with open(f"{appPath}/index.html") as fp:
-            htmlData = fp.read()
+        app_path = libAdamApiPython.adam_get_app_data_dir_path()
+        with open(f"{app_path}/index.html") as fp:
+            html_data = fp.read()
 
-        print("reqType:%d" % reqType)
-        debugDbg("call httpCB: reqType=%d" % reqType)
-        if reqType == ADAM_HTTP_REQ_TYPE_GET:
-            debugDbg("Show html")
+        print(f"reqType:{req_type}")
+        debug_dbg(f"call httpCB: reqType={req_type}")
+        if req_type == ADAM_HTTP_REQ_TYPE_GET:
+            debug_dbg("Show html")
             # load AppPref
-            loadPref()
-        elif reqType == ADAM_HTTP_REQ_TYPE_POST:
-            debugDbg("Edit html")
+            load_pref()
+        elif req_type == ADAM_HTTP_REQ_TYPE_POST:
+            debug_dbg("Edit html")
             # set AppPref
-            setPref(reqData.decode("utf-8"))
+            set_pref(req_data.decode("utf-8"))
         else:
-            debugErr("call httpCB: reqType=%d" % reqType)
+            debug_err(f"call httpCB: reqType={req_type}")
 
         # set AppPref parameter
         context = []
         # Get App Install ID
-        install_id = "%08X" % libAdamApiPython.InstallId
+        install_id = f"{libAdamApiPython.InstallId:08X}"
         context.append(install_id)
         context.append(license_key.tobytes().decode("utf-8"))
         context.append(token.tobytes().decode("utf-8"))
         context.extend(get_stream_log_level_context(stream_log_level))
 
-        debugDbg(f"Context: {context}")
+        debug_dbg(f"Context: {context}")
 
         # replace parameters in html
-        cnt = 0
-        for keywd in template_literals:
-            htmlData = htmlData.replace(keywd, context[cnt])
-            cnt += 1
-        header = create_respone_header(htmlData)
+        for i, keywd in enumerate(template_literals):
+            html_data = html_data.replace(keywd, context[i])
+        header = create_respone_header(html_data)
 
     except Exception as e:
-        debugErr(f"httpCB Exception: {e}")
-        htmlData = f"Server Error: {traceback.format_exc()}"
-        header = create_respone_header(htmlData, 500)
+        debug_err(f"httpCB Exception: {e}")
+        html_data = f"Server Error: {traceback.format_exc()}"
+        header = create_respone_header(html_data, 500)
 
-    body = bytes(htmlData, "utf-8")
+    body = bytes(html_data, "utf-8")
     return header, body
 
 
@@ -158,29 +156,29 @@ def get_stream_log_level_context(stream_log_level: int) -> list:
     return context
 
 
-def appPrefCB(prefTuple):
+def app_pref_cb(pref_tuple):
     global license_key
     global token
     global stream_log_level
 
     libAdamApiPython.adam_lock_appPref()
 
-    if prefTuple == LICENSE_KEY_PREF:
+    if pref_tuple == LICENSE_KEY_PREF:
         license_key = memoryview(
             libAdamApiPython.adam_get_appPref(LICENSE_KEY_PREF).encode()
         )
-    elif prefTuple == TOKEN_PREF:
+    elif pref_tuple == TOKEN_PREF:
         token = memoryview(libAdamApiPython.adam_get_appPref(TOKEN_PREF).encode())
 
-    elif prefTuple == LOGGING_PREF:
+    elif pref_tuple == LOGGING_PREF:
         stream_log_level = libAdamApiPython.adam_get_appPref(LOGGING_PREF)
     else:
-        print("Undefined AppPrefName: %s" % prefTuple)
+        print(f"Undefined AppPrefName: {pref_tuple}")
 
     libAdamApiPython.adam_unlock_appPref()
 
 
-def loadPref():
+def load_pref():
     global license_key
     global token
     global stream_log_level
@@ -194,10 +192,10 @@ def loadPref():
 
     libAdamApiPython.adam_unlock_appPref()
 
-    debugDbg("loadPref adam_get_appPref")
-    debugDbg(f"  license_key:{license_key}")
-    debugDbg(f"  token:{token}")
-    debugDbg(f"  stream_log_level :{stream_log_level}")
+    debug_dbg("loadPref adam_get_appPref")
+    debug_dbg(f"  license_key:{license_key}")
+    debug_dbg(f"  token:{token}")
+    debug_dbg(f"  stream_log_level :{stream_log_level}")
 
     libAdamApiPython.adam_debug_print(
         libAdamApiPython.ADAM_LV_INF,
@@ -210,12 +208,12 @@ def loadPref():
         write_env_file(token_pref, license_key_pref, stream_log_level)
 
 
-def setPref(pref_str):
+def set_pref(pref_str):
     global license_key
     global token
     global stream_log_level
 
-    debugDbg(f"Set Pref: {pref_str}")
+    debug_dbg(f"Set Pref: {pref_str}")
     pref = pref_str.split(",")
     license_key_pref = pref[0]
     token_pref = pref[1]
@@ -231,18 +229,18 @@ def setPref(pref_str):
     libAdamApiPython.adam_set_appPref({LOGGING_PREF: stream_log_level})
     libAdamApiPython.adam_unlock_appPref()
 
-    debugDbg("setPref adam_set_appPref")
-    debugDbg(f"  license_key:{license_key_pref}")
-    debugDbg(f"  license_token:{token_pref}")
-    debugDbg(f"  stream_log_level :{stream_log_level}")
+    debug_dbg("setPref adam_set_appPref")
+    debug_dbg(f"  license_key:{license_key_pref}")
+    debug_dbg(f"  license_token:{token_pref}")
+    debug_dbg(f"  stream_log_level :{stream_log_level}")
 
     write_env_file(token_pref, license_key_pref, stream_log_level)
 
 
-def startProcessing():
+def start_processing():
     global loop
     loop = libAdamApiPython.adamEventloop()
-    loadPref()
+    load_pref()
     loop.dispatch()
     del loop
     print("Finish: Process")
@@ -252,11 +250,11 @@ if __name__ == "__main__":
     print("Start: main thread")
     # 	adam.setPrintLevel(0xffffffff)
 
-    libAdamApiPython.adam_set_stop_callback(stopCB)
-    libAdamApiPython.adam_set_http_callback(httpCB)
-    libAdamApiPython.adam_set_appPref_callback(appPrefCB)
+    libAdamApiPython.adam_set_stop_callback(stop_cb)
+    libAdamApiPython.adam_set_http_callback(http_cb)
+    libAdamApiPython.adam_set_appPref_callback(app_pref_cb)
 
     # Case of executing image processing in same thread.
-    startProcessing()
+    start_processing()
 
     print("Finish: main thread")
