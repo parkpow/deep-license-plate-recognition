@@ -3,11 +3,9 @@ import logging
 import os
 from datetime import datetime
 from typing import Any
-
+import requests
 from protocols.shared.utils import get_header, get_required_header
 
-
-import requests
 
 service_url = os.getenv("ZATPARK_SERVICE_URL")
 
