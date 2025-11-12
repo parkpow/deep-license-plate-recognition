@@ -21,9 +21,9 @@ def convert_to_timestamp_microseconds(time_string):
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
-    camera_id = get_required_header("camera_id", json_data)
-    if camera_id is None:
-        return "The camera_id is required.", 400
+    camera_id, error = get_required_header("camera_id", json_data)
+    if error:
+        return error
 
     # Prepare the payload for the API request
     plate = json_data["data"]["results"][0].get("plate")
