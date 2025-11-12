@@ -6,6 +6,7 @@ import os
 import sys
 from datetime import datetime
 from threading import Timer
+from protocols.shared.utils import get_required_header
 from typing import Any
 
 import requests
@@ -115,14 +116,8 @@ def process_request(
     if plate and type(plate) != str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
-    header = json_data.get("webhook_header", {})
-    if not isinstance(header, dict):
-        header = {}
-    
-    camera_id = header.get("camera_id")
-    
+    camera_id = get_required_header("camera_id", json_data)
     if camera_id is None:
-        logging.error("The camera_id is required but was not provided in header.")
         return "The camera_id is required.", 400
 
     # Ensure the necessary environment variables are set

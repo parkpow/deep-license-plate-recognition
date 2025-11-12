@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from typing import Any
 
+from protocols.shared.utils import get_required_header
 import requests
 
 logging.basicConfig(
@@ -20,14 +21,8 @@ def convert_to_timestamp_microseconds(time_string):
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
-    header = json_data.get("webhook_header", {})
-    if not isinstance(header, dict):
-        header = {}
-    
-    camera_id = header.get("camera_id")
-    
+    camera_id = get_required_header("camera_id", json_data)
     if camera_id is None:
-        logging.error("The camera_id is required but was not provided in header.")
         return "The camera_id is required.", 400
 
     # Prepare the payload for the API request

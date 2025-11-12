@@ -4,6 +4,9 @@ import os
 from datetime import datetime
 from typing import Any
 
+from protocols.shared.utils import get_header, get_required_header
+
+
 import requests
 
 service_url = os.getenv("ZATPARK_SERVICE_URL")
@@ -33,7 +36,6 @@ def extract_data_plate(
     float | None,
     str | None,
     str | None,
-    dict[str, str],
     int | None,
     int | None,
 ]:
@@ -53,9 +55,6 @@ def extract_data_plate(
 
     # Common data extraction
     camera_id = data_section.get("camera_id")
-    header = json_data.get("webhook_header", {})
-    if not isinstance(header, dict):
-        header = {}
 
     timestamp_str = data_section.get("timestamp")
     timestamp_local_str = data_section.get("timestamp_local")
@@ -90,7 +89,6 @@ def extract_data_plate(
         score,
         orientation,
         camera_id,
-        header if isinstance(header, dict) else {},
         timestamp,
         timestamp_local,
     )
@@ -126,7 +124,6 @@ def process_request(
             score,
             orientation,
             camera_id,
-            header,
             timestamp,
             timestamp_local,
         ) = extract_data_plate(json_data)
@@ -134,15 +131,12 @@ def process_request(
         logging.error(f"Failed to extract necessary data from JSON payload: {e}")
         return f"Invalid or incomplete JSON data: {e}", 400
 
-    mac_address = header.get("mac_address")
-    camera_name = header.get("camera_name") or camera_id
-    serial_number = header.get("serial_number") or mac_address
-
+    mac_address = get_required_header("mac_address", json_data)
     if mac_address is None:
-        logging.error(
-            f"The MAC address is required for '{camera_id}', but was not provided."
-        )
         return "The MAC address is required.", 400
+
+    camera_name = get_header("camera_name", json_data) or camera_id
+    serial_number = get_header("serial_number", json_data) or mac_address
 
     if not plate or score is None:
         logging.error("Failed to extract plate or score from json_data.")
