@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import requests
+from protocols.shared.utils import get_required_header
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -20,10 +21,15 @@ def convert_to_timestamp_microseconds(time_string):
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
+    camera_id, error = get_required_header("camera_id", json_data)
+    if error:
+        return error
+
     # Prepare the payload for the API request
     plate = json_data["data"]["results"][0].get("plate")
     if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
+
     payload = json.dumps(
         {
             "requestDateMicros": convert_to_timestamp_microseconds(
@@ -39,10 +45,7 @@ def process_request(
                     ),
                     "eventType": "ANALYTIC_LICENSE_PLATE_DETECTED",
                     "attributes": {
-                        "sourceObject": {
-                            "type": "CAMERA",
-                            "id": json_data["data"]["camera_id"],
-                        },
+                        "sourceObject": {"type": "CAMERA", "id": camera_id},
                         "linkedObjects": [],
                         "props": [{"name": "licensePlate", "value": plate}],
                     },

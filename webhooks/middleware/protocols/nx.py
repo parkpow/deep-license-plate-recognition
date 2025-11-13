@@ -9,6 +9,7 @@ from threading import Timer
 from typing import Any
 
 import requests
+from protocols.shared.utils import get_required_header
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s"
@@ -115,6 +116,10 @@ def process_request(
     if plate and type(plate) is not str:
         plate = json_data["data"]["results"][0]["plate"]["props"]["plate"][0]["value"]
 
+    camera_id, error = get_required_header("camera_id", json_data)
+    if error:
+        return error
+
     # Ensure the necessary environment variables are set
     if not server_host or not login or not password:
         logging.error(
@@ -126,7 +131,7 @@ def process_request(
     server_id = server_info(server_host, ssl)
 
     license_plate = plate.upper()
-    url = f"{server_host}/rest/v2/devices/{json_data['data']['camera_id']}/bookmarks"
+    url = f"{server_host}/rest/v2/devices/{camera_id}/bookmarks"
     payload = {
         "serverId": server_id,
         "name": license_plate,
