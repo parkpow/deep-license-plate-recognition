@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   stream:
@@ -12,8 +12,8 @@ services:
       - "/opt/stream:/user-data" # Adjust the path as needed for Stream working directory
     environment:
       #- LOGGING=30  # Uncomment if you want different logging level: 10 for debug, 20 for info, 30 for warning
-      - LICENSE_KEY=${STREAM_LICENSE_KEY}  # Add the LICENSE_KEY from environment variable
-      - TOKEN=${STREAM_API_TOKEN}  # Add the TOKEN from environment variable
+      - LICENSE_KEY=${STREAM_LICENSE_KEY} # Add the LICENSE_KEY from environment variable
+      - TOKEN=${STREAM_API_TOKEN} # Add the TOKEN from environment variable
 
   middleware:
     image: webhook-middleware
@@ -23,5 +23,6 @@ services:
     ports:
       - "8002:8002"
     volumes:
-      - ./dot_config.csv:/app/dot_config.csv:ro
-      - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
+      # - ./dot_config.csv:/app/dot_config.csv:ro
+      # - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
+      - ./front_rear.csv:/app/front_rear.csv:ro # Required for front_rear protocol

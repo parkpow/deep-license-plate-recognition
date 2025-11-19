@@ -1,0 +1,1 @@
+"""Webhook protocols for middleware."""

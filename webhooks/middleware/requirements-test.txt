@@ -1,0 +1,3 @@
+# Test dependencies for Front-Rear Middleware
+pytest>=9.0.1
+pytest-watcher>=0.4.3
