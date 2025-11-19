@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import sys
 import tempfile
@@ -13,7 +14,13 @@ from flask import Flask, jsonify, request
 from interpolator import Interpolator
 from utils import draw_bounding_box_on_image
 
-LOG_LEVEL = os.environ.get("LOGGING", "INFO").upper()
+try:
+    LOG_LEVEL = int(os.environ.get("LOGGING", logging.INFO))
+except ValueError as e:
+    raise RuntimeError(
+        "The LOGGING config should be a number, "
+        "See https://guides.platerecognizer.com/docs/blur/configuration#logging"
+    ) from e
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -104,6 +111,35 @@ def blur_api(cv2_frame, blur_url):
         return response
 
 
+def ellipse_polygon(box, scale=1.0, num_points=64):
+    """
+    Generate ellipse polygon points from a face bounding box:
+        'box': A dict with keys 'xmin', 'ymin', 'xmax', 'ymax'
+
+    scale: enlarge/shrink ellipse relative to the box
+    num_points: number of polygon vertices
+    """
+
+    xmin, ymin = box["xmin"], box["ymin"]
+    xmax, ymax = box["xmax"], box["ymax"]
+
+    # Center of ellipse (middle of bounding box)
+    cx = (xmin + xmax) / 2
+    cy = (ymin + ymax) / 2
+
+    # Radii (half width/height of box)
+    rx = (xmax - xmin) / 2 * scale
+    ry = (ymax - ymin) / 2 * scale
+
+    pts = []
+    for i in range(num_points):
+        theta = 2 * math.pi * (i / num_points)
+        x = cx + rx * math.cos(theta)
+        y = cy + ry * math.sin(theta)
+        pts.append([x, y])
+    return pts
+
+
 def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
     """
     Call Blur API to request polygons to be blurred.
@@ -113,6 +149,10 @@ def get_blur_polygons(cv2_frame: np.ndarray, blur_url: str):
         np.array(plate["polygon"], dtype=np.float32)
         for plate in blur_response.json()["plates"]
     ]
+
+    for face in blur_response.json()["faces"]:
+        polygon = ellipse_polygon(face["box"])
+        polygons.append(np.array(polygon, dtype=np.float32))
 
     return polygons
 
