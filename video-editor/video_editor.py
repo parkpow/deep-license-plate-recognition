@@ -114,7 +114,7 @@ def blur_api(cv2_frame, blur_url):
 def ellipse_polygon(box, scale=1.0, num_points=64):
     """
     Generate ellipse polygon points from a face bounding box:
-        'box': {'xmin', 'ymin', 'xmax', 'ymax'}
+        'box': A dict with keys 'xmin', 'ymin', 'xmax', 'ymax'
 
     scale: enlarge/shrink ellipse relative to the box
     num_points: number of polygon vertices
