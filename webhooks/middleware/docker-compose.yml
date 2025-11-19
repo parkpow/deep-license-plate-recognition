@@ -25,3 +25,4 @@ services:
     volumes:
       - ./dot_config.csv:/app/dot_config.csv:ro
       - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
+      - ./hertz.csv:/app/hertz.csv:ro

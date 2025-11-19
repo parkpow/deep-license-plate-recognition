@@ -1,5 +1,23 @@
 import logging
+import os
 from typing import Any
+
+
+def replace_env_vars(obj: Any) -> Any:
+    """
+    Recursively replace environment variable placeholders in strings.
+    Placeholders should be in the format ${VAR_NAME}.
+    """
+    if isinstance(obj, str):
+        if obj.startswith("${") and obj.endswith("}"):
+            env_var = obj[2:-1]
+            return os.getenv(env_var, obj)
+        return obj
+    elif isinstance(obj, dict):
+        return {k: replace_env_vars(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_env_vars(item) for item in obj]
+    return obj
 
 
 def get_header(header_name: str, json_data: dict[str, Any]) -> str | None:

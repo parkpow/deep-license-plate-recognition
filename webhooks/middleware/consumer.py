@@ -27,7 +27,9 @@ def load_middleware():
         middleware = importlib.import_module(f"protocols.{middleware_name}")
         logging.info(f"Using middleware: {middleware_name}")
 
-        if hasattr(middleware, "initialize_parkpow_tags"):
+        if hasattr(middleware, "initialize_front_rear_middleware"):
+            middleware.initialize_front_rear_middleware()
+        elif hasattr(middleware, "initialize_parkpow_tags"):
             middleware.initialize_parkpow_tags()
 
         return middleware
@@ -70,6 +72,7 @@ def handle_webhook():
             "camera_name": request.headers.get("camera-name"),
             "serial_number": request.headers.get("serial-number"),
             "camera_id": request.headers.get("camera-id"),
+            "Authorization": request.headers.get("Authorization"),
         }
 
         webhook_header = {k: v for k, v in webhook_header.items() if v is not None}

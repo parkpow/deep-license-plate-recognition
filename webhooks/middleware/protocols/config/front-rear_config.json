@@ -1,0 +1,36 @@
+{
+  "camera_pairs": [
+    {
+      "front": "camera-front",
+      "rear": "camera-rear",
+      "description": "Entry Gate 1"
+    }
+  ],
+  "thresholds": {
+    "make_model_confidence": 0.2
+  },
+  "pairing": {
+    "time_window_seconds": 30,
+    "cleanup_interval_seconds": 60
+  },
+  "front_rear_csv_path": "front_rear.csv",
+  "parkpow": {
+    "alert_endpoint": "https://webhook.site/aea0a63f-3146-425b-a5bb-8264fb8f18a2",
+    "webhook_endpoint": "https://app.parkpow.com/api/v1/webhook-receiver/",
+    "token": "${PARKPOW_TOKEN}"
+  },
+  "alerts": {
+    "plate_mismatch": {
+      "enabled": false,
+      "name": "Front-Rear Plate Mismatch"
+    },
+    "no_rear_plate": {
+      "enabled": false,
+      "name": "Front-Rear No Rear Plate"
+    },
+    "make_model_mismatch": {
+      "enabled": false,
+      "name": "Front-Rear Make/Model Mismatch"
+    }
+  }
+}
