@@ -484,7 +484,7 @@ def _process_camera_pair(
 
     # Alert #3: Make/Model Mismatch Alert
     make_model_threshold = config.get("thresholds", {}).get(
-        "make_model_confidence", 0.7
+        "make_model_confidence", 0.2
     )
     reference_plate = (
         rear_plate if rear_in_db else (front_plate if front_in_db else None)
