@@ -3,11 +3,27 @@ Front-Rear Stream Middleware Protocol
 
 Receives webhooks from paired front/rear cameras, validates license plates against
 Front-Rear Vehicle Database, checks make/model confidence, and triggers alerts for:
-- Plates not in Front-Rear DB (Alert #1)
-- Missing rear plates (Alert #2)
-- Make/model mismatches with confidence thresholds (Alert #3)
+- Alert #1: Plates not in Front-Rear DB (plate_mismatch)
+- Alert #2: Missing rear plates when camera is online (no_rear_plate)
+- Alert #3: Make/model mismatches with confidence thresholds (make_model_mismatch)
+- Alert #4: Camera offline detection (camera_offline)
 
-Forwards rear camera data to ParkPow after validation.
+Event Buffering & Pairing:
+- Buffers events from each camera with configurable time window (default 30s)
+- Processes pairs when both cameras detect within the time window
+- Handles unpaired events in two scenarios:
+  * Expiry: Event exceeds time window without pairing (2x time window)
+  * Overwrite: New vehicle detected before previous pairing completes
+
+Resilience & Offline Camera Handling:
+- Validates single-camera events against database when pair camera is offline
+- Sends camera_offline alert (Alert #4) instead of no_rear_plate when rear camera offline
+- Forwards data from available camera (prefers rear, falls back to front)
+
+Data Forwarding:
+- Forwards rear camera data to ParkPow after validation (preferred)
+- Falls back to front camera data if rear camera is unavailable
+- Ensures no data loss even with single camera operation
 """
 
 import csv
@@ -79,7 +95,7 @@ def load_front_rear_csv() -> None:
         total_rows = 0
         skipped = 0
 
-        # First pass: identify duplicates and invalid plates
+        # First pass: Identify duplicates and invalid plates
         plate_occurrences: dict[str, list[dict[str, str]]] = {}
         with open(csv_path, newline="") as f:
             reader = csv.DictReader(f)
@@ -100,7 +116,7 @@ def load_front_rear_csv() -> None:
                     }
                 )
 
-        # Second pass: only load plates that appear exactly once
+        # Second pass: Only load plates that appear exactly once
         duplicates = 0
         for plate, occurrences in plate_occurrences.items():
             if len(occurrences) == 1:
@@ -183,8 +199,42 @@ def _cleanup_expired_events() -> None:
             for camera_id, event in event_buffer.items()
             if event.get("timestamp_unix", 0) < expiry_threshold
         ]
+
         for camera_id in expired_cameras:
+            event = event_buffer[camera_id]
+            age = time.time() - event.get("timestamp_unix", 0)
+            pair = _get_camera_pair(camera_id)
+            if pair:
+                missing_camera = (
+                    pair["rear"] if camera_id == pair["front"] else pair["front"]
+                )
+
+                logging.warning(
+                    f"Unpaired event expired from {camera_id} after {age:.1f}s - "
+                    f"{missing_camera} may be offline, processing single camera event"
+                )
+
+                front_event = event if camera_id == pair["front"] else None
+                rear_event = event if camera_id == pair["rear"] else None
+                _process_camera_pair(
+                    front_event, rear_event, pair, camera_offline=missing_camera
+                )
+
+                # Alert #4: Possible Offline Camera Alert
+                _send_alert(
+                    alert_type="camera_offline",
+                    plate=None,
+                    camera_id=missing_camera,
+                    message=f"Camera {missing_camera} may be offline - no events received within {time_window}s window",
+                    event_data=event,
+                )
+
             del event_buffer[camera_id]
+
+        if expired_cameras:
+            logging.warning(
+                f"Cleaned up {len(expired_cameras)} expired events from buffer"
+            )
 
     cleanup_interval = config.get("pairing", {}).get("cleanup_interval_seconds", 60)
     Timer(cleanup_interval, _cleanup_expired_events).start()
@@ -264,9 +314,7 @@ def _send_alert(
     detected_make_model: str | None = None,
     make_model_score: float = 0.0,
 ) -> None:
-    """Send alert to ParkPow API."""
     alert_config = config.get("alerts", {}).get(alert_type, {})
-
     if not alert_config.get("enabled", True):
         logging.info(f"Alert {alert_type} is disabled, skipping")
         return
@@ -344,14 +392,21 @@ def _process_camera_pair(
     front_event: dict[str, Any] | None,
     rear_event: dict[str, Any] | None,
     pair: dict[str, str],
+    camera_offline: str | None = None,
 ) -> None:
     """
     Process matched front/rear camera pair and trigger alerts if needed.
 
     Implements all three alert conditions:
     - Alert #1: Plate not in Front-Rear DB
-    - Alert #2: Missing rear plate
+    - Alert #2: Missing rear plate (only if camera not offline)
     - Alert #3: Make/model mismatch with confidence thresholds
+
+    Args:
+        front_event: Front camera event data or None
+        rear_event: Rear camera event data or None
+        pair: Camera pair configuration
+        camera_offline: Camera ID that is offline (if applicable), to skip redundant alerts
     """
 
     front_plate = None
@@ -373,8 +428,8 @@ def _process_camera_pair(
         _extract_best_make_model(all_results) if all_results else (None, 0.0)
     )
 
-    # Alert #2: No Rear Plate Alert
-    if not rear_plate:
+    # Alert #2: No Rear Plate Alert (only if rear camera not offline)
+    if not rear_plate and camera_offline != pair["rear"]:
         logging.warning(
             f"No rear plate detected for camera pair {pair['front']}/{pair['rear']}"
         )
@@ -455,12 +510,27 @@ def _process_camera_pair(
                 make_model_score=make_model_score,
             )
 
-    # Forward rear camera data to ParkPow (if available)
+    # Forward camera data to ParkPow (prefer rear, fallback to front)
     if rear_event:
         rear_json = rear_event.get("original_json_data")
         rear_files = rear_event.get("original_files")
         if rear_json:
+            logging.info(
+                f"Forwarding rear camera data for pair {pair['front']}/{pair['rear']}"
+            )
             _forward_to_parkpow(rear_json, rear_files)
+    elif front_event:
+        front_json = front_event.get("original_json_data")
+        front_files = front_event.get("original_files")
+        if front_json:
+            logging.info(
+                f"Forwarding front camera data for pair {pair['front']}/{pair['rear']} (rear unavailable)"
+            )
+            _forward_to_parkpow(front_json, front_files)
+    else:
+        logging.warning(
+            f"No event data to forward for pair {pair['front']}/{pair['rear']}"
+        )
 
 
 def process_request(
@@ -533,6 +603,34 @@ def process_request(
     }
 
     with buffer_lock:
+        if camera_id in event_buffer:
+            old_event = event_buffer[camera_id]
+            old_timestamp = old_event.get("timestamp_unix", 0)
+            age = time.time() - old_timestamp
+            missing_camera = (
+                pair["rear"] if camera_id == pair["front"] else pair["front"]
+            )
+
+            logging.warning(
+                f"Overwriting unpaired event from {camera_id} (age: {age:.1f}s) - "
+                f"new vehicle detected before pair completed, {missing_camera} may be offline"
+            )
+
+            old_front_event = old_event if camera_id == pair["front"] else None
+            old_rear_event = old_event if camera_id == pair["rear"] else None
+            _process_camera_pair(
+                old_front_event, old_rear_event, pair, camera_offline=missing_camera
+            )
+
+            # Alert #4: Possible Offline Camera Alert
+            _send_alert(
+                alert_type="camera_offline",
+                plate=None,
+                camera_id=missing_camera,
+                message=f"Camera {missing_camera} may be offline - unpaired event overwritten after {age:.1f}s",
+                event_data=old_event,
+            )
+
         event_buffer[camera_id] = event_data
         front_camera_id = pair["front"]
         rear_camera_id = pair["rear"]
@@ -549,6 +647,7 @@ def process_request(
         )
 
         if front_valid and rear_valid:
+            logging.info(f"Processing camera pair {front_camera_id}/{rear_camera_id}")
             if front_camera_id in event_buffer:
                 del event_buffer[front_camera_id]
             if rear_camera_id in event_buffer:
@@ -558,4 +657,17 @@ def process_request(
 
             return "Processed camera pair", 200
         else:
+            status_msg = []
+            if not front_valid:
+                status_msg.append(
+                    f"front camera ({front_camera_id}) {'missing' if not front_event else 'expired'}"
+                )
+            if not rear_valid:
+                status_msg.append(
+                    f"rear camera ({rear_camera_id}) {'missing' if not rear_event else 'expired'}"
+                )
+
+            logging.info(
+                f"Event buffered for {camera_id}, waiting for: {', '.join(status_msg)}"
+            )
             return "Event buffered, waiting for pair", 200

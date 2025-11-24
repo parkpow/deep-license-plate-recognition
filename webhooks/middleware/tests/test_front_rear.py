@@ -31,6 +31,7 @@ TEST_CONFIG = {
         "plate_mismatch": {"enabled": True, "name": "Test Plate Mismatch"},
         "no_rear_plate": {"enabled": True, "name": "Test No Rear Plate"},
         "make_model_mismatch": {"enabled": True, "name": "Test Make/Model Mismatch"},
+        "camera_offline": {"enabled": True, "name": "Test Camera Offline"},
     },
 }
 
@@ -78,6 +79,7 @@ def sample_config(tmp_path, sample_front_rear_csv):
                 "enabled": True,
                 "name": "Test Make/Model Mismatch",
             },
+            "camera_offline": {"enabled": True, "name": "Test Camera Offline"},
         },
     }
     config_dir = tmp_path / "protocols" / "config"
@@ -577,6 +579,39 @@ class TestWebhookProcessing:
         assert status == 200
         mock_process_pair.assert_called_once()
 
+    @patch("protocols.front_rear._process_camera_pair")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_request_overwrite_unpaired_event(
+        self, mock_send_alert, mock_process_pair, reset_front_rear_state, mock_env_vars
+    ):
+        """Test that overwriting an unpaired event processes it before replacement."""
+        front_rear.config = TEST_CONFIG
+        front_rear.camera_pairs = [
+            {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        ]
+        old_time = time.time() - 20
+        front_rear.event_buffer["camera-front"] = {
+            "camera_id": "camera-front",
+            "results": [{"plate": "OLD123"}],
+            "timestamp": "2024-11-24T10:00:00Z",
+            "timestamp_unix": old_time,
+        }
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "NEW456"}],
+                "timestamp": "2024-11-24T10:00:20Z",
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+        mock_process_pair.assert_called_once()
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "camera_offline" in alert_types
+
 
 class TestCameraPairProcessing:
     @patch("protocols.front_rear._send_alert")
@@ -660,7 +695,7 @@ class TestCameraPairProcessing:
         rear_event = {
             "results": [{"plate": "ABC123"}],
             "timestamp": "2025-11-24T10:00:05Z",
-            "original_json_data": {"test": "data"},
+            "original_json_data": {"test": "rear_data"},
             "original_files": None,
         }
         pair = {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
@@ -668,23 +703,135 @@ class TestCameraPairProcessing:
 
         mock_forward.assert_called_once()
         call_args = mock_forward.call_args[0]
-        assert call_args[0] == {"test": "data"}
+        assert call_args[0] == {"test": "rear_data"}
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_pair_forwards_front_data_when_rear_unavailable(
+        self, mock_send_alert, mock_forward, reset_front_rear_state
+    ):
+        """Test that front camera data is forwarded when rear camera is unavailable."""
+        front_rear.front_rear_vehicles = {
+            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
+        }
+        front_rear.config = TEST_CONFIG
+        front_event = {
+            "results": [{"plate": "ABC123"}],
+            "timestamp": "2025-11-24T10:00:00Z",
+            "original_json_data": {"test": "front_data"},
+            "original_files": None,
+        }
+        rear_event = None
+        pair = {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        front_rear._process_camera_pair(front_event, rear_event, pair)
+
+        mock_forward.assert_called_once()
+        call_args = mock_forward.call_args[0]
+        assert call_args[0] == {"test": "front_data"}
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_pair_single_front_camera_validates_db(
+        self, mock_send_alert, mock_forward, reset_front_rear_state
+    ):
+        front_rear.front_rear_vehicles = {}
+        front_rear.config = TEST_CONFIG
+        front_event = {
+            "results": [{"plate": "UNKNOWN123"}],
+            "timestamp": "2025-11-24T10:00:00Z",
+            "original_json_data": {"test": "front_data"},
+            "original_files": None,
+        }
+        rear_event = None
+        pair = {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        front_rear._process_camera_pair(
+            front_event, rear_event, pair, camera_offline="camera-rear"
+        )
+
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "no_rear_plate" not in alert_types
+        assert "plate_mismatch" in alert_types
+        mock_forward.assert_called_once()
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_pair_single_rear_camera_validates_db(
+        self, mock_send_alert, mock_forward, reset_front_rear_state
+    ):
+        """Test that single rear camera event validates against database."""
+        front_rear.front_rear_vehicles = {}
+        front_rear.config = TEST_CONFIG
+        front_event = None
+        rear_event = {
+            "results": [{"plate": "UNKNOWN123"}],
+            "timestamp": "2025-11-24T10:00:05Z",
+            "original_json_data": {"test": "rear_data"},
+            "original_files": None,
+        }
+        pair = {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        front_rear._process_camera_pair(front_event, rear_event, pair)
+
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "plate_mismatch" in alert_types
+
+        mock_forward.assert_called_once()
+        call_args = mock_forward.call_args[0]
+        assert call_args[0] == {"test": "rear_data"}
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_pair_rear_camera_online_no_plate(
+        self, mock_send_alert, mock_forward, reset_front_rear_state
+    ):
+        """Test that no_rear_plate alert is sent when rear camera is online but detects no plate."""
+        front_rear.front_rear_vehicles = {
+            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
+        }
+        front_rear.config = TEST_CONFIG
+        front_event = {
+            "results": [{"plate": "ABC123"}],
+            "timestamp": "2025-11-24T10:00:00Z",
+        }
+        rear_event = {
+            "results": [{"plate": None}],
+            "timestamp": "2025-11-24T10:00:05Z",
+            "original_json_data": {"test": "rear_data"},
+            "original_files": None,
+        }
+        pair = {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        front_rear._process_camera_pair(front_event, rear_event, pair)
+
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "no_rear_plate" in alert_types
 
 
 class TestCleanupExpiredEvents:
-    def test_cleanup_removes_expired_events(self, reset_front_rear_state):
+    @patch("protocols.front_rear._process_camera_pair")
+    @patch("protocols.front_rear._send_alert")
+    def test_cleanup_processes_expired_events(
+        self, mock_send_alert, mock_process_pair, reset_front_rear_state
+    ):
         front_rear.config = TEST_CONFIG
+        front_rear.camera_pairs = [
+            {"front": "camera-old", "rear": "camera-old-rear", "description": "Gate 1"},
+            {"front": "camera-new", "rear": "camera-new-rear", "description": "Gate 2"},
+        ]
         front_rear.event_buffer["camera-old"] = {
             "camera_id": "camera-old",
-            "timestamp_unix": time.time() - 100,  # 100 seconds ago
+            "timestamp_unix": time.time() - 100,  # 100 seconds ago (expired)
+            "results": [{"plate": "ABC123"}],
         }
         front_rear.event_buffer["camera-new"] = {
             "camera_id": "camera-new",
-            "timestamp_unix": time.time() - 10,  # 10 seconds ago
+            "timestamp_unix": time.time() - 10,  # 10 seconds ago (not expired)
+            "results": [{"plate": "XYZ789"}],
         }
         with patch("protocols.front_rear.Timer"):
             front_rear._cleanup_expired_events()
 
+        mock_process_pair.assert_called_once()
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "camera_offline" in alert_types
         assert "camera-old" not in front_rear.event_buffer
         assert "camera-new" in front_rear.event_buffer
 

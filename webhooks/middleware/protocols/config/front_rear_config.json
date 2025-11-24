@@ -21,16 +21,20 @@
   },
   "alerts": {
     "plate_mismatch": {
-      "enabled": false,
+      "enabled": true,
       "name": "Front-Rear Plate Mismatch"
     },
     "no_rear_plate": {
-      "enabled": false,
+      "enabled": true,
       "name": "Front-Rear No Rear Plate"
     },
     "make_model_mismatch": {
-      "enabled": false,
+      "enabled": true,
       "name": "Front-Rear Make/Model Mismatch"
+    },
+    "camera_offline": {
+      "enabled": true,
+      "name": "Front-Rear Camera Possibly Offline"
     }
   }
 }
