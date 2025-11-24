@@ -144,7 +144,7 @@ def load_front_rear_csv() -> None:
         raise
 
 
-def initialize_front_rear_middleware() -> None:
+def initialize() -> None:
     """
     Initialize Front-Rear middleware at startup.
 

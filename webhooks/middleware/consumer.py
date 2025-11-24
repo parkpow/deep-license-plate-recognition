@@ -27,10 +27,8 @@ def load_middleware():
         middleware = importlib.import_module(f"protocols.{middleware_name}")
         logging.info(f"Using middleware: {middleware_name}")
 
-        if hasattr(middleware, "initialize_front_rear_middleware"):
-            middleware.initialize_front_rear_middleware()
-        elif hasattr(middleware, "initialize_parkpow_tags"):
-            middleware.initialize_parkpow_tags()
+        if hasattr(middleware, "initialize"):
+            middleware.initialize()
 
         return middleware
     except ModuleNotFoundError:

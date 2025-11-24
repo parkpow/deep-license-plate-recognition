@@ -850,11 +850,11 @@ class TestCleanupExpiredEvents:
 
 class TestInitialization:
     @patch("protocols.front_rear.threading.Thread")
-    def test_initialize_front_rear_middleware(
+    def test_initialize(
         self, mock_thread, reset_front_rear_state, sample_config, monkeypatch
     ):
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
-        front_rear.initialize_front_rear_middleware()
+        front_rear.initialize()
 
         assert len(front_rear.front_rear_vehicles) > 0
         assert len(front_rear.camera_pairs) > 0
