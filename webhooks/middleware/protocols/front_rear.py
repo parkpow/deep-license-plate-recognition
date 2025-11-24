@@ -30,10 +30,11 @@ import csv
 import json
 import logging
 import os
+import threading
 import time
 from datetime import UTC, datetime
 from io import BytesIO
-from threading import Lock, Timer
+from threading import Lock
 from typing import Any
 
 import requests
@@ -182,8 +183,19 @@ def initialize_front_rear_middleware() -> None:
         f"Initialized Front-Rear middleware with {len(camera_pairs)} camera pairs"
     )
 
+    cleanup_thread = threading.Thread(target=_cleanup_task_loop, daemon=True)
+    cleanup_thread.start()
+
+
+def _cleanup_task_loop() -> None:
+    """Daemon thread that periodically runs cleanup of expired events."""
     cleanup_interval = config.get("pairing", {}).get("cleanup_interval_seconds", 60)
-    Timer(cleanup_interval, _cleanup_expired_events).start()
+    while True:
+        try:
+            _cleanup_expired_events()
+        except Exception as e:
+            logging.error(f"Error in cleanup task: {e}")
+        time.sleep(cleanup_interval)
 
 
 def _cleanup_expired_events() -> None:
@@ -235,9 +247,6 @@ def _cleanup_expired_events() -> None:
             logging.warning(
                 f"Cleaned up {len(expired_cameras)} expired events from buffer"
             )
-
-    cleanup_interval = config.get("pairing", {}).get("cleanup_interval_seconds", 60)
-    Timer(cleanup_interval, _cleanup_expired_events).start()
 
 
 def _get_camera_pair(camera_id: str) -> dict[str, str] | None:

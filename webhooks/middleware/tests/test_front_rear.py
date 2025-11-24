@@ -826,8 +826,7 @@ class TestCleanupExpiredEvents:
             "timestamp_unix": time.time() - 10,  # 10 seconds ago (not expired)
             "results": [{"plate": "XYZ789"}],
         }
-        with patch("protocols.front_rear.Timer"):
-            front_rear._cleanup_expired_events()
+        front_rear._cleanup_expired_events()
 
         mock_process_pair.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
@@ -835,27 +834,20 @@ class TestCleanupExpiredEvents:
         assert "camera-old" not in front_rear.event_buffer
         assert "camera-new" in front_rear.event_buffer
 
-    def test_cleanup_schedules_next_run(self, reset_front_rear_state):
-        front_rear.config = TEST_CONFIG
-        with patch("protocols.front_rear.Timer") as mock_timer:
-            front_rear._cleanup_expired_events()
-
-            mock_timer.assert_called_once()
-            assert mock_timer.call_args[0][0] == 60
-
 
 class TestInitialization:
-    @patch("protocols.front_rear.Timer")
+    @patch("protocols.front_rear.threading.Thread")
     def test_initialize_front_rear_middleware(
-        self, mock_timer, reset_front_rear_state, sample_config, monkeypatch
+        self, mock_thread, reset_front_rear_state, sample_config, monkeypatch
     ):
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
         front_rear.initialize_front_rear_middleware()
 
         assert len(front_rear.front_rear_vehicles) > 0
         assert len(front_rear.camera_pairs) > 0
-        mock_timer.assert_called_once()
-        mock_timer.return_value.start.assert_called_once()
+        mock_thread.assert_called_once()
+        mock_thread.return_value.start.assert_called_once()
+        assert mock_thread.call_args[1]["daemon"] is True
 
 
 if __name__ == "__main__":
