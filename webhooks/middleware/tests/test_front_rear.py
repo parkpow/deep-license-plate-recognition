@@ -477,6 +477,19 @@ class TestWebhookProcessing:
         assert status == 403
         assert "Forbidden" in response
 
+    def test_process_request_authentication_not_configured(
+        self, reset_front_rear_state, monkeypatch
+    ):
+        monkeypatch.delenv("STREAM_API_TOKEN", raising=False)
+        webhook_data = {
+            "webhook_header": {"Authorization": "any-token"},
+            "data": {"camera_id": "camera-front"},
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 401
+        assert "not configured" in response
+
     def test_process_request_missing_camera_id(
         self, reset_front_rear_state, mock_env_vars
     ):

@@ -554,20 +554,21 @@ def process_request(
     global event_buffer
 
     expected_token = os.getenv("STREAM_API_TOKEN")
-    if expected_token:
-        auth_header = get_header("Authorization", json_data)
+    if not expected_token:
+        logging.error(
+            "STREAM_API_TOKEN not configured - rejecting request for security"
+        )
+        return "Unauthorized: Authentication not configured", 401
 
-        if not auth_header:
-            logging.error("Missing Authorization header in request from Stream")
-            return "Unauthorized: Missing Authorization header", 401
+    auth_header = get_header("Authorization", json_data)
+    if not auth_header:
+        logging.error("Missing Authorization header in request from Stream")
+        return "Unauthorized: Missing Authorization header", 401
 
-        token = auth_header.split()[-1] if " " in auth_header else auth_header
-        if token != expected_token:
-            logging.error("Invalid STREAM_API_TOKEN in Authorization header")
-            return "Forbidden: Invalid token", 403
-
-    else:
-        logging.warning("STREAM_API_TOKEN not configured - skipping authentication")
+    token = auth_header.split()[-1] if " " in auth_header else auth_header
+    if token != expected_token:
+        logging.error("Invalid STREAM_API_TOKEN in Authorization header")
+        return "Forbidden: Invalid token", 403
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
