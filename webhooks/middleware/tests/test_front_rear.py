@@ -490,6 +490,37 @@ class TestWebhookProcessing:
         assert status == 401
         assert "not configured" in response
 
+    def test_process_request_authentication_malformed_header(
+        self, reset_front_rear_state, mock_env_vars
+    ):
+        webhook_data = {
+            "webhook_header": {"Authorization": "Token "},
+            "data": {"camera_id": "camera-front"},
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 401
+        assert "Malformed" in response
+
+    def test_process_request_authentication_token_with_prefix(
+        self, reset_front_rear_state, mock_env_vars
+    ):
+        front_rear.config = TEST_CONFIG
+        front_rear.camera_pairs = [
+            {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
+        ]
+        webhook_data = {
+            "webhook_header": {"Authorization": "Token test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+
     def test_process_request_missing_camera_id(
         self, reset_front_rear_state, mock_env_vars
     ):

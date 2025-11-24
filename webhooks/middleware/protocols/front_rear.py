@@ -542,17 +542,13 @@ def _process_camera_pair(
         )
 
 
-def process_request(
-    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
-) -> tuple[str, int]:
+def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """
-    Main webhook handler for Front-Rear middleware.
+    Authenticate incoming webhook request.
 
-    Buffers events by camera and triggers pair processing when both cameras
-    in a pair have captured data within the time window.
+    Returns:
+        None if authentication succeeds, or (error_message, status_code) tuple if it fails.
     """
-    global event_buffer
-
     expected_token = os.getenv("STREAM_API_TOKEN")
     if not expected_token:
         logging.error(
@@ -565,10 +561,27 @@ def process_request(
         logging.error("Missing Authorization header in request from Stream")
         return "Unauthorized: Missing Authorization header", 401
 
-    token = auth_header.split()[-1] if " " in auth_header else auth_header
+    token = auth_header.split()[-1]
+
+    if not token or token.lower() in ("token", "bearer"):
+        logging.error("Invalid or missing token in Authorization header")
+        return "Unauthorized: Malformed Authorization header", 401
+
     if token != expected_token:
         logging.error("Invalid STREAM_API_TOKEN in Authorization header")
         return "Forbidden: Invalid token", 403
+
+    return None
+
+
+def process_request(
+    json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
+) -> tuple[str, int]:
+    global event_buffer
+
+    auth_error = _authenticate_request(json_data)
+    if auth_error:
+        return auth_error
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
