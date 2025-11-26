@@ -156,7 +156,7 @@ class TestCSVLoading:
         self, reset_front_rear_state, sample_config, monkeypatch
     ):
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
-        front_rear.load_front_rear_csv()
+        front_rear._load_front_rear_csv()
 
         assert len(front_rear.front_rear_vehicles) == 3
         assert "ABC123" in front_rear.front_rear_vehicles
@@ -181,7 +181,7 @@ class TestCSVLoading:
         monkeypatch.chdir(tmp_path)
 
         with pytest.raises(ValueError, match="Front-Rear database is empty"):
-            front_rear.load_front_rear_csv()
+            front_rear._load_front_rear_csv()
 
     def test_load_front_rear_csv_file_not_found(
         self, reset_front_rear_state, tmp_path, monkeypatch
@@ -199,7 +199,7 @@ class TestCSVLoading:
         monkeypatch.chdir(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            front_rear.load_front_rear_csv()
+            front_rear._load_front_rear_csv()
 
 
 class TestCameraPairLookup:

@@ -84,7 +84,7 @@ def _load_config() -> dict[str, Any]:
         return {}
 
 
-def load_front_rear_csv() -> None:
+def _load_front_rear_csv() -> None:
     """Load Front-Rear Vehicle Database CSV into memory for fast lookups."""
     global front_rear_vehicles, config
 
@@ -155,7 +155,7 @@ def initialize() -> None:
     """
     global camera_pairs, config
 
-    load_front_rear_csv()
+    _load_front_rear_csv()
     config = _load_config()
     camera_pairs = config.get("camera_pairs", [])
     parkpow_config = config.get("parkpow", {})
