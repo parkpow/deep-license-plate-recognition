@@ -32,6 +32,7 @@ import logging
 import os
 import threading
 import time
+from collections import defaultdict
 from datetime import UTC, datetime
 from io import BytesIO
 from threading import Lock
@@ -49,7 +50,7 @@ front_rear_vehicles: dict[str, dict[str, str]] = {}  # plate -> {make, model}
 camera_pairs: list[dict[str, str]] = []  # List of {front, rear, description}
 config: dict[str, Any] = {}
 event_buffer: dict[str, dict[str, Any]] = {}  # camera_id -> latest event
-buffer_lock = Lock()
+pair_locks: dict[str, Lock] = defaultdict(Lock)
 
 _config_cache: dict[str, Any] | None = None
 _config_last_load: float = 0.0
@@ -203,49 +204,55 @@ def _cleanup_expired_events() -> None:
 
     time_window = config.get("pairing", {}).get("time_window_seconds", 30)
     expiry_threshold = time.time() - (time_window * 2)
+    expired_items: list[tuple[str, dict[str, Any]]] = []
 
-    with buffer_lock:
-        expired_cameras = [
-            camera_id
-            for camera_id, event in event_buffer.items()
-            if event.get("timestamp_unix", 0) < expiry_threshold
-        ]
+    for camera_id, event in list(event_buffer.items()):
+        if event.get("timestamp_unix", 0) < expiry_threshold:
+            expired_items.append((camera_id, event))
 
-        for camera_id in expired_cameras:
-            event = event_buffer[camera_id]
-            age = time.time() - event.get("timestamp_unix", 0)
-            pair = _get_camera_pair(camera_id)
-            if pair:
-                missing_camera = (
-                    pair["rear"] if camera_id == pair["front"] else pair["front"]
-                )
+    for camera_id, event in expired_items:
+        pair = _get_camera_pair(camera_id)
+        if not pair:
+            continue
 
-                logging.warning(
-                    f"Unpaired event expired from {camera_id} after {age:.1f}s - "
-                    f"{missing_camera} may be offline, processing single camera event"
-                )
+        pair_id = f"{pair['front']}:{pair['rear']}"
+        with pair_locks[pair_id]:
+            current_event = event_buffer.get(camera_id)
+            if (
+                not current_event
+                or current_event.get("timestamp_unix", 0) >= expiry_threshold
+            ):
+                continue
 
-                front_event = event if camera_id == pair["front"] else None
-                rear_event = event if camera_id == pair["rear"] else None
-                _process_camera_pair(
-                    front_event, rear_event, pair, camera_offline=missing_camera
-                )
-
-                # Alert #4: Possible Offline Camera Alert
-                _send_alert(
-                    alert_type="camera_offline",
-                    plate=None,
-                    camera_id=missing_camera,
-                    message=f"Camera {missing_camera} may be offline - no events received within {time_window}s window",
-                    event_data=event,
-                )
+            age = time.time() - current_event.get("timestamp_unix", 0)
+            missing_camera = (
+                pair["rear"] if camera_id == pair["front"] else pair["front"]
+            )
 
             del event_buffer[camera_id]
+            front_event = current_event if camera_id == pair["front"] else None
+            rear_event = current_event if camera_id == pair["rear"] else None
 
-        if expired_cameras:
-            logging.warning(
-                f"Cleaned up {len(expired_cameras)} expired events from buffer"
-            )
+        logging.warning(
+            f"Unpaired event expired from {camera_id} after {age:.1f}s - "
+            f"{missing_camera} may be offline, processing single camera event"
+        )
+
+        _process_camera_pair(
+            front_event, rear_event, pair, camera_offline=missing_camera
+        )
+
+        # Alert #4: Possible Offline Camera Alert
+        _send_alert(
+            alert_type="camera_offline",
+            plate=None,
+            camera_id=missing_camera,
+            message=f"Camera {missing_camera} may be offline - no events received within {time_window}s window",
+            event_data=event,
+        )
+
+    if expired_items:
+        logging.warning(f"Cleaned up {len(expired_items)} expired events from buffer")
 
 
 def _get_camera_pair(camera_id: str) -> dict[str, str] | None:
@@ -330,9 +337,7 @@ def _send_alert(
     parkpow_config = config.get("parkpow", {})
     alert_endpoint = parkpow_config["alert_endpoint"]
     token = parkpow_config["token"]
-
     alert_name = alert_config.get("name", alert_type)
-
     payload = {
         "alert_type": alert_type,
         "alert_name": alert_name,
@@ -624,7 +629,14 @@ def process_request(
         "original_files": all_files,
     }
 
-    with buffer_lock:
+    pair_id = f"{pair['front']}:{pair['rear']}"
+
+    old_front_event = None
+    old_rear_event = None
+    should_send_overwrite_alert = False
+    overwrite_data = None
+
+    with pair_locks[pair_id]:
         if camera_id in event_buffer:
             old_event = event_buffer[camera_id]
             old_timestamp = old_event.get("timestamp_unix", 0)
@@ -640,19 +652,35 @@ def process_request(
 
             old_front_event = old_event if camera_id == pair["front"] else None
             old_rear_event = old_event if camera_id == pair["rear"] else None
-            _process_camera_pair(
-                old_front_event, old_rear_event, pair, camera_offline=missing_camera
-            )
+            should_send_overwrite_alert = True
+            overwrite_data = {
+                "missing_camera": missing_camera,
+                "age": age,
+                "old_event": old_event,
+            }
 
-            # Alert #4: Possible Offline Camera Alert
-            _send_alert(
-                alert_type="camera_offline",
-                plate=None,
-                camera_id=missing_camera,
-                message=f"Camera {missing_camera} may be offline - unpaired event overwritten after {age:.1f}s",
-                event_data=old_event,
-            )
+    if should_send_overwrite_alert and overwrite_data:
+        _process_camera_pair(
+            old_front_event,
+            old_rear_event,
+            pair,
+            camera_offline=overwrite_data["missing_camera"],
+        )
 
+        # Alert #4: Possible Offline Camera Alert
+        _send_alert(
+            alert_type="camera_offline",
+            plate=None,
+            camera_id=overwrite_data["missing_camera"],
+            message=f"Camera {overwrite_data['missing_camera']} may be offline - unpaired event overwritten after {overwrite_data['age']:.1f}s",
+            event_data=overwrite_data["old_event"],
+        )
+
+    should_process_pair = False
+    front_event_to_process = None
+    rear_event_to_process = None
+
+    with pair_locks[pair_id]:
         event_buffer[camera_id] = event_data
         front_camera_id = pair["front"]
         rear_camera_id = pair["rear"]
@@ -670,26 +698,31 @@ def process_request(
 
         if front_valid and rear_valid:
             logging.info(f"Processing camera pair {front_camera_id}/{rear_camera_id}")
+
             if front_camera_id in event_buffer:
                 del event_buffer[front_camera_id]
             if rear_camera_id in event_buffer:
                 del event_buffer[rear_camera_id]
 
-            _process_camera_pair(front_event, rear_event, pair)
+            should_process_pair = True
+            front_event_to_process = front_event
+            rear_event_to_process = rear_event
 
-            return "Processed camera pair", 200
-        else:
-            status_msg = []
-            if not front_valid:
-                status_msg.append(
-                    f"front camera ({front_camera_id}) {'missing' if not front_event else 'expired'}"
-                )
-            if not rear_valid:
-                status_msg.append(
-                    f"rear camera ({rear_camera_id}) {'missing' if not rear_event else 'expired'}"
-                )
-
-            logging.info(
-                f"Event buffered for {camera_id}, waiting for: {', '.join(status_msg)}"
+    if should_process_pair:
+        _process_camera_pair(front_event_to_process, rear_event_to_process, pair)
+        return "Processed camera pair", 200
+    else:
+        status_msg = []
+        if not front_valid:
+            status_msg.append(
+                f"front camera ({front_camera_id}) {'missing' if not front_event else 'expired'}"
             )
-            return "Event buffered, waiting for pair", 200
+        if not rear_valid:
+            status_msg.append(
+                f"rear camera ({rear_camera_id}) {'missing' if not rear_event else 'expired'}"
+            )
+
+        logging.info(
+            f"Event buffered for {camera_id}, waiting for: {', '.join(status_msg)}"
+        )
+        return "Event buffered, waiting for pair", 200
