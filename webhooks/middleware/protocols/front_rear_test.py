@@ -208,17 +208,10 @@ class TestCameraPairLookup:
         {"front": "cam3", "rear": "cam4", "description": "Gate 2"},
     ]
 
-    def test_get_camera_pair_front_camera(self, reset_front_rear_state):
+    @pytest.mark.parametrize("camera_id", ["cam1", "cam2"])
+    def test_get_camera_pair(self, reset_front_rear_state, camera_id):
         front_rear.camera_pairs = self.pairs
-        pair = front_rear._get_camera_pair("cam1")
-
-        assert pair is not None
-        assert pair["front"] == "cam1"
-        assert pair["rear"] == "cam2"
-
-    def test_get_camera_pair_rear_camera(self, reset_front_rear_state):
-        front_rear.camera_pairs = self.pairs
-        pair = front_rear._get_camera_pair("cam2")
+        pair = front_rear._get_camera_pair(camera_id)
 
         assert pair is not None
         assert pair["front"] == "cam1"
@@ -239,32 +232,26 @@ class TestCameraPairLookup:
 
 
 class TestPlateExtraction:
-    def test_extract_plate_valid_string(self, reset_front_rear_state):
-        result = {"plate": "abc123"}
+    @pytest.mark.parametrize(
+        "input_plate,expected", [("abc123", "ABC123"), ("  xyz789  ", "XYZ789")]
+    )
+    def test_extract_plate_valid_cases(
+        self, reset_front_rear_state, input_plate, expected
+    ):
+        result = {"plate": input_plate}
         plate = front_rear._extract_plate(result)
 
-        assert plate == "ABC123"
+        assert plate == expected
 
-    def test_extract_plate_with_whitespace(self, reset_front_rear_state):
-        result = {"plate": "  xyz789  "}
-        plate = front_rear._extract_plate(result)
-
-        assert plate == "XYZ789"
-
-    def test_extract_plate_missing_field(self, reset_front_rear_state):
-        result = {}
-        plate = front_rear._extract_plate(result)
-
-        assert plate is None
-
-    def test_extract_plate_none_value(self, reset_front_rear_state):
-        result = {"plate": None}
-        plate = front_rear._extract_plate(result)
-
-        assert plate is None
-
-    def test_extract_plate_invalid_type(self, reset_front_rear_state):
-        result = {"plate": 12345}
+    @pytest.mark.parametrize(
+        "result",
+        [
+            {},  # missing field
+            {"plate": None},  # none value
+            {"plate": 12345},  # invalid type
+        ],
+    )
+    def test_extract_plate_invalid_cases(self, reset_front_rear_state, result):
         plate = front_rear._extract_plate(result)
 
         assert plate is None
@@ -341,11 +328,12 @@ class TestPlateDatabase:
         assert vehicle_info["make"] == "TOYOTA"
         assert vehicle_info["model"] == "CAMRY"
 
-    def test_check_plate_in_db_not_found(self, reset_front_rear_state):
+    @pytest.mark.parametrize("search_plate", ["XYZ999", None])
+    def test_check_plate_in_db_not_found(self, reset_front_rear_state, search_plate):
         front_rear.front_rear_vehicles = {
             "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
         }
-        found, vehicle_info = front_rear._check_plate_in_front_rear_db("XYZ999")
+        found, vehicle_info = front_rear._check_plate_in_front_rear_db(search_plate)
 
         assert found is False
         assert vehicle_info is None
@@ -358,15 +346,6 @@ class TestPlateDatabase:
 
         assert found is True
         assert vehicle_info is not None
-
-    def test_check_plate_in_db_none_plate(self, reset_front_rear_state):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
-        found, vehicle_info = front_rear._check_plate_in_front_rear_db(None)
-
-        assert found is False
-        assert vehicle_info is None
 
 
 class TestAlertSending:
