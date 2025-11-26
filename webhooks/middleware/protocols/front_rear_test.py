@@ -70,7 +70,7 @@ def sample_config(tmp_path, sample_front_rear_csv):
         "parkpow": {
             "alert_endpoint": "https://test.example.com/alerts",
             "webhook_endpoint": "https://test.example.com/webhook",
-            "token": "${PARKPOW_TOKEN}",
+            "token": "test-parkpow-token",
         },
         "alerts": {
             "plate_mismatch": {"enabled": True, "name": "Test Plate Mismatch"},
@@ -119,14 +119,6 @@ class TestConfigLoading:
         assert len(config["camera_pairs"]) == 1
         assert config["camera_pairs"][0]["front"] == "camera-front"
         assert config["thresholds"]["make_model_confidence"] == 0.2
-
-    def test_load_config_with_env_substitution(
-        self, reset_front_rear_state, sample_config, mock_env_vars, monkeypatch
-    ):
-        monkeypatch.chdir(Path(sample_config).parent.parent.parent)
-        config = front_rear._load_config()
-
-        assert config["parkpow"]["token"] == "test-parkpow-token"
 
     def test_load_config_caching(
         self, reset_front_rear_state, sample_config, monkeypatch

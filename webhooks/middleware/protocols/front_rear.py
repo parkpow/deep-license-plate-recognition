@@ -39,7 +39,7 @@ from typing import Any
 
 import requests
 
-from protocols.shared.utils import get_header, replace_env_vars
+from protocols.shared.utils import get_header
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -69,7 +69,6 @@ def _load_config() -> dict[str, Any]:
         with open(config_path) as f:
             config_data: dict[str, Any] = json.load(f)
 
-        config_data = replace_env_vars(config_data)
         _config_cache = config_data
         _config_last_load = file_mtime
 

@@ -15,9 +15,9 @@
   },
   "front_rear_csv_path": "front_rear.csv",
   "parkpow": {
-    "alert_endpoint": "${PARKPOW_ALERT_ENDPOINT}",
-    "webhook_endpoint": "${PARKPOW_WEBHOOK_ENDPOINT}",
-    "token": "${PARKPOW_TOKEN}"
+    "alert_endpoint": "<alert_endpoint>",
+    "webhook_endpoint": "<webhook_endpoint>",
+    "token": "<token>"
   },
   "alerts": {
     "plate_mismatch": {
