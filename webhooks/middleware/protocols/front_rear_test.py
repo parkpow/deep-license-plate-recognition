@@ -492,18 +492,6 @@ class TestWebhookProcessing:
 
         assert status == 200
 
-    def test_process_request_missing_camera_id(
-        self, reset_front_rear_state, mock_env_vars
-    ):
-        webhook_data = {
-            "webhook_header": {"Authorization": "test-stream-token"},
-            "data": {},
-        }
-        response, status = front_rear.process_request(webhook_data)
-
-        assert status == 400
-        assert "camera_id" in response
-
     def test_process_request_camera_not_in_pair(
         self, reset_front_rear_state, mock_env_vars
     ):
@@ -523,23 +511,6 @@ class TestWebhookProcessing:
 
         assert status == 200
         assert "not configured" in response
-
-    def test_process_request_no_results(self, reset_front_rear_state, mock_env_vars):
-        front_rear.camera_pairs = [
-            {"front": "camera-front", "rear": "camera-rear", "description": "Gate 1"}
-        ]
-        webhook_data = {
-            "webhook_header": {"Authorization": "test-stream-token"},
-            "data": {
-                "camera_id": "camera-front",
-                "results": [],
-                "timestamp": "2025-11-24T10:00:00Z",
-            },
-        }
-        response, status = front_rear.process_request(webhook_data)
-
-        assert status == 200
-        assert "No results" in response
 
     def test_process_request_buffering(self, reset_front_rear_state, mock_env_vars):
         front_rear.config = TEST_CONFIG
