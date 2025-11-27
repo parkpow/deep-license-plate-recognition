@@ -122,14 +122,14 @@ def sample_config(tmp_path, sample_front_rear_csv):
 
 @pytest.fixture
 def reset_front_rear_state():
-    front_rear.front_rear_vehicles = {}
+    front_rear.csv_vehicles = {}
     front_rear.camera_pairs = []
     front_rear.config = {}
     front_rear._config_cache = None
     front_rear._config_last_load = 0.0
     yield
 
-    front_rear.front_rear_vehicles = {}
+    front_rear.csv_vehicles = {}
     front_rear.camera_pairs = []
     front_rear.config = {}
     front_rear._config_cache = None
@@ -176,12 +176,12 @@ class TestCSVLoading:
         self, reset_front_rear_state, sample_config, monkeypatch
     ):
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
-        front_rear._load_front_rear_csv()
+        front_rear._load_vehicles_csv()
 
-        assert len(front_rear.front_rear_vehicles) == 3
-        assert "ABC123" in front_rear.front_rear_vehicles
-        assert front_rear.front_rear_vehicles["ABC123"]["make"] == "TOYOTA"
-        assert front_rear.front_rear_vehicles["ABC123"]["model"] == "CAMRY"
+        assert len(front_rear.csv_vehicles) == 3
+        assert "ABC123" in front_rear.csv_vehicles
+        assert front_rear.csv_vehicles["ABC123"]["make"] == "TOYOTA"
+        assert front_rear.csv_vehicles["ABC123"]["model"] == "CAMRY"
 
     def test_load_front_rear_csv_empty_file(
         self, reset_front_rear_state, tmp_path, monkeypatch
@@ -201,7 +201,7 @@ class TestCSVLoading:
         monkeypatch.chdir(tmp_path)
 
         with pytest.raises(ValueError, match="Front-Rear database is empty"):
-            front_rear._load_front_rear_csv()
+            front_rear._load_vehicles_csv()
 
     def test_load_front_rear_csv_file_not_found(
         self, reset_front_rear_state, tmp_path, monkeypatch
@@ -219,7 +219,7 @@ class TestCSVLoading:
         monkeypatch.chdir(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            front_rear._load_front_rear_csv()
+            front_rear._load_vehicles_csv()
 
 
 class TestCameraPairLookup:
@@ -353,10 +353,8 @@ class TestMakeModelExtraction:
 
 class TestPlateDatabase:
     def test_check_plate_in_db_found(self, reset_front_rear_state):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
-        found, vehicle_info = front_rear._check_plate_in_front_rear_db("ABC123")
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
+        found, vehicle_info = front_rear._check_plate_in_vehicles_db("ABC123")
 
         assert found is True
         assert vehicle_info is not None
@@ -365,19 +363,15 @@ class TestPlateDatabase:
 
     @pytest.mark.parametrize("search_plate", ["XYZ999", None])
     def test_check_plate_in_db_not_found(self, reset_front_rear_state, search_plate):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
-        found, vehicle_info = front_rear._check_plate_in_front_rear_db(search_plate)
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
+        found, vehicle_info = front_rear._check_plate_in_vehicles_db(search_plate)
 
         assert found is False
         assert vehicle_info is None
 
     def test_check_plate_in_db_case_insensitive(self, reset_front_rear_state):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
-        found, vehicle_info = front_rear._check_plate_in_front_rear_db("abc123")
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
+        found, vehicle_info = front_rear._check_plate_in_vehicles_db("abc123")
 
         assert found is True
         assert vehicle_info is not None
@@ -696,7 +690,7 @@ class TestCameraPairProcessing:
     def test_process_pair_plate_not_in_db(
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
-        front_rear.front_rear_vehicles = {}
+        front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(camera_id="camera-front", plate="UNKNOWN123")
         rear_event = create_camera_event(
@@ -705,9 +699,13 @@ class TestCameraPairProcessing:
             timestamp="2025-11-24T10:00:05Z",
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         assert mock_send_alert.call_count >= 2
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
@@ -724,9 +722,13 @@ class TestCameraPairProcessing:
             camera_id="camera-rear", plate=None, timestamp="2025-11-24T10:00:05Z"
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "no_rear_plate" in alert_calls
@@ -736,9 +738,7 @@ class TestCameraPairProcessing:
     def test_process_pair_make_model_mismatch(
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(
             model_make=[{"make": "HONDA", "model": "ACCORD", "score": 0.85}]
@@ -747,9 +747,13 @@ class TestCameraPairProcessing:
             camera_id="camera-rear", timestamp="2025-11-24T10:00:05Z"
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "make_model_mismatch" in alert_calls
@@ -759,9 +763,7 @@ class TestCameraPairProcessing:
     def test_process_pair_forwards_rear_data(
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event()
         rear_event = create_camera_event(
@@ -770,9 +772,13 @@ class TestCameraPairProcessing:
             original_json_data={"test": "rear_data"},
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         mock_forward.assert_called_once()
         call_args = mock_forward.call_args[0]
@@ -784,16 +790,17 @@ class TestCameraPairProcessing:
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
         """Test that front camera data is forwarded when rear camera is unavailable."""
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(original_json_data={"test": "front_data"})
-        rear_event = None
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=None,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         mock_forward.assert_called_once()
         call_args = mock_forward.call_args[0]
@@ -804,18 +811,19 @@ class TestCameraPairProcessing:
     def test_process_pair_single_front_camera_validates_db(
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
-        front_rear.front_rear_vehicles = {}
+        front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(
             plate="UNKNOWN123", original_json_data={"test": "front_data"}
         )
-        rear_event = None
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=None,
         )
-        front_rear._process_camera_pair(
-            front_event, rear_event, pair, camera_offline="camera-rear"
-        )
+        front_rear._process_camera_pair(pair)
 
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "no_rear_plate" not in alert_types
@@ -828,9 +836,8 @@ class TestCameraPairProcessing:
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
         """Test that single rear camera event validates against database."""
-        front_rear.front_rear_vehicles = {}
+        front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
-        front_event = None
         rear_event = create_camera_event(
             camera_id="camera-rear",
             plate="UNKNOWN123",
@@ -838,9 +845,13 @@ class TestCameraPairProcessing:
             original_json_data={"test": "rear_data"},
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=None,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "plate_mismatch" in alert_types
@@ -855,9 +866,7 @@ class TestCameraPairProcessing:
         self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
     ):
         """Test that no_rear_plate alert is sent when rear camera is online but detects no plate."""
-        front_rear.front_rear_vehicles = {
-            "ABC123": {"make": "TOYOTA", "model": "CAMRY"}
-        }
+        front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event()
         rear_event = create_camera_event(
@@ -867,9 +876,13 @@ class TestCameraPairProcessing:
             original_json_data={"test": "rear_data"},
         )
         pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
+            front="camera-front",
+            rear="camera-rear",
+            description="Gate 1",
+            front_event=front_event,
+            rear_event=rear_event,
         )
-        front_rear._process_camera_pair(front_event, rear_event, pair)
+        front_rear._process_camera_pair(pair)
 
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "no_rear_plate" in alert_types
@@ -917,7 +930,7 @@ class TestInitialization:
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
         front_rear.initialize()
 
-        assert len(front_rear.front_rear_vehicles) > 0
+        assert len(front_rear.csv_vehicles) > 0
         assert len(front_rear.camera_pairs) > 0
         mock_thread.assert_called_once()
         mock_thread.return_value.start.assert_called_once()

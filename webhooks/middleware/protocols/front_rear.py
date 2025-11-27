@@ -63,7 +63,19 @@ class CameraEvent:
 
 @dataclass
 class CameraPair:
-    """Configuration for a paired front/rear camera setup."""
+    """
+    Paired front/rear camera configuration with runtime event buffering.
+
+    Combines static configuration (which cameras form a pair) with runtime state
+    (pending events from those cameras awaiting pairing).
+
+    Attributes:
+        front: Camera ID for the front camera
+        rear: Camera ID for the rear camera
+        description: Human-readable description of the camera pair location
+        front_event: Pending event from front camera (None if no event buffered)
+        rear_event: Pending event from rear camera (None if no event buffered)
+    """
 
     front: str
     rear: str
@@ -76,7 +88,7 @@ class CameraPair:
         return f"{self.front}:{self.rear}"
 
 
-front_rear_vehicles: dict[str, dict[str, str]] = {}  # plate -> {make, model}
+csv_vehicles: dict[str, dict[str, str]] = {}  # plate -> {make, model}
 camera_pairs: list[CameraPair] = []
 config: dict[str, Any] = {}
 pair_locks: dict[str, Lock] = defaultdict(Lock)
@@ -113,15 +125,15 @@ def _load_config() -> dict[str, Any]:
         return {}
 
 
-def _load_front_rear_csv() -> None:
+def _load_vehicles_csv() -> None:
     """Load Front-Rear Vehicle Database CSV into memory for fast lookups."""
-    global front_rear_vehicles, config
+    global csv_vehicles, config
 
     config = _load_config()
     csv_path = config.get("front_rear_csv_path", "front_rear.csv")
 
     try:
-        front_rear_vehicles.clear()
+        csv_vehicles.clear()
         total_rows = 0
         skipped = 0
 
@@ -150,18 +162,18 @@ def _load_front_rear_csv() -> None:
         duplicates = 0
         for plate, occurrences in plate_occurrences.items():
             if len(occurrences) == 1:
-                front_rear_vehicles[plate] = occurrences[0]
+                csv_vehicles[plate] = occurrences[0]
             else:
                 duplicates += len(occurrences)
 
-        if not front_rear_vehicles:
+        if not csv_vehicles:
             logging.error(f"Front-Rear CSV file is empty: {csv_path}")
             raise ValueError(
                 "Front-Rear database is empty, cannot operate without vehicle data"
             )
 
         logging.info(
-            f"Loaded {len(front_rear_vehicles)} vehicles from Front-Rear database "
+            f"Loaded {len(csv_vehicles)} vehicles from Front-Rear database "
             f"({total_rows} rows, {duplicates} duplicates skipped, {skipped} invalid plates skipped)"
         )
 
@@ -184,7 +196,7 @@ def initialize() -> None:
     """
     global camera_pairs, config
 
-    _load_front_rear_csv()
+    _load_vehicles_csv()
     config = _load_config()
     camera_pairs = [CameraPair(**pair) for pair in config.get("camera_pairs", [])]
     parkpow_config = config.get("parkpow", {})
@@ -236,8 +248,7 @@ def _cleanup_expired_events() -> None:
     expired_items: list[tuple[CameraPair, str, CameraEvent]] = []
 
     for pair in camera_pairs:
-        pair_id = pair.id
-        with pair_locks[pair_id]:
+        with pair_locks[pair.id]:
             if pair.front_event and pair.front_event.timestamp_unix < expiry_threshold:
                 expired_items.append((pair, pair.front, pair.front_event))
             if pair.rear_event and pair.rear_event.timestamp_unix < expiry_threshold:
@@ -256,12 +267,8 @@ def _cleanup_expired_events() -> None:
             missing_camera = pair.rear if is_front else pair.front
 
             if is_front:
-                front_event = pair.front_event
                 pair.front_event = None
-                rear_event = None
             else:
-                front_event = None
-                rear_event = pair.rear_event
                 pair.rear_event = None
 
         logging.warning(
@@ -269,9 +276,7 @@ def _cleanup_expired_events() -> None:
             f"{missing_camera} may be offline, processing single camera event"
         )
 
-        _process_camera_pair(
-            front_event, rear_event, pair, camera_offline=missing_camera
-        )
+        _process_camera_pair(pair)
 
         # Alert #4: Possible Offline Camera Alert
         _send_alert(
@@ -335,7 +340,7 @@ def _extract_best_make_model(results: list[dict[str, Any]]) -> tuple[str | None,
     return best_make_model, best_score
 
 
-def _check_plate_in_front_rear_db(
+def _check_plate_in_vehicles_db(
     plate: str | None,
 ) -> tuple[bool, dict[str, str] | None]:
     """
@@ -347,7 +352,7 @@ def _check_plate_in_front_rear_db(
     if not plate:
         return False, None
 
-    vehicle_info = front_rear_vehicles.get(plate.upper())
+    vehicle_info = csv_vehicles.get(plate.upper())
     return vehicle_info is not None, vehicle_info
 
 
@@ -433,12 +438,7 @@ def _forward_to_parkpow(event: CameraEvent) -> None:
         logging.error(f"Failed to forward to ParkPow: {e}")
 
 
-def _process_camera_pair(
-    front_event: CameraEvent | None,
-    rear_event: CameraEvent | None,
-    pair: CameraPair,
-    camera_offline: str | None = None,
-) -> None:
+def _process_camera_pair(pair: CameraPair) -> None:
     """
     Process matched front/rear camera pair and trigger alerts if needed.
 
@@ -448,11 +448,10 @@ def _process_camera_pair(
     - Alert #3: Make/model mismatch with confidence thresholds
 
     Args:
-        front_event: Front camera event data or None
-        rear_event: Rear camera event data or None
-        pair: Camera pair configuration
-        camera_offline: Camera ID that is offline (if applicable), to skip redundant alerts
+        pair: Camera pair with events to process
     """
+    front_event = pair.front_event
+    rear_event = pair.rear_event
 
     front_plate = None
     rear_plate = None
@@ -474,7 +473,7 @@ def _process_camera_pair(
     )
 
     # Alert #2: No Rear Plate Alert (only if rear camera not offline)
-    if not rear_plate and camera_offline != pair.rear:
+    if not rear_plate and rear_event:
         logging.warning(
             f"No rear plate detected for camera pair {pair.front}/{pair.rear}"
         )
@@ -490,8 +489,8 @@ def _process_camera_pair(
             return
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
-    front_in_db, front_vehicle_info = _check_plate_in_front_rear_db(front_plate)
-    rear_in_db, rear_vehicle_info = _check_plate_in_front_rear_db(rear_plate)
+    front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
+    rear_in_db, rear_vehicle_info = _check_plate_in_vehicles_db(rear_plate)
 
     if front_plate and not front_in_db:
         logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
@@ -678,9 +677,15 @@ def process_request(
             pair.rear_event = event
 
     if should_send_overwrite_alert and missing_camera_id is not None:
-        _process_camera_pair(
-            old_front_event, old_rear_event, pair, camera_offline=missing_camera_id
-        )
+        old_pair_front = pair.front_event
+        old_pair_rear = pair.rear_event
+        pair.front_event = old_front_event
+        pair.rear_event = old_rear_event
+
+        _process_camera_pair(pair)
+
+        pair.front_event = old_pair_front
+        pair.rear_event = old_pair_rear
 
         # Alert #4: Possible Offline Camera Alert
         _send_alert(
@@ -692,8 +697,6 @@ def process_request(
         )
 
     should_process_pair = False
-    front_event_to_process = None
-    rear_event_to_process = None
 
     with pair_locks[pair_id]:
         front_event = pair.front_event
@@ -706,16 +709,12 @@ def process_request(
 
         if front_valid and rear_valid:
             logging.info(f"Processing camera pair {pair.front}/{pair.rear}")
-
-            pair.front_event = None
-            pair.rear_event = None
-
             should_process_pair = True
-            front_event_to_process = front_event
-            rear_event_to_process = rear_event
 
     if should_process_pair:
-        _process_camera_pair(front_event_to_process, rear_event_to_process, pair)
+        _process_camera_pair(pair)
+        pair.front_event = None
+        pair.rear_event = None
         return "Processed camera pair", 200
     else:
         status_msg = []
