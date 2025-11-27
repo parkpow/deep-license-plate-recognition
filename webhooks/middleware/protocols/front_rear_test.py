@@ -125,7 +125,6 @@ def reset_front_rear_state():
     front_rear.front_rear_vehicles = {}
     front_rear.camera_pairs = []
     front_rear.config = {}
-    front_rear.event_buffer = {}
     front_rear._config_cache = None
     front_rear._config_last_load = 0.0
     yield
@@ -133,7 +132,6 @@ def reset_front_rear_state():
     front_rear.front_rear_vehicles = {}
     front_rear.camera_pairs = []
     front_rear.config = {}
-    front_rear.event_buffer = {}
     front_rear._config_cache = None
     front_rear._config_last_load = 0.0
 
@@ -232,7 +230,12 @@ class TestCameraPairLookup:
 
     @pytest.mark.parametrize("camera_id", ["cam1", "cam2"])
     def test_get_camera_pair(self, reset_front_rear_state, camera_id):
-        front_rear.camera_pairs = [front_rear.CameraPair(**p) for p in self.pairs]
+        front_rear.camera_pairs = [
+            front_rear.CameraPair(
+                front=p["front"], rear=p["rear"], description=p["description"]
+            )
+            for p in self.pairs
+        ]
         pair = front_rear._get_camera_pair(camera_id)
 
         assert pair is not None
@@ -240,13 +243,23 @@ class TestCameraPairLookup:
         assert pair.rear == "cam2"
 
     def test_get_camera_pair_not_found(self, reset_front_rear_state):
-        front_rear.camera_pairs = [front_rear.CameraPair(**p) for p in self.pairs]
+        front_rear.camera_pairs = [
+            front_rear.CameraPair(
+                front=p["front"], rear=p["rear"], description=p["description"]
+            )
+            for p in self.pairs
+        ]
         pair = front_rear._get_camera_pair("cam5")
 
         assert pair is None
 
     def test_get_camera_pair_multiple_pairs(self, reset_front_rear_state):
-        front_rear.camera_pairs = [front_rear.CameraPair(**p) for p in self.pairs]
+        front_rear.camera_pairs = [
+            front_rear.CameraPair(
+                front=p["front"], rear=p["rear"], description=p["description"]
+            )
+            for p in self.pairs
+        ]
         pair = front_rear._get_camera_pair("cam3")
 
         assert pair is not None
@@ -441,11 +454,10 @@ class TestWebhookProcessing:
         self, reset_front_rear_state, mock_env_vars
     ):
         front_rear.config = TEST_CONFIG
-        front_rear.camera_pairs = [
-            front_rear.CameraPair(
-                front="camera-front", rear="camera-rear", description="Gate 1"
-            )
-        ]
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -457,7 +469,8 @@ class TestWebhookProcessing:
         _response, status = front_rear.process_request(webhook_data)
 
         assert status == 200
-        assert "camera-front" in front_rear.event_buffer
+        assert pair.front_event is not None
+        assert pair.front_event.camera_id == "camera-front"
 
     def test_process_request_authentication_missing(
         self, reset_front_rear_state, mock_env_vars
@@ -550,11 +563,10 @@ class TestWebhookProcessing:
 
     def test_process_request_buffering(self, reset_front_rear_state, mock_env_vars):
         front_rear.config = TEST_CONFIG
-        front_rear.camera_pairs = [
-            front_rear.CameraPair(
-                front="camera-front", rear="camera-rear", description="Gate 1"
-            )
-        ]
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -567,7 +579,7 @@ class TestWebhookProcessing:
 
         assert status == 200
         assert "buffered" in response.lower()
-        assert "camera-front" in front_rear.event_buffer
+        assert pair.front_event is not None
 
     @patch("protocols.front_rear._process_camera_pair")
     def test_process_request_pair_processing(
@@ -578,13 +590,12 @@ class TestWebhookProcessing:
         create_camera_event,
     ):
         front_rear.config = TEST_CONFIG
-        front_rear.camera_pairs = [
-            front_rear.CameraPair(
-                front="camera-front", rear="camera-rear", description="Gate 1"
-            )
-        ]
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
         current_time = time.time()
-        front_rear.event_buffer["camera-front"] = create_camera_event(
+        pair.front_event = create_camera_event(
             timestamp="2024-11-24T10:00:00Z", timestamp_unix=current_time
         )
 
@@ -618,13 +629,12 @@ class TestWebhookProcessing:
     ):
         """Test that overwriting an unpaired event processes it before replacement."""
         front_rear.config = TEST_CONFIG
-        front_rear.camera_pairs = [
-            front_rear.CameraPair(
-                front="camera-front", rear="camera-rear", description="Gate 1"
-            )
-        ]
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
         old_time = time.time() - 20
-        front_rear.event_buffer["camera-front"] = create_camera_event(
+        pair.front_event = create_camera_event(
             plate="OLD123", timestamp="2024-11-24T10:00:00Z", timestamp_unix=old_time
         )
 
@@ -642,6 +652,42 @@ class TestWebhookProcessing:
         mock_process_pair.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "camera_offline" in alert_types
+
+    @patch("protocols.front_rear._process_camera_pair")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_request_same_plate_update_no_overwrite_alert(
+        self,
+        mock_send_alert,
+        mock_process_pair,
+        reset_front_rear_state,
+        mock_env_vars,
+        create_camera_event,
+    ):
+        """Test that updating with same plate does not trigger overwrite alert."""
+        front_rear.config = TEST_CONFIG
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        old_time = time.time() - 5
+        pair.front_event = create_camera_event(
+            plate="ABC123", timestamp="2024-11-24T10:00:00Z", timestamp_unix=old_time
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2024-11-24T10:00:05Z",
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+        mock_process_pair.assert_not_called()
+        mock_send_alert.assert_not_called()
+        assert pair.front_event is not None
 
 
 class TestCameraPairProcessing:
@@ -840,18 +886,18 @@ class TestCleanupExpiredEvents:
         create_camera_event,
     ):
         front_rear.config = TEST_CONFIG
-        front_rear.camera_pairs = [
-            front_rear.CameraPair(
-                front="camera-old", rear="camera-old-rear", description="Gate 1"
-            ),
-            front_rear.CameraPair(
-                front="camera-new", rear="camera-new-rear", description="Gate 2"
-            ),
-        ]
-        front_rear.event_buffer["camera-old"] = create_camera_event(
+        old_pair = front_rear.CameraPair(
+            front="camera-old", rear="camera-old-rear", description="Gate 1"
+        )
+        new_pair = front_rear.CameraPair(
+            front="camera-new", rear="camera-new-rear", description="Gate 2"
+        )
+        front_rear.camera_pairs = [old_pair, new_pair]
+
+        old_pair.front_event = create_camera_event(
             camera_id="camera-old", timestamp_unix=time.time() - 100
         )
-        front_rear.event_buffer["camera-new"] = create_camera_event(
+        new_pair.front_event = create_camera_event(
             camera_id="camera-new", plate="XYZ789", timestamp_unix=time.time() - 10
         )
         front_rear._cleanup_expired_events()
@@ -859,8 +905,8 @@ class TestCleanupExpiredEvents:
         mock_process_pair.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "camera_offline" in alert_types
-        assert "camera-old" not in front_rear.event_buffer
-        assert "camera-new" in front_rear.event_buffer
+        assert old_pair.front_event is None
+        assert new_pair.front_event is not None
 
 
 class TestInitialization:

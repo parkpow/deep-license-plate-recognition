@@ -68,16 +68,17 @@ class CameraPair:
     front: str
     rear: str
     description: str
+    front_event: CameraEvent | None = None
+    rear_event: CameraEvent | None = None
 
     @property
-    def pair_id(self) -> str:
+    def id(self) -> str:
         return f"{self.front}:{self.rear}"
 
 
 front_rear_vehicles: dict[str, dict[str, str]] = {}  # plate -> {make, model}
 camera_pairs: list[CameraPair] = []
 config: dict[str, Any] = {}
-event_buffer: dict[str, CameraEvent] = {}  # camera_id -> latest event
 pair_locks: dict[str, Lock] = defaultdict(Lock)
 
 _config_cache: dict[str, Any] | None = None
@@ -228,33 +229,40 @@ def _cleanup_task_loop() -> None:
 
 def _cleanup_expired_events() -> None:
     """Remove expired events from buffer to prevent memory bloat."""
-    global event_buffer, config
+    global config
 
     time_window = config.get("pairing", {}).get("time_window_seconds", 30)
     expiry_threshold = time.time() - (time_window * 2)
-    expired_items: list[tuple[str, CameraEvent]] = []
+    expired_items: list[tuple[CameraPair, str, CameraEvent]] = []
 
-    for camera_id, event in list(event_buffer.items()):
-        if event.timestamp_unix < expiry_threshold:
-            expired_items.append((camera_id, event))
-
-    for camera_id, event in expired_items:
-        pair = _get_camera_pair(camera_id)
-        if not pair:
-            continue
-
-        pair_id = pair.pair_id
+    for pair in camera_pairs:
+        pair_id = pair.id
         with pair_locks[pair_id]:
-            current_event = event_buffer.get(camera_id)
+            if pair.front_event and pair.front_event.timestamp_unix < expiry_threshold:
+                expired_items.append((pair, pair.front, pair.front_event))
+            if pair.rear_event and pair.rear_event.timestamp_unix < expiry_threshold:
+                expired_items.append((pair, pair.rear, pair.rear_event))
+
+    for pair, camera_id, event in expired_items:
+        pair_id = pair.id
+        with pair_locks[pair_id]:
+            is_front = camera_id == pair.front
+            current_event = pair.front_event if is_front else pair.rear_event
+
             if not current_event or current_event.timestamp_unix >= expiry_threshold:
                 continue
 
             age = time.time() - current_event.timestamp_unix
-            missing_camera = pair.rear if camera_id == pair.front else pair.front
+            missing_camera = pair.rear if is_front else pair.front
 
-            del event_buffer[camera_id]
-            front_event = current_event if camera_id == pair.front else None
-            rear_event = current_event if camera_id == pair.rear else None
+            if is_front:
+                front_event = pair.front_event
+                pair.front_event = None
+                rear_event = None
+            else:
+                front_event = None
+                rear_event = pair.rear_event
+                pair.rear_event = None
 
         logging.warning(
             f"Unpaired event expired from {camera_id} after {age:.1f}s - "
@@ -587,8 +595,6 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
 def process_request(
     json_data: dict[str, Any], all_files: dict[str, bytes] | None = None
 ) -> tuple[str, int]:
-    global event_buffer
-
     auth_error = _authenticate_request(json_data)
     if auth_error:
         return auth_error
@@ -626,7 +632,8 @@ def process_request(
         original_files=all_files,
     )
 
-    pair_id = pair.pair_id
+    pair_id = pair.id
+    is_front = camera_id == pair.front
 
     old_front_event = None
     old_rear_event = None
@@ -636,25 +643,39 @@ def process_request(
     overwrite_old_event: CameraEvent | None = None
 
     with pair_locks[pair_id]:
-        if camera_id in event_buffer:
-            old_event = event_buffer[camera_id]
+        old_event = pair.front_event if is_front else pair.rear_event
+
+        if old_event:
             old_timestamp = old_event.timestamp_unix
             age = time.time() - old_timestamp
-            missing_camera = pair.rear if camera_id == pair.front else pair.front
+            missing_camera = pair.rear if is_front else pair.front
 
-            logging.warning(
-                f"Overwriting unpaired event from {camera_id} (age: {age:.1f}s) - "
-                f"new vehicle detected before pair completed, {missing_camera} may be offline"
+            old_plate = (
+                _extract_plate(old_event.results[0]) if old_event.results else None
             )
+            new_plate = _extract_plate(results[0]) if results else None
 
-            old_front_event = old_event if camera_id == pair.front else None
-            old_rear_event = old_event if camera_id == pair.rear else None
-            should_send_overwrite_alert = True
-            missing_camera_id = missing_camera
-            overwrite_age = age
-            overwrite_old_event = old_event
+            if old_plate != new_plate:
+                logging.warning(
+                    f"Overwriting unpaired event from {camera_id} (age: {age:.1f}s, old plate: {old_plate}) - "
+                    f"new vehicle ({new_plate}) detected before pair completed, {missing_camera} may be offline"
+                )
 
-        event_buffer[camera_id] = event
+                old_front_event = old_event if is_front else None
+                old_rear_event = old_event if not is_front else None
+                should_send_overwrite_alert = True
+                missing_camera_id = missing_camera
+                overwrite_age = age
+                overwrite_old_event = old_event
+            else:
+                logging.debug(
+                    f"Updating event for {camera_id} with same plate {new_plate} (age: {age:.1f}s)"
+                )
+
+        if is_front:
+            pair.front_event = event
+        else:
+            pair.rear_event = event
 
     if should_send_overwrite_alert and missing_camera_id is not None:
         _process_camera_pair(
@@ -675,10 +696,8 @@ def process_request(
     rear_event_to_process = None
 
     with pair_locks[pair_id]:
-        front_camera_id = pair.front
-        rear_camera_id = pair.rear
-        front_event = event_buffer.get(front_camera_id)
-        rear_event = event_buffer.get(rear_camera_id)
+        front_event = pair.front_event
+        rear_event = pair.rear_event
 
         time_window = config.get("pairing", {}).get("time_window_seconds", 30)
         now = time.time()
@@ -686,12 +705,10 @@ def process_request(
         rear_valid = rear_event and (now - rear_event.timestamp_unix) <= time_window
 
         if front_valid and rear_valid:
-            logging.info(f"Processing camera pair {front_camera_id}/{rear_camera_id}")
+            logging.info(f"Processing camera pair {pair.front}/{pair.rear}")
 
-            if front_camera_id in event_buffer:
-                del event_buffer[front_camera_id]
-            if rear_camera_id in event_buffer:
-                del event_buffer[rear_camera_id]
+            pair.front_event = None
+            pair.rear_event = None
 
             should_process_pair = True
             front_event_to_process = front_event
