@@ -589,23 +589,14 @@ def process_request(
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
-
-    if not camera_id:
-        logging.error("camera_id not found in webhook data")
-        logging.error(f"Full JSON structure: {json.dumps(json_data, indent=2)}")
-        return "The camera_id is required.", 400
-
+    results = data.get("results", [])
+    timestamp_str = data.get("timestamp", "")
     pair = _get_camera_pair(camera_id)
+
     if not pair:
         logging.warning(f"Camera {camera_id} is not configured in any pair")
         return "Camera not configured in any pair", 200
 
-    results = data.get("results", [])
-    if not results:
-        logging.info(f"No results from camera {camera_id}, dropping event")
-        return "No results in webhook", 200
-
-    timestamp_str = data.get("timestamp", "")
     try:
         if "T" in timestamp_str and timestamp_str.endswith("Z"):
             timestamp_str = timestamp_str.replace("Z", "+00:00")
