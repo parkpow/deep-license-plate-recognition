@@ -1,8 +1,11 @@
 # common_webhook_consumer.py
+import atexit
 import importlib
 import json
 import logging
 import os
+import signal
+import sys
 from typing import Any
 
 from flask import Flask, jsonify, request
@@ -15,6 +18,24 @@ logging.basicConfig(
 app = Flask(__name__)
 
 middleware: Any | None = None
+
+
+def cleanup_middleware():
+    """Cleanup middleware resources on shutdown."""
+    global middleware
+    if middleware and hasattr(middleware, "shutdown"):
+        logging.info("Shutting down middleware...")
+        try:
+            middleware.shutdown()
+        except Exception as e:
+            logging.error(f"Error during middleware shutdown: {e}")
+
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully."""
+    logging.info(f"Received signal {signum}, initiating graceful shutdown...")
+    cleanup_middleware()
+    sys.exit(0)
 
 
 def load_middleware():
@@ -108,4 +129,13 @@ if __name__ == "__main__":
         logging.error("Failed to load middleware. Exiting..")
         exit(1)
 
-    serve(app, host="0.0.0.0", port=8002)
+    atexit.register(cleanup_middleware)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        serve(app, host="0.0.0.0", port=8002)
+    except KeyboardInterrupt:
+        logging.info("Interrupted by user")
+    finally:
+        cleanup_middleware()
