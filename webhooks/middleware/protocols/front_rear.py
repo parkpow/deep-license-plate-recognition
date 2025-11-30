@@ -1,29 +1,19 @@
 """
 Front-Rear Stream Middleware Protocol
 
-Receives webhooks from paired front/rear cameras, validates license plates against
-Front-Rear Vehicle Database, checks make/model confidence, and triggers alerts for:
-- Alert #1: Plates not in Front-Rear DB (plate_mismatch)
-- Alert #2: Missing rear plates when camera is online (no_rear_plate)
-- Alert #3: Make/model mismatches with confidence thresholds (make_model_mismatch)
-- Alert #4: Camera offline detection (camera_offline)
+Validates license plates from paired front/rear cameras against a vehicle database
+and triggers alerts for mismatches, missing plates, make/model errors, and camera offline.
 
-Event Buffering & Pairing:
-- Buffers events from each camera with configurable time window (default 30s)
-- Processes pairs when both cameras detect within the time window
-- Handles unpaired events in two scenarios:
-  * Expiry: Event exceeds time window without pairing (2x time window)
-  * Overwrite: New vehicle detected before previous pairing completes
+Event Pairing:
+- Buffers events with 30s time window
+- Processes pairs or single-camera events
+- Handles expiry and overwrite scenarios
 
-Resilience & Offline Camera Handling:
-- Validates single-camera events against database when pair camera is offline
-- Sends camera_offline alert (Alert #4) instead of no_rear_plate when rear camera offline
-- Forwards data from available camera (prefers rear, falls back to front)
-
-Data Forwarding:
-- Forwards rear camera data to ParkPow after validation (preferred)
-- Falls back to front camera data if rear camera is unavailable
-- Ensures no data loss even with single camera operation
+Alerts:
+1. plate_mismatch - Plate not in database
+2. no_rear_plate - Missing rear detection
+3. make_model_mismatch - Vehicle type mismatch
+4. camera_offline - Possible offline camera
 """
 
 import asyncio
@@ -63,19 +53,7 @@ class CameraEvent:
 
 @dataclass
 class CameraPair:
-    """
-    Paired front/rear camera configuration with runtime event buffering.
-
-    Combines static configuration (which cameras form a pair) with runtime state
-    (pending events from those cameras awaiting pairing).
-
-    Attributes:
-        front: Camera ID for the front camera
-        rear: Camera ID for the rear camera
-        description: Human-readable description of the camera pair location
-        front_event: Pending event from front camera (None if no event buffered)
-        rear_event: Pending event from rear camera (None if no event buffered)
-    """
+    """Paired front/rear camera configuration with event buffering."""
 
     front: str
     rear: str
@@ -202,15 +180,7 @@ def _run_event_loop(loop: asyncio.AbstractEventLoop) -> None:
 
 
 def initialize() -> None:
-    """
-    Initialize Front-Rear middleware at startup.
-
-    Loads:
-    - Front-Rear Vehicle Database (CSV)
-    - Configuration (camera pairs, thresholds, endpoints)
-    - Schedules periodic cleanup of expired buffered events
-    - Starts asyncio event loop for non-blocking API calls
-    """
+    """Initialize middleware: load database, config, start event loop and cleanup."""
     global camera_pairs, config, _loop, _loop_thread, _aiohttp_session
 
     _load_vehicles_csv()
@@ -254,11 +224,7 @@ def initialize() -> None:
 
 
 def shutdown() -> None:
-    """
-    Shutdown Front-Rear middleware and cleanup resources.
-
-    Closes aiohttp session and stops the asyncio event loop.
-    """
+    """Shutdown middleware: close aiohttp session and stop event loop."""
     global _loop, _loop_thread, _aiohttp_session
 
     logging.info("Front-Rear middleware shutdown initiated...")
@@ -396,13 +362,7 @@ def _extract_plate(result: dict[str, Any]) -> str | None:
 
 
 def _extract_best_make_model(results: list[dict[str, Any]]) -> tuple[str | None, float]:
-    """
-    Extract the best (highest confidence) make/model from results.
-    Returns combined "MAKE MODEL" string.
-
-    Returns:
-        Tuple of (make_model, score)
-    """
+    """Extract highest confidence make/model as "MAKE MODEL" string and score."""
     best_make_model = None
     best_score = 0.0
 
@@ -424,12 +384,7 @@ def _extract_best_make_model(results: list[dict[str, Any]]) -> tuple[str | None,
 def _check_plate_in_vehicles_db(
     plate: str | None,
 ) -> tuple[bool, dict[str, str] | None]:
-    """
-    Check if plate exists in Front-Rear database.
-
-    Returns:
-        Tuple of (found, vehicle_info)
-    """
+    """Check if plate exists in database. Returns (found, vehicle_info)."""
     if not plate:
         return False, None
 
@@ -447,18 +402,7 @@ async def _send_alert_async(
     detected_make_model: str | None = None,
     make_model_score: float | None = None,
 ) -> None:
-    """Send alert to ParkPow using the trigger-alert endpoint (async).
-
-    Args:
-        alert_type: Type of alert (plate_mismatch, no_rear_plate, etc.)
-        visit_id: Visit ID from ParkPow
-        plate: License plate (optional, for logging)
-        camera_id: Camera ID (optional, for logging)
-        message: Alert message (optional, for logging)
-        event_data: Event data (optional, for logging)
-        detected_make_model: Detected vehicle make/model (optional, for logging)
-        make_model_score: Confidence score (optional, for logging)
-    """
+    """Send alert to ParkPow trigger-alert endpoint (async)."""
     # Reload config for hot reload support
     current_config = _load_config()
     alert_config = current_config.get("alerts", {}).get(alert_type, {})
@@ -514,20 +458,7 @@ def _send_alert(
     detected_make_model: str | None = None,
     make_model_score: float | None = None,
 ) -> None:
-    """Send alert to ParkPow using the trigger-alert endpoint (non-blocking).
-
-    This function schedules the alert to be sent asynchronously and returns immediately.
-
-    Args:
-        alert_type: Type of alert (plate_mismatch, no_rear_plate, etc.)
-        visit_id: Visit ID from ParkPow
-        plate: License plate (optional, for logging)
-        camera_id: Camera ID (optional, for logging)
-        message: Alert message (optional, for logging)
-        event_data: Event data (optional, for logging)
-        detected_make_model: Detected vehicle make/model (optional, for logging)
-        make_model_score: Confidence score (optional, for logging)
-    """
+    """Send alert to ParkPow (non-blocking, returns immediately)."""
     if _loop is None or _aiohttp_session is None:
         logging.error("Asyncio event loop not initialized, cannot send alert")
         return
@@ -548,11 +479,7 @@ def _send_alert(
 
 
 async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
-    """Forward camera data to ParkPow webhook URL (async).
-
-    Returns:
-        visit_id if successful, None otherwise
-    """
+    """Forward camera data to ParkPow webhook (async). Returns visit_id or None."""
     # Reload config for hot reload support
     current_config = _load_config()
     parkpow_config = current_config.get("parkpow", {})
@@ -624,14 +551,7 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
 
 
 def _forward_to_parkpow(event: CameraEvent) -> int | None:
-    """Forward camera data to ParkPow webhook URL (blocking wrapper).
-
-    This function is intentionally blocking because we need the visit_id
-    immediately to create alerts.
-
-    Returns:
-        visit_id if successful, None otherwise
-    """
+    """Forward camera data to ParkPow (blocking, waits for visit_id)."""
     if _loop is None or _aiohttp_session is None:
         logging.error("Asyncio event loop not initialized, cannot forward to ParkPow")
         return None
@@ -651,24 +571,10 @@ def _process_events(
     rear_camera_id: str,
 ) -> int | None:
     """
-    Process front/rear camera events and trigger alerts if needed.
+    Process front/rear events, validate against database, and trigger alerts.
 
-    This function does not mutate any shared state and can be called
-    outside of locks safely.
-
-    Implements all alert conditions:
-    - Alert #1: Plate not in Front-Rear DB
-    - Alert #2: Missing rear plate (only if camera not offline)
-    - Alert #3: Make/model mismatch with confidence thresholds
-
-    Args:
-        front_event: Event from front camera (or None)
-        rear_event: Event from rear camera (or None)
-        front_camera_id: Front camera ID (for logging/alerts)
-        rear_camera_id: Rear camera ID (for logging/alerts)
-
-    Returns:
-        visit_id if successfully forwarded to ParkPow, None otherwise
+    Thread-safe: does not mutate shared state.
+    Returns visit_id if successful, None otherwise.
     """
 
     front_plate = None
@@ -796,19 +702,7 @@ def _process_events(
 
 
 def _process_camera_pair(pair: CameraPair) -> int | None:
-    """
-    Process matched front/rear camera pair and trigger alerts if needed.
-
-    This is a wrapper around _process_events that extracts events from the
-    pair object. The actual processing logic is in _process_events which
-    does not mutate shared state.
-
-    Args:
-        pair: Camera pair with events to process
-
-    Returns:
-        visit_id if successfully forwarded to ParkPow, None otherwise
-    """
+    """Process camera pair events. Wrapper around _process_events."""
     return _process_events(
         front_event=pair.front_event,
         rear_event=pair.rear_event,
@@ -818,12 +712,7 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
 
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
-    """
-    Authenticate incoming webhook request.
-
-    Returns:
-        None if authentication succeeds, or (error_message, status_code) tuple if it fails.
-    """
+    """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
     expected_token = os.getenv("STREAM_API_TOKEN")
     if not expected_token:
         logging.error(
