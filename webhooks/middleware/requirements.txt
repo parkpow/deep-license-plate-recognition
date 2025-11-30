@@ -4,3 +4,4 @@ pillow==10.4.0
 Flask==3.0.3
 zeep==4.1.0
 waitress==3.0.0
+aiohttp==3.9.1

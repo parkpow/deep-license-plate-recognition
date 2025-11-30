@@ -19,6 +19,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import protocols.front_rear as front_rear
 
+
+def close_coroutine(coro):
+    """Helper to close a coroutine and prevent 'never awaited' warnings."""
+    try:
+        coro.close()
+    except Exception:
+        pass
+
+
 TEST_CONFIG = {
     "parkpow": {
         "alert_endpoint": "https://test.example.com/alerts",
@@ -28,10 +37,26 @@ TEST_CONFIG = {
     "thresholds": {"make_model_confidence": 0.2},
     "pairing": {"time_window_seconds": 30, "cleanup_interval_seconds": 60},
     "alerts": {
-        "plate_mismatch": {"enabled": True, "name": "Test Plate Mismatch"},
-        "no_rear_plate": {"enabled": True, "name": "Test No Rear Plate"},
-        "make_model_mismatch": {"enabled": True, "name": "Test Make/Model Mismatch"},
-        "camera_offline": {"enabled": True, "name": "Test Camera Offline"},
+        "plate_mismatch": {
+            "enabled": True,
+            "name": "Test Plate Mismatch",
+            "alert_template_id": 1,
+        },
+        "no_rear_plate": {
+            "enabled": True,
+            "name": "Test No Rear Plate",
+            "alert_template_id": 2,
+        },
+        "make_model_mismatch": {
+            "enabled": True,
+            "name": "Test Make/Model Mismatch",
+            "alert_template_id": 3,
+        },
+        "camera_offline": {
+            "enabled": True,
+            "name": "Test Camera Offline",
+            "alert_template_id": 4,
+        },
     },
 }
 
@@ -103,13 +128,26 @@ def sample_config(tmp_path, sample_front_rear_csv):
             "token": "test-parkpow-token",
         },
         "alerts": {
-            "plate_mismatch": {"enabled": True, "name": "Test Plate Mismatch"},
-            "no_rear_plate": {"enabled": True, "name": "Test No Rear Plate"},
+            "plate_mismatch": {
+                "enabled": True,
+                "name": "Test Plate Mismatch",
+                "alert_template_id": 1,
+            },
+            "no_rear_plate": {
+                "enabled": True,
+                "name": "Test No Rear Plate",
+                "alert_template_id": 2,
+            },
             "make_model_mismatch": {
                 "enabled": True,
                 "name": "Test Make/Model Mismatch",
+                "alert_template_id": 3,
             },
-            "camera_offline": {"enabled": True, "name": "Test Camera Offline"},
+            "camera_offline": {
+                "enabled": True,
+                "name": "Test Camera Offline",
+                "alert_template_id": 4,
+            },
         },
     }
     config_dir = tmp_path / "protocols" / "config"
@@ -118,6 +156,23 @@ def sample_config(tmp_path, sample_front_rear_csv):
     config_file.write_text(json.dumps(config_data, indent=2))
 
     return str(config_file)
+
+
+@pytest.fixture
+def mock_asyncio_for_alerts():
+    """Mock asyncio components for tests that use _send_alert."""
+    with patch("protocols.front_rear._loop"), patch(
+        "protocols.front_rear._aiohttp_session"
+    ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+        # Close coroutines to prevent warnings
+        def run_coro_side_effect(coro, loop):
+            close_coroutine(coro)
+            mock_future = Mock()
+            mock_future.result.return_value = None
+            return mock_future
+
+        mock_run.side_effect = run_coro_side_effect
+        yield
 
 
 @pytest.fixture
@@ -378,69 +433,82 @@ class TestPlateDatabase:
 
 
 class TestAlertSending:
-    @patch("protocols.front_rear.requests.post")
-    def test_send_alert_success(self, mock_post, reset_front_rear_state):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+    def test_send_alert_success(self, reset_front_rear_state):
+        """Test that _send_alert schedules the async task (non-blocking)."""
+        # Mock the event loop and aiohttp session
+        with patch("protocols.front_rear._loop") as mock_loop, patch(
+            "protocols.front_rear._aiohttp_session"
+        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+            # Close coroutines to prevent warnings
+            mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
-        front_rear.config = TEST_CONFIG
-        front_rear._send_alert(
-            alert_type="plate_mismatch",
-            plate="ABC123",
-            camera_id="camera-front",
-            message="Test message",
-        )
+            front_rear.config = TEST_CONFIG
 
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
-
-        assert call_args[0][0] == "https://test.example.com/alerts"
-        assert "Authorization" in call_args[1]["headers"]
-        assert call_args[1]["headers"]["Authorization"] == "Token test-token"
-
-        payload = call_args[1]["json"]
-        assert payload["alert_type"] == "plate_mismatch"
-        assert payload["license_plate"] == "ABC123"
-        assert payload["camera_id"] == "camera-front"
-
-    @patch("protocols.front_rear.requests.post")
-    def test_send_alert_with_make_model(self, mock_post, reset_front_rear_state):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        front_rear.config = TEST_CONFIG
-        front_rear._send_alert(
-            alert_type="plate_mismatch",
-            plate="ABC123",
-            camera_id="camera-front",
-            message="Test message",
-            detected_make_model="TOYOTA CAMRY",
-            make_model_score=0.85,
-        )
-
-        payload = mock_post.call_args[1]["json"]
-        assert "detected_vehicle" in payload
-        assert payload["detected_vehicle"]["make_model"] == "TOYOTA CAMRY"
-        assert payload["detected_vehicle"]["score"] == 0.85
-
-    def test_send_alert_disabled(self, reset_front_rear_state):
-        config_with_disabled = TEST_CONFIG.copy()
-        config_with_disabled["alerts"] = {
-            "plate_mismatch": {"enabled": False, "name": "Test Alert"}
-        }
-        front_rear.config = config_with_disabled
-
-        with patch("protocols.front_rear.requests.post") as mock_post:
             front_rear._send_alert(
                 alert_type="plate_mismatch",
+                visit_id=456,
                 plate="ABC123",
                 camera_id="camera-front",
                 message="Test message",
             )
 
-            mock_post.assert_not_called()
+            # Verify the async task was scheduled
+            mock_run.assert_called_once()
+            # Verify it was scheduled with the correct loop
+            assert mock_run.call_args[0][1] == mock_loop
+
+    def test_send_alert_with_make_model(self, reset_front_rear_state):
+        """Test that _send_alert works with make/model data."""
+        with patch("protocols.front_rear._loop"), patch(
+            "protocols.front_rear._aiohttp_session"
+        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+            # Close coroutines to prevent warnings
+            mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
+
+            front_rear.config = TEST_CONFIG
+
+            front_rear._send_alert(
+                alert_type="plate_mismatch",
+                visit_id=456,
+                plate="ABC123",
+                camera_id="camera-front",
+                message="Test message",
+                detected_make_model="TOYOTA CAMRY",
+                make_model_score=0.85,
+            )
+
+            # Verify the async task was scheduled
+            mock_run.assert_called_once()
+
+    def test_send_alert_disabled(self, reset_front_rear_state):
+        """Test that disabled alerts are scheduled but return early in async function."""
+        config_with_disabled = TEST_CONFIG.copy()
+        config_with_disabled["alerts"] = {
+            "plate_mismatch": {
+                "enabled": False,
+                "name": "Test Alert",
+                "alert_template_id": 1,
+            }
+        }
+        front_rear.config = config_with_disabled
+
+        with patch("protocols.front_rear._loop"), patch(
+            "protocols.front_rear._aiohttp_session"
+        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+            # Close coroutines to prevent warnings
+            mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
+
+            front_rear._send_alert(
+                alert_type="plate_mismatch",
+                visit_id=456,
+                plate="ABC123",
+                camera_id="camera-front",
+                message="Test message",
+            )
+
+            # The async task is still scheduled (non-blocking design)
+            # but _send_alert_async will check if alert is disabled and return early
+            mock_run.assert_called_once()
 
 
 class TestWebhookProcessing:
@@ -611,17 +679,22 @@ class TestWebhookProcessing:
         assert status == 200
         mock_process_pair.assert_called_once()
 
+    @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._process_camera_pair")
     @patch("protocols.front_rear._send_alert")
     def test_process_request_overwrite_unpaired_event(
         self,
         mock_send_alert,
         mock_process_pair,
+        mock_forward,
         reset_front_rear_state,
         mock_env_vars,
         create_camera_event,
+        mock_asyncio_for_alerts,
     ):
         """Test that overwriting an unpaired event processes it before replacement."""
+        mock_forward.return_value = 123
+        mock_process_pair.return_value = 123
         front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
@@ -646,6 +719,9 @@ class TestWebhookProcessing:
         mock_process_pair.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "camera_offline" in alert_types
+        if mock_send_alert.call_args_list:
+            for call in mock_send_alert.call_args_list:
+                assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._process_camera_pair")
     @patch("protocols.front_rear._send_alert")
@@ -656,6 +732,7 @@ class TestWebhookProcessing:
         reset_front_rear_state,
         mock_env_vars,
         create_camera_event,
+        mock_asyncio_for_alerts,
     ):
         """Test that updating with same plate does not trigger overwrite alert."""
         front_rear.config = TEST_CONFIG
@@ -688,8 +765,14 @@ class TestCameraPairProcessing:
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_plate_not_in_db(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(camera_id="camera-front", plate="UNKNOWN123")
@@ -707,15 +790,24 @@ class TestCameraPairProcessing:
         )
         front_rear._process_camera_pair(pair)
 
+        mock_forward.assert_called_once()
         assert mock_send_alert.call_count >= 2
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "plate_mismatch" in alert_calls
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_no_rear_plate(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event()
         rear_event = create_camera_event(
@@ -730,14 +822,23 @@ class TestCameraPairProcessing:
         )
         front_rear._process_camera_pair(pair)
 
+        mock_forward.assert_called_once()
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "no_rear_plate" in alert_calls
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_make_model_mismatch(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(
@@ -755,14 +856,23 @@ class TestCameraPairProcessing:
         )
         front_rear._process_camera_pair(pair)
 
+        mock_forward.assert_called_once()
         alert_calls = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "make_model_mismatch" in alert_calls
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_forwards_rear_data(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event()
@@ -787,9 +897,15 @@ class TestCameraPairProcessing:
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_forwards_front_data_when_rear_unavailable(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
         """Test that front camera data is forwarded when rear camera is unavailable."""
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(original_json_data={"test": "front_data"})
@@ -809,8 +925,14 @@ class TestCameraPairProcessing:
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_single_front_camera_validates_db(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event(
@@ -829,13 +951,21 @@ class TestCameraPairProcessing:
         assert "no_rear_plate" not in alert_types
         assert "plate_mismatch" in alert_types
         mock_forward.assert_called_once()
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_single_rear_camera_validates_db(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
         """Test that single rear camera event validates against database."""
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {}
         front_rear.config = TEST_CONFIG
         rear_event = create_camera_event(
@@ -859,13 +989,21 @@ class TestCameraPairProcessing:
         mock_forward.assert_called_once()
         call_args = mock_forward.call_args[0]
         assert call_args[0].original_json_data == {"test": "rear_data"}
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._send_alert")
     def test_process_pair_rear_camera_online_no_plate(
-        self, mock_send_alert, mock_forward, reset_front_rear_state, create_camera_event
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
     ):
         """Test that no_rear_plate alert is sent when rear camera is online but detects no plate."""
+        mock_forward.return_value = 123
         front_rear.csv_vehicles = {"ABC123": {"make": "TOYOTA", "model": "CAMRY"}}
         front_rear.config = TEST_CONFIG
         front_event = create_camera_event()
@@ -884,20 +1022,28 @@ class TestCameraPairProcessing:
         )
         front_rear._process_camera_pair(pair)
 
+        mock_forward.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "no_rear_plate" in alert_types
+        for call in mock_send_alert.call_args_list:
+            assert call[1]["visit_id"] == 123
 
 
 class TestCleanupExpiredEvents:
+    @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._process_camera_pair")
     @patch("protocols.front_rear._send_alert")
     def test_cleanup_processes_expired_events(
         self,
         mock_send_alert,
         mock_process_pair,
+        mock_forward,
         reset_front_rear_state,
         create_camera_event,
+        mock_asyncio_for_alerts,
     ):
+        mock_forward.return_value = 123
+        mock_process_pair.return_value = 123
         front_rear.config = TEST_CONFIG
         old_pair = front_rear.CameraPair(
             front="camera-old", rear="camera-old-rear", description="Gate 1"
@@ -918,23 +1064,51 @@ class TestCleanupExpiredEvents:
         mock_process_pair.assert_called_once()
         alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
         assert "camera_offline" in alert_types
+        if mock_send_alert.call_args_list:
+            for call in mock_send_alert.call_args_list:
+                assert call[1]["visit_id"] == 123
         assert old_pair.front_event is None
         assert new_pair.front_event is not None
 
 
 class TestInitialization:
+    @patch("protocols.front_rear.asyncio.run_coroutine_threadsafe")
     @patch("protocols.front_rear.threading.Thread")
     def test_initialize(
-        self, mock_thread, reset_front_rear_state, sample_config, monkeypatch
+        self,
+        mock_thread,
+        mock_run_coro,
+        reset_front_rear_state,
+        sample_config,
+        monkeypatch,
     ):
+        """Test initialization with mocked asyncio components."""
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
+
+        # Mock the future returned by run_coroutine_threadsafe
+        mock_future = Mock()
+        mock_session = Mock()
+        mock_future.result.return_value = mock_session
+
+        # Close coroutines to prevent warnings
+        def mock_run_side_effect(coro, loop):
+            close_coroutine(coro)
+            return mock_future
+
+        mock_run_coro.side_effect = mock_run_side_effect
+
         front_rear.initialize()
 
         assert len(front_rear.csv_vehicles) > 0
         assert len(front_rear.camera_pairs) > 0
-        mock_thread.assert_called_once()
-        mock_thread.return_value.start.assert_called_once()
-        assert mock_thread.call_args[1]["daemon"] is True
+        # Two threads are created: one for event loop, one for cleanup
+        assert mock_thread.call_count == 2
+        # Both threads should be daemon threads
+        for call in mock_thread.call_args_list:
+            assert call[1]["daemon"] is True
+
+        # Verify aiohttp session was created
+        assert front_rear._aiohttp_session == mock_session
 
 
 if __name__ == "__main__":

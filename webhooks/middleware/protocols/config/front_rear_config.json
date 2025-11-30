@@ -22,19 +22,23 @@
   "alerts": {
     "plate_mismatch": {
       "enabled": true,
-      "name": "Front-Rear Plate Mismatch"
+      "name": "Front-Rear Plate Mismatch",
+      "alert_template_id": 10482
     },
     "no_rear_plate": {
       "enabled": true,
-      "name": "Front-Rear No Rear Plate"
+      "name": "Front-Rear No Rear Plate",
+      "alert_template_id": 10483
     },
     "make_model_mismatch": {
       "enabled": true,
-      "name": "Front-Rear Make/Model Mismatch"
+      "name": "Front-Rear Make/Model Mismatch",
+      "alert_template_id": 10484
     },
     "camera_offline": {
       "enabled": true,
-      "name": "Front-Rear Camera Possibly Offline"
+      "name": "Front-Rear Camera Possibly Offline",
+      "alert_template_id": 10485
     }
   }
 }

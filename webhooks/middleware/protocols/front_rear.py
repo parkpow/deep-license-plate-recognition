@@ -26,6 +26,7 @@ Data Forwarding:
 - Ensures no data loss even with single camera operation
 """
 
+import asyncio
 import csv
 import json
 import logging
@@ -34,12 +35,11 @@ import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from io import BytesIO
+from datetime import datetime
 from threading import Lock
 from typing import Any
 
-import requests
+import aiohttp
 
 from protocols.shared.utils import get_header
 
@@ -95,6 +95,10 @@ pair_locks: dict[str, Lock] = defaultdict(Lock)
 
 _config_cache: dict[str, Any] | None = None
 _config_last_load: float = 0.0
+
+_loop: asyncio.AbstractEventLoop | None = None
+_loop_thread: threading.Thread | None = None
+_aiohttp_session: aiohttp.ClientSession | None = None
 
 
 def _load_config() -> dict[str, Any]:
@@ -185,6 +189,19 @@ def _load_vehicles_csv() -> None:
         raise
 
 
+async def _create_aiohttp_session() -> aiohttp.ClientSession:
+    """Create aiohttp ClientSession inside the event loop."""
+    # Create session with default timeout to avoid "Timeout context manager should be used inside a task" error
+    timeout = aiohttp.ClientTimeout(total=30)
+    return aiohttp.ClientSession(timeout=timeout)
+
+
+def _run_event_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """Run the asyncio event loop in a background thread."""
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+
 def initialize() -> None:
     """
     Initialize Front-Rear middleware at startup.
@@ -193,8 +210,9 @@ def initialize() -> None:
     - Front-Rear Vehicle Database (CSV)
     - Configuration (camera pairs, thresholds, endpoints)
     - Schedules periodic cleanup of expired buffered events
+    - Starts asyncio event loop for non-blocking API calls
     """
-    global camera_pairs, config
+    global camera_pairs, config, _loop, _loop_thread, _aiohttp_session
 
     _load_vehicles_csv()
     config = _load_config()
@@ -220,22 +238,84 @@ def initialize() -> None:
         logging.error("ParkPow token not configured")
         raise ValueError("Front-Rear middleware requires parkpow.token")
 
+    _loop = asyncio.new_event_loop()
+    _loop_thread = threading.Thread(target=_run_event_loop, args=(_loop,), daemon=True)
+    _loop_thread.start()
+
+    if _loop is not None:
+        future = asyncio.run_coroutine_threadsafe(_create_aiohttp_session(), _loop)
+        _aiohttp_session = future.result(timeout=5)
+
     logging.info(
-        f"Initialized Front-Rear middleware with {len(camera_pairs)} camera pairs"
+        f"Initialized Front-Rear middleware with {len(camera_pairs)} camera pairs and asyncio event loop"
     )
 
     cleanup_thread = threading.Thread(target=_cleanup_task_loop, daemon=True)
     cleanup_thread.start()
 
 
+def shutdown() -> None:
+    """
+    Shutdown Front-Rear middleware and cleanup resources.
+
+    Closes aiohttp session and stops the asyncio event loop.
+    """
+    global _loop, _loop_thread, _aiohttp_session
+
+    logging.info("Front-Rear middleware shutdown initiated...")
+
+    # Close aiohttp session
+    if _aiohttp_session is not None and _loop is not None:
+        logging.info("Closing aiohttp session...")
+        try:
+            future = asyncio.run_coroutine_threadsafe(_aiohttp_session.close(), _loop)
+            future.result(timeout=5)
+            logging.info("Aiohttp session closed successfully")
+        except TimeoutError:
+            logging.warning("Timeout while closing aiohttp session")
+        except Exception as e:
+            logging.error(f"Error closing aiohttp session: {e}")
+        finally:
+            _aiohttp_session = None
+    elif _aiohttp_session is None:
+        logging.debug("Aiohttp session already closed or not initialized")
+
+    # Stop event loop
+    if _loop is not None:
+        logging.info("Stopping asyncio event loop...")
+        try:
+            _loop.call_soon_threadsafe(_loop.stop)
+            if _loop_thread is not None and _loop_thread.is_alive():
+                logging.debug("Waiting for event loop thread to finish...")
+                _loop_thread.join(timeout=5)
+                if _loop_thread.is_alive():
+                    logging.warning("Event loop thread did not stop within timeout")
+            _loop.close()
+            logging.info("Asyncio event loop stopped successfully")
+        except Exception as e:
+            logging.error(f"Error stopping asyncio event loop: {e}")
+        finally:
+            _loop = None
+            _loop_thread = None
+    else:
+        logging.debug("Asyncio event loop already stopped or not initialized")
+
+    logging.info("Front-Rear middleware shutdown complete")
+
+
 def _cleanup_task_loop() -> None:
     """Daemon thread that periodically runs cleanup of expired events."""
-    cleanup_interval = config.get("pairing", {}).get("cleanup_interval_seconds", 60)
     while True:
         try:
+            # Reload config on each iteration for hot reload support
+            current_config = _load_config()
+            cleanup_interval = current_config.get("pairing", {}).get(
+                "cleanup_interval_seconds", 60
+            )
             _cleanup_expired_events()
         except Exception as e:
             logging.error(f"Error in cleanup task: {e}")
+            cleanup_interval = 60  # Default fallback
         time.sleep(cleanup_interval)
 
 
@@ -243,6 +323,8 @@ def _cleanup_expired_events() -> None:
     """Remove expired events from buffer to prevent memory bloat."""
     global config
 
+    # Reload config for hot reload support
+    config = _load_config()
     time_window = config.get("pairing", {}).get("time_window_seconds", 30)
     expiry_threshold = time.time() - (time_window * 2)
     expired_items: list[tuple[CameraPair, str, CameraEvent]] = []
@@ -276,16 +358,18 @@ def _cleanup_expired_events() -> None:
             f"{missing_camera} may be offline, processing single camera event"
         )
 
-        _process_camera_pair(pair)
+        visit_id = _process_camera_pair(pair)
 
         # Alert #4: Possible Offline Camera Alert
-        _send_alert(
-            alert_type="camera_offline",
-            plate=None,
-            camera_id=missing_camera,
-            message=f"Camera {missing_camera} may be offline - no events received within {time_window}s window",
-            event_data=event,
-        )
+        if visit_id:
+            _send_alert(
+                alert_type="camera_offline",
+                visit_id=visit_id,
+                plate=None,
+                camera_id=missing_camera,
+                message=f"Camera {missing_camera} may be offline - no events received within {time_window}s window",
+                event_data=event,
+            )
 
     if expired_items:
         logging.warning(f"Cleaned up {len(expired_items)} expired events from buffer")
@@ -356,60 +440,126 @@ def _check_plate_in_vehicles_db(
     return vehicle_info is not None, vehicle_info
 
 
-def _send_alert(
+async def _send_alert_async(
     alert_type: str,
-    plate: str | None,
-    camera_id: str,
-    message: str,
+    visit_id: int,
+    plate: str | None = None,
+    camera_id: str | None = None,
+    message: str | None = None,
     event_data: CameraEvent | None = None,
     detected_make_model: str | None = None,
     make_model_score: float | None = None,
 ) -> None:
-    alert_config = config.get("alerts", {}).get(alert_type, {})
+    """Send alert to ParkPow using the trigger-alert endpoint (async).
+
+    Args:
+        alert_type: Type of alert (plate_mismatch, no_rear_plate, etc.)
+        visit_id: Visit ID from ParkPow
+        plate: License plate (optional, for logging)
+        camera_id: Camera ID (optional, for logging)
+        message: Alert message (optional, for logging)
+        event_data: Event data (optional, for logging)
+        detected_make_model: Detected vehicle make/model (optional, for logging)
+        make_model_score: Confidence score (optional, for logging)
+    """
+    # Reload config for hot reload support
+    current_config = _load_config()
+    alert_config = current_config.get("alerts", {}).get(alert_type, {})
     if not alert_config.get("enabled", True):
         logging.info(f"Alert {alert_type} is disabled, skipping")
         return
 
-    parkpow_config = config.get("parkpow", {})
+    alert_template_id = alert_config.get("alert_template_id")
+    if not alert_template_id:
+        logging.error(
+            f"Alert template ID not configured for {alert_type}, skipping alert"
+        )
+        return
+
+    parkpow_config = current_config.get("parkpow", {})
     alert_endpoint = parkpow_config["alert_endpoint"]
     token = parkpow_config["token"]
-    alert_name = alert_config.get("name", alert_type)
-    payload = {
-        "alert_type": alert_type,
-        "alert_name": alert_name,
-        "license_plate": plate,
-        "camera_id": camera_id,
-        "message": message,
-        "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-    }
 
-    if detected_make_model:
-        payload["detected_vehicle"] = {
-            "make_model": detected_make_model,
-            "score": make_model_score,
-        }
-
-    if event_data:
-        payload["event_data"] = {
-            "timestamp": event_data.timestamp,
-            "timestamp_local": event_data.timestamp_local,
-        }
+    payload = {"visit_id": visit_id, "alert_template_id": alert_template_id}
 
     headers = {"Authorization": f"Token {token}", "Content-Type": "application/json"}
 
+    if _aiohttp_session is None:
+        logging.error("Aiohttp session not initialized")
+        return
+
     try:
-        response = requests.post(
-            alert_endpoint, json=payload, headers=headers, timeout=10
-        )
-        response.raise_for_status()
+        async with _aiohttp_session.post(
+            alert_endpoint,
+            json=payload,
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as response:
+            response.raise_for_status()
+            response_data = await response.json()
+            alert_id = response_data.get("alert_id")
 
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to send alert {alert_type}: {e}")
+            logging.info(
+                f"Alert {alert_type} created (alert_id={alert_id}) for visit {visit_id}: {message}"
+            )
+
+    except Exception as e:
+        logging.error(f"Failed to send alert {alert_type} for visit {visit_id}: {e}")
 
 
-def _forward_to_parkpow(event: CameraEvent) -> None:
-    """Forward camera data to ParkPow webhook URL."""
-    parkpow_config = config.get("parkpow", {})
+def _send_alert(
+    alert_type: str,
+    visit_id: int,
+    plate: str | None = None,
+    camera_id: str | None = None,
+    message: str | None = None,
+    event_data: CameraEvent | None = None,
+    detected_make_model: str | None = None,
+    make_model_score: float | None = None,
+) -> None:
+    """Send alert to ParkPow using the trigger-alert endpoint (non-blocking).
+
+    This function schedules the alert to be sent asynchronously and returns immediately.
+
+    Args:
+        alert_type: Type of alert (plate_mismatch, no_rear_plate, etc.)
+        visit_id: Visit ID from ParkPow
+        plate: License plate (optional, for logging)
+        camera_id: Camera ID (optional, for logging)
+        message: Alert message (optional, for logging)
+        event_data: Event data (optional, for logging)
+        detected_make_model: Detected vehicle make/model (optional, for logging)
+        make_model_score: Confidence score (optional, for logging)
+    """
+    if _loop is None or _aiohttp_session is None:
+        logging.error("Asyncio event loop not initialized, cannot send alert")
+        return
+
+    # Schedule the async task without waiting for it
+    asyncio.run_coroutine_threadsafe(
+        _send_alert_async(
+            alert_type,
+            visit_id,
+            plate,
+            camera_id,
+            message,
+            event_data,
+            detected_make_model,
+            make_model_score,
+        ),
+        _loop,
+    )
+
+
+async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
+    """Forward camera data to ParkPow webhook URL (async).
+
+    Returns:
+        visit_id if successful, None otherwise
+    """
+    # Reload config for hot reload support
+    current_config = _load_config()
+    parkpow_config = current_config.get("parkpow", {})
     webhook_url = parkpow_config["webhook_endpoint"]
     token = parkpow_config["token"]
 
@@ -418,27 +568,79 @@ def _forward_to_parkpow(event: CameraEvent) -> None:
 
     headers = {"Authorization": f"Token {token}"}
 
+    if _aiohttp_session is None:
+        logging.error("Aiohttp session not initialized")
+        return None
+
     try:
         if all_files:
-            files_to_send = {}
+            # Create FormData for multipart upload
+            data = aiohttp.FormData()
+            data.add_field("json", json.dumps(json_data))
+
             for file_name, file_content in all_files.items():
-                files_to_send[file_name] = (file_name, BytesIO(file_content))
+                data.add_field(
+                    file_name,
+                    file_content,
+                    filename=file_name,
+                    content_type="application/octet-stream",
+                )
 
-            data = {"json": json.dumps(json_data)}
-            response = requests.post(
-                webhook_url, data=data, files=files_to_send, headers=headers, timeout=10
-            )
+            async with _aiohttp_session.post(
+                webhook_url,
+                data=data,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                response.raise_for_status()
+                response_data = await response.json()
         else:
-            response = requests.post(
-                webhook_url, json=json_data, headers=headers, timeout=10
-            )
+            async with _aiohttp_session.post(
+                webhook_url,
+                json=json_data,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                response.raise_for_status()
+                response_data = await response.json()
 
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
+        visit_id = response_data[0].get("id") if response_data else None
+
+        if visit_id:
+            logging.info(f"Created visit {visit_id} in ParkPow")
+            return visit_id
+        else:
+            logging.warning(f"ParkPow response missing visit id: {response_data}")
+            return None
+
+    except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
+        return None
 
 
-def _process_camera_pair(pair: CameraPair) -> None:
+def _forward_to_parkpow(event: CameraEvent) -> int | None:
+    """Forward camera data to ParkPow webhook URL (blocking wrapper).
+
+    This function is intentionally blocking because we need the visit_id
+    immediately to create alerts.
+
+    Returns:
+        visit_id if successful, None otherwise
+    """
+    if _loop is None or _aiohttp_session is None:
+        logging.error("Asyncio event loop not initialized, cannot forward to ParkPow")
+        return None
+
+    # Run the async function and wait for the result
+    future = asyncio.run_coroutine_threadsafe(_forward_to_parkpow_async(event), _loop)
+    try:
+        return future.result(timeout=15)
+    except Exception as e:
+        logging.error(f"Failed to forward to ParkPow: {e}")
+        return None
+
+
+def _process_camera_pair(pair: CameraPair) -> int | None:
     """
     Process matched front/rear camera pair and trigger alerts if needed.
 
@@ -449,6 +651,9 @@ def _process_camera_pair(pair: CameraPair) -> None:
 
     Args:
         pair: Camera pair with events to process
+
+    Returns:
+        visit_id if successfully forwarded to ParkPow, None otherwise
     """
     front_event = pair.front_event
     rear_event = pair.rear_event
@@ -472,6 +677,19 @@ def _process_camera_pair(pair: CameraPair) -> None:
         _extract_best_make_model(all_results) if all_results else (None, 0.0)
     )
 
+    # Forward data to ParkPow first to create visit
+    data_to_forward = rear_event if rear_event else front_event
+    if not data_to_forward:
+        logging.warning(f"No event data to forward for pair {pair.front}/{pair.rear}")
+        return None
+
+    visit_id = _forward_to_parkpow(data_to_forward)
+    if not visit_id:
+        logging.error(
+            f"Failed to create visit in ParkPow for pair {pair.front}/{pair.rear}, skipping alerts"
+        )
+        return None
+
     # Alert #2: No Rear Plate Alert (only if rear camera not offline)
     if not rear_plate and rear_event:
         logging.warning(
@@ -479,6 +697,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
         )
         _send_alert(
             alert_type="no_rear_plate",
+            visit_id=visit_id,
             plate=front_plate,
             camera_id=pair.rear,
             message=f"No rear plate detected for front plate {front_plate}",
@@ -486,7 +705,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
         )
 
         if not front_plate:
-            return
+            return None
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
     front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
@@ -496,6 +715,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
         logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
         _send_alert(
             alert_type="plate_mismatch",
+            visit_id=visit_id,
             plate=front_plate,
             camera_id=pair.front,
             message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
@@ -508,6 +728,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
         logging.warning(f"Rear plate {rear_plate} not found in Front-Rear database")
         _send_alert(
             alert_type="plate_mismatch",
+            visit_id=visit_id,
             plate=rear_plate,
             camera_id=pair.rear,
             message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
@@ -517,7 +738,9 @@ def _process_camera_pair(pair: CameraPair) -> None:
         )
 
     # Alert #3: Make/Model Mismatch Alert
-    make_model_threshold = config.get("thresholds", {}).get(
+    # Reload config for hot reload support
+    current_config = _load_config()
+    make_model_threshold = current_config.get("thresholds", {}).get(
         "make_model_confidence", 0.2
     )
     reference_plate = (
@@ -541,6 +764,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
             )
             _send_alert(
                 alert_type="make_model_mismatch",
+                visit_id=visit_id,
                 plate=reference_plate,
                 camera_id=pair.rear if rear_plate else pair.front,
                 message=(
@@ -553,10 +777,7 @@ def _process_camera_pair(pair: CameraPair) -> None:
                 make_model_score=make_model_score,
             )
 
-    # Forward data to ParkPow (prefer rear camera, fallback to front)
-    data_to_forward = rear_event if rear_event else front_event
-    if data_to_forward:
-        _forward_to_parkpow(data_to_forward)
+    return visit_id
 
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
@@ -682,19 +903,21 @@ def process_request(
         pair.front_event = old_front_event
         pair.rear_event = old_rear_event
 
-        _process_camera_pair(pair)
+        visit_id = _process_camera_pair(pair)
 
         pair.front_event = old_pair_front
         pair.rear_event = old_pair_rear
 
         # Alert #4: Possible Offline Camera Alert
-        _send_alert(
-            alert_type="camera_offline",
-            plate=None,
-            camera_id=missing_camera_id,
-            message=f"Camera {missing_camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
-            event_data=overwrite_old_event,
-        )
+        if visit_id:
+            _send_alert(
+                alert_type="camera_offline",
+                visit_id=visit_id,
+                plate=None,
+                camera_id=missing_camera_id,
+                message=f"Camera {missing_camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
+                event_data=overwrite_old_event,
+            )
 
     should_process_pair = False
 
@@ -702,7 +925,9 @@ def process_request(
         front_event = pair.front_event
         rear_event = pair.rear_event
 
-        time_window = config.get("pairing", {}).get("time_window_seconds", 30)
+        # Reload config for hot reload support
+        current_config = _load_config()
+        time_window = current_config.get("pairing", {}).get("time_window_seconds", 30)
         now = time.time()
         front_valid = front_event and (now - front_event.timestamp_unix) <= time_window
         rear_valid = rear_event and (now - rear_event.timestamp_unix) <= time_window
