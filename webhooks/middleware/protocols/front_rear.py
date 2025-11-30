@@ -191,7 +191,6 @@ def _load_vehicles_csv() -> None:
 
 async def _create_aiohttp_session() -> aiohttp.ClientSession:
     """Create aiohttp ClientSession inside the event loop."""
-    # Create session with default timeout to avoid "Timeout context manager should be used inside a task" error
     timeout = aiohttp.ClientTimeout(total=30)
     return aiohttp.ClientSession(timeout=timeout)
 
@@ -264,7 +263,6 @@ def shutdown() -> None:
 
     logging.info("Front-Rear middleware shutdown initiated...")
 
-    # Close aiohttp session
     if _aiohttp_session is not None and _loop is not None:
         logging.info("Closing aiohttp session...")
         try:
@@ -280,7 +278,6 @@ def shutdown() -> None:
     elif _aiohttp_session is None:
         logging.debug("Aiohttp session already closed or not initialized")
 
-    # Stop event loop
     if _loop is not None:
         logging.info("Stopping asyncio event loop...")
         try:
@@ -535,7 +532,6 @@ def _send_alert(
         logging.error("Asyncio event loop not initialized, cannot send alert")
         return
 
-    # Schedule the async task without waiting for it
     asyncio.run_coroutine_threadsafe(
         _send_alert_async(
             alert_type,
@@ -574,7 +570,6 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
 
     try:
         if all_files:
-            # Create FormData for multipart upload
             data = aiohttp.FormData()
             data.add_field("json", json.dumps(json_data))
 
@@ -604,13 +599,23 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
                 response.raise_for_status()
                 response_data = await response.json()
 
-        visit_id = response_data[0].get("id") if response_data else None
+        visit_id = None
+        if isinstance(response_data, list) and len(response_data) > 0:
+            first_item = response_data[0]
+            if isinstance(first_item, dict):
+                visit_id = first_item.get("id")
+        elif isinstance(response_data, dict):
+            visit_id = response_data.get("id")
 
         if visit_id:
             logging.info(f"Created visit {visit_id} in ParkPow")
             return visit_id
         else:
-            logging.warning(f"ParkPow response missing visit id: {response_data}")
+            logging.warning(
+                f"ParkPow response missing or invalid visit id. "
+                f"Response type: {type(response_data).__name__}, "
+                f"Content: {response_data}"
+            )
             return None
 
     except Exception as e:
@@ -631,7 +636,6 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
         logging.error("Asyncio event loop not initialized, cannot forward to ParkPow")
         return None
 
-    # Run the async function and wait for the result
     future = asyncio.run_coroutine_threadsafe(_forward_to_parkpow_async(event), _loop)
     try:
         return future.result(timeout=15)
@@ -640,23 +644,32 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
         return None
 
 
-def _process_camera_pair(pair: CameraPair) -> int | None:
+def _process_events(
+    front_event: CameraEvent | None,
+    rear_event: CameraEvent | None,
+    front_camera_id: str,
+    rear_camera_id: str,
+) -> int | None:
     """
-    Process matched front/rear camera pair and trigger alerts if needed.
+    Process front/rear camera events and trigger alerts if needed.
 
-    Implements all three alert conditions:
+    This function does not mutate any shared state and can be called
+    outside of locks safely.
+
+    Implements all alert conditions:
     - Alert #1: Plate not in Front-Rear DB
     - Alert #2: Missing rear plate (only if camera not offline)
     - Alert #3: Make/model mismatch with confidence thresholds
 
     Args:
-        pair: Camera pair with events to process
+        front_event: Event from front camera (or None)
+        rear_event: Event from rear camera (or None)
+        front_camera_id: Front camera ID (for logging/alerts)
+        rear_camera_id: Rear camera ID (for logging/alerts)
 
     Returns:
         visit_id if successfully forwarded to ParkPow, None otherwise
     """
-    front_event = pair.front_event
-    rear_event = pair.rear_event
 
     front_plate = None
     rear_plate = None
@@ -680,26 +693,28 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
     # Forward data to ParkPow first to create visit
     data_to_forward = rear_event if rear_event else front_event
     if not data_to_forward:
-        logging.warning(f"No event data to forward for pair {pair.front}/{pair.rear}")
+        logging.warning(
+            f"No event data to forward for pair {front_camera_id}/{rear_camera_id}"
+        )
         return None
 
     visit_id = _forward_to_parkpow(data_to_forward)
     if not visit_id:
         logging.error(
-            f"Failed to create visit in ParkPow for pair {pair.front}/{pair.rear}, skipping alerts"
+            f"Failed to create visit in ParkPow for pair {front_camera_id}/{rear_camera_id}, skipping alerts"
         )
         return None
 
     # Alert #2: No Rear Plate Alert (only if rear camera not offline)
     if not rear_plate and rear_event:
         logging.warning(
-            f"No rear plate detected for camera pair {pair.front}/{pair.rear}"
+            f"No rear plate detected for camera pair {front_camera_id}/{rear_camera_id}"
         )
         _send_alert(
             alert_type="no_rear_plate",
             visit_id=visit_id,
             plate=front_plate,
-            camera_id=pair.rear,
+            camera_id=rear_camera_id,
             message=f"No rear plate detected for front plate {front_plate}",
             event_data=rear_event,
         )
@@ -717,7 +732,7 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
             alert_type="plate_mismatch",
             visit_id=visit_id,
             plate=front_plate,
-            camera_id=pair.front,
+            camera_id=front_camera_id,
             message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
             event_data=front_event,
             detected_make_model=detected_make_model,
@@ -730,7 +745,7 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
             alert_type="plate_mismatch",
             visit_id=visit_id,
             plate=rear_plate,
-            camera_id=pair.rear,
+            camera_id=rear_camera_id,
             message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
             event_data=rear_event,
             detected_make_model=detected_make_model,
@@ -766,7 +781,7 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
                 alert_type="make_model_mismatch",
                 visit_id=visit_id,
                 plate=reference_plate,
-                camera_id=pair.rear if rear_plate else pair.front,
+                camera_id=rear_camera_id if rear_plate else front_camera_id,
                 message=(
                     f"Vehicle make/model mismatch for {reference_plate}: "
                     f"Detected {detected_make_model} (confidence: {make_model_score:.2f}), "
@@ -778,6 +793,28 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
             )
 
     return visit_id
+
+
+def _process_camera_pair(pair: CameraPair) -> int | None:
+    """
+    Process matched front/rear camera pair and trigger alerts if needed.
+
+    This is a wrapper around _process_events that extracts events from the
+    pair object. The actual processing logic is in _process_events which
+    does not mutate shared state.
+
+    Args:
+        pair: Camera pair with events to process
+
+    Returns:
+        visit_id if successfully forwarded to ParkPow, None otherwise
+    """
+    return _process_events(
+        front_event=pair.front_event,
+        rear_event=pair.rear_event,
+        front_camera_id=pair.front,
+        rear_camera_id=pair.rear,
+    )
 
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
@@ -898,15 +935,12 @@ def process_request(
             pair.rear_event = event
 
     if should_send_overwrite_alert and missing_camera_id is not None:
-        old_pair_front = pair.front_event
-        old_pair_rear = pair.rear_event
-        pair.front_event = old_front_event
-        pair.rear_event = old_rear_event
-
-        visit_id = _process_camera_pair(pair)
-
-        pair.front_event = old_pair_front
-        pair.rear_event = old_pair_rear
+        visit_id = _process_events(
+            front_event=old_front_event,
+            rear_event=old_rear_event,
+            front_camera_id=pair.front,
+            rear_camera_id=pair.rear,
+        )
 
         # Alert #4: Possible Offline Camera Alert
         if visit_id:

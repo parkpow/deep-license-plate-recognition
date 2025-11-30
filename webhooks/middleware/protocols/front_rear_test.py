@@ -694,34 +694,40 @@ class TestWebhookProcessing:
     ):
         """Test that overwriting an unpaired event processes it before replacement."""
         mock_forward.return_value = 123
-        mock_process_pair.return_value = 123
-        front_rear.config = TEST_CONFIG
-        pair = front_rear.CameraPair(
-            front="camera-front", rear="camera-rear", description="Gate 1"
-        )
-        front_rear.camera_pairs = [pair]
-        old_time = time.time() - 20
-        pair.front_event = create_camera_event(
-            plate="OLD123", timestamp="2024-11-24T10:00:00Z", timestamp_unix=old_time
-        )
+        with patch(
+            "protocols.front_rear._process_events", return_value=123
+        ) as mock_process_events:
+            front_rear.config = TEST_CONFIG
+            pair = front_rear.CameraPair(
+                front="camera-front", rear="camera-rear", description="Gate 1"
+            )
+            front_rear.camera_pairs = [pair]
+            old_time = time.time() - 20
+            pair.front_event = create_camera_event(
+                plate="OLD123",
+                timestamp="2024-11-24T10:00:00Z",
+                timestamp_unix=old_time,
+            )
 
-        webhook_data = {
-            "webhook_header": {"Authorization": "test-stream-token"},
-            "data": {
-                "camera_id": "camera-front",
-                "results": [{"plate": "NEW456"}],
-                "timestamp": "2024-11-24T10:00:20Z",
-            },
-        }
-        response, status = front_rear.process_request(webhook_data)
+            webhook_data = {
+                "webhook_header": {"Authorization": "test-stream-token"},
+                "data": {
+                    "camera_id": "camera-front",
+                    "results": [{"plate": "NEW456"}],
+                    "timestamp": "2024-11-24T10:00:20Z",
+                },
+            }
+            response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
-        mock_process_pair.assert_called_once()
-        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
-        assert "camera_offline" in alert_types
-        if mock_send_alert.call_args_list:
-            for call in mock_send_alert.call_args_list:
-                assert call[1]["visit_id"] == 123
+            assert status == 200
+            mock_process_events.assert_called_once()
+            alert_types = [
+                call[1]["alert_type"] for call in mock_send_alert.call_args_list
+            ]
+            assert "camera_offline" in alert_types
+            if mock_send_alert.call_args_list:
+                for call in mock_send_alert.call_args_list:
+                    assert call[1]["visit_id"] == 123
 
     @patch("protocols.front_rear._process_camera_pair")
     @patch("protocols.front_rear._send_alert")
