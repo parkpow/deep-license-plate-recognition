@@ -36,6 +36,19 @@ def load_middleware():
         return None
 
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint for load balancers and monitoring (front_rear only)."""
+    middleware_name = os.getenv("MIDDLEWARE_NAME")
+    if middleware_name != "front_rear":
+        return jsonify({"error": "Not found"}), 404
+
+    global middleware
+    if not middleware:
+        return jsonify({"status": "unhealthy", "reason": "Middleware not loaded"}), 503
+    return jsonify({"status": "healthy", "middleware": middleware_name}), 200
+
+
 @app.route("/", methods=["POST"])
 def handle_webhook():
     global middleware
