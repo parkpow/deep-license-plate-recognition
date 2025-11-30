@@ -91,7 +91,7 @@ class CameraPair:
 csv_vehicles: dict[str, dict[str, str]] = {}  # plate -> {make, model}
 camera_pairs: list[CameraPair] = []
 config: dict[str, Any] = {}
-pair_locks: dict[str, Lock] = defaultdict(Lock)
+pair_locks: dict[str, Lock] = defaultdict(lambda: Lock())
 
 _config_cache: dict[str, Any] | None = None
 _config_last_load: float = 0.0
@@ -284,7 +284,7 @@ def shutdown() -> None:
     if _loop is not None:
         logging.info("Stopping asyncio event loop...")
         try:
-            _loop.call_soon_threadsafe(_loop.stop)
+            _loop.call_soon_threadsafe(lambda: _loop.stop() if _loop else None)
             if _loop_thread is not None and _loop_thread.is_alive():
                 logging.debug("Waiting for event loop thread to finish...")
                 _loop_thread.join(timeout=5)

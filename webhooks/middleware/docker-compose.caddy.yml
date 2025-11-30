@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  middleware:
+    build: .
+    container_name: middleware
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "8002"
+    volumes:
+      - ./front_rear.csv:/app/front_rear.csv:ro
+      - ./protocols/config/front_rear_config.json:/app/protocols/config/front_rear_config.json:ro
+    networks:
+      - middleware-net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - middleware-net
+
+networks:
+  middleware-net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
