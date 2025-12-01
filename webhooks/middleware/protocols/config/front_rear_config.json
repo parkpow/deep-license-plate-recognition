@@ -14,6 +14,16 @@
       "front": null,
       "rear": "camera-solo-rear",
       "description": "Solo Rear Camera - Test"
+    },
+    {
+      "front": "camera-failed-front",
+      "rear": "camera-working-rear",
+      "description": "Failed Front Camera - Test"
+    },
+    {
+      "front": "camera-working-front",
+      "rear": "camera-failed-rear",
+      "description": "Failed Rear Camera - Test"
     }
   ],
   "thresholds": {
