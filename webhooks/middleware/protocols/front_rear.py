@@ -333,17 +333,19 @@ def _cleanup_expired_events() -> None:
             age = time.time() - current_event.timestamp_unix
             missing_camera = pair.rear if is_front else pair.front
 
-            if is_front:
-                pair.front_event = None
-            else:
-                pair.rear_event = None
-
         logging.warning(
             f"Unpaired event expired from {camera_id} after {age:.1f}s - "
             f"{missing_camera} may be offline, processing single camera event"
         )
 
         visit_id = _process_camera_pair(pair)
+
+        with pair_locks[pair_id]:
+            is_front = camera_id == pair.front
+            if is_front:
+                pair.front_event = None
+            else:
+                pair.rear_event = None
 
         # Alert #4: Possible Offline Camera Alert
         if visit_id:
