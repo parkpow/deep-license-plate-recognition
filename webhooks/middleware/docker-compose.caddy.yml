@@ -10,7 +10,7 @@ services:
       - "8002"
     volumes:
       - ./front_rear.csv:/app/front_rear.csv:ro
-      - ./protocols/config/front_rear_config.json:/app/protocols/config/front_rear_config.json:ro
+      - ./protocols/config:/app/protocols/config:ro
     networks:
       - middleware-net
 
