@@ -164,7 +164,7 @@ def mock_asyncio_for_alerts():
     with patch("protocols.front_rear._loop"), patch(
         "protocols.front_rear._aiohttp_session"
     ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
-        # Close coroutines to prevent warnings
+
         def run_coro_side_effect(coro, loop):
             close_coroutine(coro)
             mock_future = Mock()
@@ -435,11 +435,9 @@ class TestPlateDatabase:
 class TestAlertSending:
     def test_send_alert_success(self, reset_front_rear_state):
         """Test that _send_alert schedules the async task (non-blocking)."""
-        # Mock the event loop and aiohttp session
         with patch("protocols.front_rear._loop") as mock_loop, patch(
             "protocols.front_rear._aiohttp_session"
         ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
-            # Close coroutines to prevent warnings
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             front_rear.config = TEST_CONFIG
@@ -452,9 +450,7 @@ class TestAlertSending:
                 message="Test message",
             )
 
-            # Verify the async task was scheduled
             mock_run.assert_called_once()
-            # Verify it was scheduled with the correct loop
             assert mock_run.call_args[0][1] == mock_loop
 
     def test_send_alert_with_make_model(self, reset_front_rear_state):
@@ -462,7 +458,6 @@ class TestAlertSending:
         with patch("protocols.front_rear._loop"), patch(
             "protocols.front_rear._aiohttp_session"
         ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
-            # Close coroutines to prevent warnings
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             front_rear.config = TEST_CONFIG
@@ -477,7 +472,6 @@ class TestAlertSending:
                 make_model_score=0.85,
             )
 
-            # Verify the async task was scheduled
             mock_run.assert_called_once()
 
     def test_send_alert_disabled(self, reset_front_rear_state):
@@ -495,7 +489,6 @@ class TestAlertSending:
         with patch("protocols.front_rear._loop"), patch(
             "protocols.front_rear._aiohttp_session"
         ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
-            # Close coroutines to prevent warnings
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             front_rear._send_alert(
@@ -506,8 +499,6 @@ class TestAlertSending:
                 message="Test message",
             )
 
-            # The async task is still scheduled (non-blocking design)
-            # but _send_alert_async will check if alert is disabled and return early
             mock_run.assert_called_once()
 
 
@@ -1091,12 +1082,10 @@ class TestInitialization:
         """Test initialization with mocked asyncio components."""
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
 
-        # Mock the future returned by run_coroutine_threadsafe
         mock_future = Mock()
         mock_session = Mock()
         mock_future.result.return_value = mock_session
 
-        # Close coroutines to prevent warnings
         def mock_run_side_effect(coro, loop):
             close_coroutine(coro)
             return mock_future
@@ -1107,14 +1096,145 @@ class TestInitialization:
 
         assert len(front_rear.csv_vehicles) > 0
         assert len(front_rear.camera_pairs) > 0
-        # Two threads are created: one for event loop, one for cleanup
         assert mock_thread.call_count == 2
-        # Both threads should be daemon threads
         for call in mock_thread.call_args_list:
             assert call[1]["daemon"] is True
 
-        # Verify aiohttp session was created
         assert front_rear._aiohttp_session == mock_session
+
+
+class TestSoloCameras:
+    """Test solo camera functionality (front-only or rear-only)."""
+
+    @pytest.mark.parametrize(
+        "front,rear,expected_camera_id,expected_id",
+        [
+            ("cam1", None, "cam1", "solo:cam1"),  # Front only
+            (None, "cam2", "cam2", "solo:cam2"),  # Rear only
+            ("cam1", "", "cam1", "solo:cam1"),  # Empty rear string
+            ("", "cam2", "cam2", "solo:cam2"),  # Empty front string
+        ],
+    )
+    def test_solo_camera_properties(
+        self, reset_front_rear_state, front, rear, expected_camera_id, expected_id
+    ):
+        """Test solo camera properties for different configurations."""
+        pair = front_rear.CameraPair(front=front, rear=rear, description="Solo")
+        assert pair.is_solo is True
+        assert pair.solo_camera_id == expected_camera_id
+        assert pair.id == expected_id
+
+    def test_paired_camera_not_solo(self, reset_front_rear_state):
+        """Test paired camera is not solo."""
+        pair = front_rear.CameraPair(front="cam1", rear="cam2", description="Paired")
+        assert pair.is_solo is False
+        assert pair.solo_camera_id is None
+        assert pair.id == "cam1:cam2"
+
+    @pytest.mark.parametrize(
+        "front,rear,camera_id",
+        [
+            ("solo-front", None, "solo-front"),  # Front only
+            (None, "solo-rear", "solo-rear"),  # Rear only
+        ],
+    )
+    def test_get_camera_pair_solo(self, reset_front_rear_state, front, rear, camera_id):
+        """Test finding solo cameras in either position."""
+        front_rear.camera_pairs = [
+            front_rear.CameraPair(front=front, rear=rear, description="Solo")
+        ]
+        pair = front_rear._get_camera_pair(camera_id)
+        assert pair is not None
+        assert pair.is_solo is True
+
+    @pytest.mark.parametrize(
+        "front,rear,camera_id,plate,visit_id,should_have_plate_in_db,expected_plate_mismatch",
+        [
+            ("solo-front", None, "solo-front", "SOLO123", 456, False, True),
+            (None, "solo-rear", "solo-rear", "REAR456", 789, True, False),
+        ],
+    )
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_solo_camera_immediate(
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        mock_env_vars,
+        create_camera_event,
+        mock_asyncio_for_alerts,
+        front,
+        rear,
+        camera_id,
+        plate,
+        visit_id,
+        should_have_plate_in_db,
+        expected_plate_mismatch,
+    ):
+        """Test solo cameras process immediately without waiting for pairing."""
+        mock_forward.return_value = visit_id
+
+        if should_have_plate_in_db:
+            front_rear.csv_vehicles = {plate: {"make": "TOYOTA", "model": "CAMRY"}}
+        else:
+            front_rear.csv_vehicles = {}
+
+        front_rear.config = TEST_CONFIG
+        pair = front_rear.CameraPair(front=front, rear=rear, description="Solo")
+        front_rear.camera_pairs = [pair]
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": camera_id,
+                "results": [{"plate": plate}],
+                "timestamp": "2024-11-24T10:00:00Z",
+            },
+        }
+
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+        assert "Processed" in response
+        mock_forward.assert_called_once()
+
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        if expected_plate_mismatch:
+            assert "plate_mismatch" in alert_types
+        else:
+            assert "plate_mismatch" not in alert_types
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    def test_solo_camera_no_rear_plate_alert(
+        self,
+        mock_forward,
+        reset_front_rear_state,
+        mock_env_vars,
+        create_camera_event,
+        mock_asyncio_for_alerts,
+    ):
+        """Test solo camera does not trigger no_rear_plate alert."""
+        mock_forward.return_value = 999
+        front_rear.csv_vehicles = {}
+        front_rear.config = TEST_CONFIG
+        pair = front_rear.CameraPair(front="solo-cam", rear=None, description="Solo")
+        front_rear.camera_pairs = [pair]
+
+        with patch("protocols.front_rear._send_alert") as mock_alert:
+            webhook_data = {
+                "webhook_header": {"Authorization": "test-stream-token"},
+                "data": {
+                    "camera_id": "solo-cam",
+                    "results": [{"plate": "TEST123"}],
+                    "timestamp": "2024-11-24T10:00:00Z",
+                },
+            }
+
+            front_rear.process_request(webhook_data)
+
+            alert_types = [call[1]["alert_type"] for call in mock_alert.call_args_list]
+            assert "no_rear_plate" not in alert_types
 
 
 if __name__ == "__main__":

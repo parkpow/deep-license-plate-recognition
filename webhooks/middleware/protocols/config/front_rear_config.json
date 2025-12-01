@@ -3,7 +3,17 @@
     {
       "front": "camera-front",
       "rear": "camera-rear",
-      "description": "Entry Gate 1"
+      "description": "Camera Pair - Test"
+    },
+    {
+      "front": "camera-solo-front",
+      "rear": null,
+      "description": "Solo Front Camera - Test"
+    },
+    {
+      "front": null,
+      "rear": "camera-solo-rear",
+      "description": "Solo Rear Camera - Test"
     }
   ],
   "thresholds": {
