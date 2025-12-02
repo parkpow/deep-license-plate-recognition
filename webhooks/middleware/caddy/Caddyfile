@@ -1,5 +1,4 @@
 # Caddyfile for Front-Rear Middleware
-# Replace middleware.example.com with your actual domain
 
 # HTTP redirect to HTTPS (automatic)
 hertz-7f9a2b4e.platerecognizer.com {
@@ -37,7 +36,7 @@ hertz-7f9a2b4e.platerecognizer.com {
         Referrer-Policy "strict-origin-when-cross-origin"
 
         # HSTS (uncomment after testing HTTPS works)
-        # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     }
 
     # Rate limiting (optional - requires caddy-ratelimit plugin)
@@ -50,17 +49,17 @@ hertz-7f9a2b4e.platerecognizer.com {
     # }
 }
 
-# Local/development configuration (without TLS)
-:8003 {
-    reverse_proxy middleware:8002
+# # Local/development configuration (without TLS)
+# :8003 {
+#     reverse_proxy middleware:8002
 
-    log {
-        output stdout
-        format console
-    }
-}
+#     log {
+#         output stdout
+#         format console
+#     }
+# }
 
-# Health check endpoint for monitoring
-:2019 {
-    metrics
-}
+# # Health check endpoint for monitoring
+# :2019 {
+#     metrics
+# }
