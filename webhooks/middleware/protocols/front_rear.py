@@ -526,14 +526,14 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
                     file_name,
                     file_content,
                     filename=file_name,
-                    content_type="application/octet-stream",
+                    content_type="image/jpeg",
                 )
 
             async with _aiohttp_session.post(
                 webhook_url,
                 data=data,
                 headers=headers,
-                timeout=aiohttp.ClientTimeout(total=10),
+                timeout=aiohttp.ClientTimeout(total=15),
             ) as response:
                 response.raise_for_status()
                 response_data = await response.json()
@@ -542,7 +542,7 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
                 webhook_url,
                 json=json_data,
                 headers=headers,
-                timeout=aiohttp.ClientTimeout(total=10),
+                timeout=aiohttp.ClientTimeout(total=15),
             ) as response:
                 response.raise_for_status()
                 response_data = await response.json()
