@@ -1027,6 +1027,8 @@ class TestCameraPairProcessing:
 
 
 class TestCleanupExpiredEvents:
+    @patch("protocols.front_rear._load_vehicles_csv")
+    @patch("protocols.front_rear._load_config")
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._process_camera_pair")
     @patch("protocols.front_rear._send_alert")
@@ -1035,12 +1037,15 @@ class TestCleanupExpiredEvents:
         mock_send_alert,
         mock_process_pair,
         mock_forward,
+        mock_load_config,
+        mock_load_csv,
         reset_front_rear_state,
         create_camera_event,
         mock_asyncio_for_alerts,
     ):
         mock_forward.return_value = 123
         mock_process_pair.return_value = 123
+        mock_load_config.return_value = TEST_CONFIG
         front_rear.config = TEST_CONFIG
         old_pair = front_rear.CameraPair(
             front="camera-old", rear="camera-old-rear", description="Gate 1"

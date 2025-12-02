@@ -89,6 +89,7 @@ pair_locks: dict[str, Lock] = defaultdict(lambda: Lock())
 
 _config_cache: dict[str, Any] | None = None
 _config_last_load: float = 0.0
+_csv_last_load: float = 0.0
 
 _loop: asyncio.AbstractEventLoop | None = None
 _loop_thread: threading.Thread | None = None
@@ -97,7 +98,7 @@ _aiohttp_session: aiohttp.ClientSession | None = None
 
 def _load_config() -> dict[str, Any]:
     """Load configuration from JSON file with hot-reload support."""
-    global _config_cache, _config_last_load
+    global _config_cache, _config_last_load, camera_pairs
 
     config_path = "protocols/config/front_rear_config.json"
 
@@ -112,6 +113,15 @@ def _load_config() -> dict[str, Any]:
         _config_cache = config_data
         _config_last_load = file_mtime
 
+        new_camera_pairs = [
+            CameraPair(**pair) for pair in config_data.get("camera_pairs", [])
+        ]
+        if new_camera_pairs != camera_pairs:
+            camera_pairs = new_camera_pairs
+            logging.info(
+                f"Reloaded {len(camera_pairs)} camera pairs from configuration"
+            )
+
         logging.info(f"Loaded Front-Rear configuration from {config_path}")
         return config_data
 
@@ -125,12 +135,16 @@ def _load_config() -> dict[str, Any]:
 
 def _load_vehicles_csv() -> None:
     """Load Front-Rear Vehicle Database CSV into memory for fast lookups."""
-    global csv_vehicles, config
+    global csv_vehicles, config, _csv_last_load
 
     config = _load_config()
     csv_path = config.get("front_rear_csv_path", "front_rear.csv")
 
     try:
+        csv_mtime = os.path.getmtime(csv_path)
+        if csv_vehicles and csv_mtime <= _csv_last_load:
+            return
+
         csv_vehicles.clear()
         total_rows = 0
         skipped = 0
@@ -170,6 +184,7 @@ def _load_vehicles_csv() -> None:
                 "Front-Rear database is empty, cannot operate without vehicle data"
             )
 
+        _csv_last_load = csv_mtime
         logging.info(
             f"Loaded {len(csv_vehicles)} vehicles from Front-Rear database "
             f"({total_rows} rows, {duplicates} duplicates skipped, {skipped} invalid plates skipped)"
@@ -290,6 +305,7 @@ def _cleanup_task_loop() -> None:
             cleanup_interval = current_config.get("pairing", {}).get(
                 "cleanup_interval_seconds", 60
             )
+            _load_vehicles_csv()
             _cleanup_expired_events()
         except Exception as e:
             logging.error(f"Error in cleanup task: {e}")
