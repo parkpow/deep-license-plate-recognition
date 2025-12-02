@@ -7,7 +7,6 @@ services:
     expose:
       - "8002"
     volumes:
-      - ./front_rear.csv:/app/front_rear.csv:ro
       - ./protocols/config:/app/protocols/config:ro
     networks:
       - middleware-net

@@ -138,7 +138,7 @@ def _load_vehicles_csv() -> None:
     global csv_vehicles, config, _csv_last_load
 
     config = _load_config()
-    csv_path = config.get("front_rear_csv_path", "front_rear.csv")
+    csv_path = config.get("front_rear_csv_path", "protocols/config/front_rear.csv")
 
     try:
         csv_mtime = os.path.getmtime(csv_path)
