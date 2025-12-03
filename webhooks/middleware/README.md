@@ -22,7 +22,7 @@ Refer to [this guide](https://guides.platerecognizer.com/docs/stream/integration
    - If your stream service is not running and you want to run both the middleware and the stream service:
 
    ```bash
-   docker-compose up
+   docker compose up
    ```
 
 ## **Environment Variables Setup**

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   stream:
     image: platerecognizer/alpr-stream
@@ -25,4 +23,4 @@ services:
     volumes:
       # - ./dot_config.csv:/app/dot_config.csv:ro
       # - "/opt/stream:/user-data" #uncomment this line if you use strip_plate protocol (Required)
-      - ./front_rear.csv:/app/front_rear.csv:ro # Required for front_rear protocol
+      - ./protocols/config:/app/protocols/config:ro # Required for front_rear protocol
