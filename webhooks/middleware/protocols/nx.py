@@ -9,6 +9,7 @@ from threading import Timer
 from typing import Any
 
 import requests
+
 from protocols.shared.utils import get_required_header
 
 logging.basicConfig(
@@ -157,7 +158,7 @@ def process_request(
         return f"Failed to process the request: {err}", 400
 
 
-def initialize_parkpow_tags() -> None:
+def initialize() -> None:
     parkpow_token = os.getenv("PARKPOW_TOKEN")
     tag = os.getenv("TAG")
 

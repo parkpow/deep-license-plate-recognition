@@ -1,0 +1,65 @@
+# Caddyfile for Front-Rear Middleware
+
+# HTTP redirect to HTTPS (automatic)
+hertz-7f9a2b4e.platerecognizer.com {
+    # Reverse proxy to the middleware container
+    reverse_proxy middleware:8002 {
+        # Health check
+        health_uri /health
+        health_interval 30s
+        health_timeout 5s
+
+        # Forward real client IP
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Request logging
+    log {
+        output file /var/log/caddy/middleware-access.log
+        format json
+    }
+
+    # Enable gzip compression
+    encode gzip
+
+    # Security headers
+    header {
+        # Remove server information
+        -Server
+
+        # Security headers
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # HSTS (uncomment after testing HTTPS works)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    # Rate limiting (optional - requires caddy-ratelimit plugin)
+    # rate_limit {
+    #     zone webhook {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+}
+
+# # Local/development configuration (without TLS)
+# :8003 {
+#     reverse_proxy middleware:8002
+
+#     log {
+#         output stdout
+#         format console
+#     }
+# }
+
+# # Health check endpoint for monitoring
+# :2019 {
+#     metrics
+# }

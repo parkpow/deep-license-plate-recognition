@@ -1,0 +1,64 @@
+{
+  "camera_pairs": [
+    {
+      "front": "camera-front",
+      "rear": "camera-rear",
+      "description": "Camera Pair - Test"
+    },
+    {
+      "front": "camera-solo-front",
+      "rear": null,
+      "description": "Solo Front Camera - Test"
+    },
+    {
+      "front": null,
+      "rear": "camera-solo-rear",
+      "description": "Solo Rear Camera - Test"
+    },
+    {
+      "front": "camera-failed-front",
+      "rear": "camera-working-rear",
+      "description": "Failed Front Camera - Test"
+    },
+    {
+      "front": "camera-working-front",
+      "rear": "camera-failed-rear",
+      "description": "Failed Rear Camera - Test"
+    }
+  ],
+  "thresholds": {
+    "make_model_confidence": 0.2
+  },
+  "pairing": {
+    "time_window_seconds": 30,
+    "cleanup_interval_seconds": 60
+  },
+  "front_rear_csv_path": "protocols/config/front_rear.csv",
+  "parkpow": {
+    "alert_endpoint": "<alert_endpoint>",
+    "webhook_endpoint": "<webhook_endpoint>",
+    "token": "<token>"
+  },
+  "alerts": {
+    "plate_mismatch": {
+      "enabled": true,
+      "name": "Front-Rear Plate Mismatch",
+      "alert_template_id": 10482
+    },
+    "no_rear_plate": {
+      "enabled": true,
+      "name": "Front-Rear No Rear Plate",
+      "alert_template_id": 10483
+    },
+    "make_model_mismatch": {
+      "enabled": true,
+      "name": "Front-Rear Make/Model Mismatch",
+      "alert_template_id": 10484
+    },
+    "camera_offline": {
+      "enabled": true,
+      "name": "Front-Rear Camera Possibly Offline",
+      "alert_template_id": 10485
+    }
+  }
+}

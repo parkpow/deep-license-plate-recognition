@@ -1,8 +1,11 @@
 # common_webhook_consumer.py
+import atexit
 import importlib
 import json
 import logging
 import os
+import signal
+import sys
 from typing import Any
 
 from flask import Flask, jsonify, request
@@ -17,6 +20,24 @@ app = Flask(__name__)
 middleware: Any | None = None
 
 
+def cleanup_middleware():
+    """Cleanup middleware resources on shutdown."""
+    global middleware
+    if middleware and hasattr(middleware, "shutdown"):
+        logging.info("Shutting down middleware...")
+        try:
+            middleware.shutdown()
+        except Exception as e:
+            logging.error(f"Error during middleware shutdown: {e}")
+
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully."""
+    logging.info(f"Received signal {signum}, initiating graceful shutdown...")
+    cleanup_middleware()
+    sys.exit(0)
+
+
 def load_middleware():
     middleware_name = os.getenv("MIDDLEWARE_NAME")
     if not middleware_name:
@@ -27,13 +48,26 @@ def load_middleware():
         middleware = importlib.import_module(f"protocols.{middleware_name}")
         logging.info(f"Using middleware: {middleware_name}")
 
-        if hasattr(middleware, "initialize_parkpow_tags"):
-            middleware.initialize_parkpow_tags()
+        if hasattr(middleware, "initialize"):
+            middleware.initialize()
 
         return middleware
     except ModuleNotFoundError:
         logging.error(f"Middleware '{middleware_name}' not found.")
         return None
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint for load balancers and monitoring (front_rear only)."""
+    middleware_name = os.getenv("MIDDLEWARE_NAME")
+    if middleware_name != "front_rear":
+        return jsonify({"error": "Not found"}), 404
+
+    global middleware
+    if not middleware:
+        return jsonify({"status": "unhealthy", "reason": "Middleware not loaded"}), 503
+    return jsonify({"status": "healthy", "middleware": middleware_name}), 200
 
 
 @app.route("/", methods=["POST"])
@@ -70,6 +104,7 @@ def handle_webhook():
             "camera_name": request.headers.get("camera-name"),
             "serial_number": request.headers.get("serial-number"),
             "camera_id": request.headers.get("camera-id"),
+            "Authorization": request.headers.get("Authorization"),
         }
 
         webhook_header = {k: v for k, v in webhook_header.items() if v is not None}
@@ -94,4 +129,13 @@ if __name__ == "__main__":
         logging.error("Failed to load middleware. Exiting..")
         exit(1)
 
-    serve(app, host="0.0.0.0", port=8002)
+    atexit.register(cleanup_middleware)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        serve(app, host="0.0.0.0", port=8002)
+    except KeyboardInterrupt:
+        logging.info("Interrupted by user")
+    finally:
+        cleanup_middleware()
