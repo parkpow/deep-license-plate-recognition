@@ -70,6 +70,16 @@ def mock_env_tokens(monkeypatch):
 
 
 @pytest.fixture
+def mock_config():
+    """Mock config cache and file modification time to prevent file system access."""
+    front_rear._config_cache = TEST_CONFIG
+    front_rear._config_last_load = time.time()
+    front_rear.config = TEST_CONFIG
+    with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
+        yield
+
+
+@pytest.fixture
 def create_camera_event():
     """Factory fixture to create CameraEvent instances with default values."""
 
@@ -506,209 +516,173 @@ class TestAlertSending:
 
 class TestWebhookProcessing:
     def test_process_request_authentication_success(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
         front_rear.camera_pairs = [pair]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2025-11-24T10:00:00Z",
-                },
-            }
-            _response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            assert pair.front_event is not None
-            assert pair.front_event.camera_id == "camera-front"
+        assert status == 200
+        assert pair.front_event is not None
+        assert pair.front_event.camera_id == "camera-front"
 
     def test_process_request_authentication_missing(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
+        webhook_data = {"webhook_header": {}, "data": {"camera_id": "camera-front"}}
+        response, status = front_rear.process_request(webhook_data)
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {"webhook_header": {}, "data": {"camera_id": "camera-front"}}
-            response, status = front_rear.process_request(webhook_data)
-
-            assert status == 401
-            assert "Unauthorized" in response
+        assert status == 401
+        assert "Unauthorized" in response
 
     def test_process_request_authentication_invalid(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
+        webhook_data = {
+            "webhook_header": {"Authorization": "wrong-token"},
+            "data": {"camera_id": "camera-front"},
+        }
+        response, status = front_rear.process_request(webhook_data)
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "wrong-token"},
-                "data": {"camera_id": "camera-front"},
-            }
-            response, status = front_rear.process_request(webhook_data)
-
-            assert status == 403
-            assert "Forbidden" in response
+        assert status == 403
+        assert "Forbidden" in response
 
     def test_process_request_authentication_not_configured(
-        self, reset_front_rear_state, monkeypatch
+        self, reset_front_rear_state, monkeypatch, mock_config
     ):
         monkeypatch.delenv("STREAM_API_TOKENS", raising=False)
         front_rear._stream_api_tokens = []
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "any-token"},
-                "data": {"camera_id": "camera-front"},
-            }
-            response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "any-token"},
+            "data": {"camera_id": "camera-front"},
+        }
+        response, status = front_rear.process_request(webhook_data)
 
-            assert status == 401
-            assert "not configured" in response
+        assert status == 401
+        assert "not configured" in response
 
     def test_process_request_authentication_malformed_header(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
+        webhook_data = {
+            "webhook_header": {"Authorization": "Token "},
+            "data": {"camera_id": "camera-front"},
+        }
+        response, status = front_rear.process_request(webhook_data)
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "Token "},
-                "data": {"camera_id": "camera-front"},
-            }
-            response, status = front_rear.process_request(webhook_data)
-
-            assert status == 401
-            assert "Malformed" in response
+        assert status == 401
+        assert "Malformed" in response
 
     def test_process_request_authentication_token_with_prefix(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         front_rear.camera_pairs = [
             front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
         ]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "Token test-stream-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2025-11-24T10:00:00Z",
-                },
-            }
-            _response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "Token test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
+        assert status == 200
 
     def test_process_request_authentication_multiple_valid_tokens(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
         """Test that any token from the valid tokens list is accepted."""
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
         front_rear.camera_pairs = [pair]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            # Test first token
-            webhook_data_1 = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2025-11-24T10:00:00Z",
-                },
-            }
-            _response, status = front_rear.process_request(webhook_data_1)
-            assert status == 200
+        # Test first token
+        webhook_data_1 = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data_1)
+        assert status == 200
 
-            # Test second token
-            webhook_data_2 = {
-                "webhook_header": {"Authorization": "another-valid-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "XYZ789"}],
-                    "timestamp": "2025-11-24T10:00:01Z",
-                },
-            }
-            _response, status = front_rear.process_request(webhook_data_2)
-            assert status == 200
+        # Test second token
+        webhook_data_2 = {
+            "webhook_header": {"Authorization": "another-valid-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "XYZ789"}],
+                "timestamp": "2025-11-24T10:00:01Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data_2)
+        assert status == 200
 
     def test_process_request_camera_not_in_pair(
-        self, reset_front_rear_state, mock_env_tokens
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         front_rear.camera_pairs = [
             front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
         ]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-unknown",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2025-11-24T10:00:00Z",
-                },
-            }
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-unknown",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
 
-            response, status = front_rear.process_request(webhook_data)
+        response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            assert "not configured" in response
+        assert status == 200
+        assert "not configured" in response
 
-    def test_process_request_buffering(self, reset_front_rear_state, mock_env_tokens):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
+    def test_process_request_buffering(
+        self, reset_front_rear_state, mock_env_tokens, mock_config
+    ):
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
         front_rear.camera_pairs = [pair]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2025-11-24T10:00:00Z",
-                },
-            }
-            response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            assert "buffered" in response.lower()
-            assert pair.front_event is not None
+        assert status == 200
+        assert "buffered" in response.lower()
+        assert pair.front_event is not None
 
     @patch("protocols.front_rear._process_camera_pair")
     def test_process_request_pair_processing(
@@ -717,10 +691,8 @@ class TestWebhookProcessing:
         reset_front_rear_state,
         create_camera_event,
         mock_env_tokens,
+        mock_config,
     ):
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
@@ -736,19 +708,18 @@ class TestWebhookProcessing:
             "%Y-%m-%d %H:%M:%S.%f"
         )
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-rear",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": timestamp_str,
-                },
-            }
-            _response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            mock_process_pair.assert_called_once()
+        assert status == 200
+        mock_process_pair.assert_called_once()
 
     @patch("protocols.front_rear._forward_to_parkpow")
     @patch("protocols.front_rear._process_camera_pair")
@@ -762,15 +733,13 @@ class TestWebhookProcessing:
         create_camera_event,
         mock_asyncio_for_alerts,
         mock_env_tokens,
+        mock_config,
     ):
         """Test that overwriting an unpaired event processes it before replacement."""
         mock_forward.return_value = 123
         with patch(
             "protocols.front_rear._process_events", return_value=123
         ) as mock_process_events:
-            front_rear._config_cache = TEST_CONFIG
-            front_rear._config_last_load = time.time()
-            front_rear.config = TEST_CONFIG
             pair = front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
@@ -782,24 +751,21 @@ class TestWebhookProcessing:
                 timestamp_unix=old_time,
             )
 
-            with patch(
-                "os.path.getmtime", return_value=front_rear._config_last_load - 1
-            ):
-                webhook_data = {
-                    "webhook_header": {"Authorization": "test-stream-token"},
-                    "data": {
-                        "camera_id": "camera-front",
-                        "results": [{"plate": "NEW456"}],
-                        "timestamp": "2024-11-24T10:00:20Z",
-                    },
-                }
-                response, status = front_rear.process_request(webhook_data)
+            webhook_data = {
+                "webhook_header": {"Authorization": "test-stream-token"},
+                "data": {
+                    "camera_id": "camera-front",
+                    "results": [{"plate": "NEW456"}],
+                    "timestamp": "2024-11-24T10:00:20Z",
+                },
+            }
+            response, status = front_rear.process_request(webhook_data)
 
-                assert status == 200
-                mock_process_events.assert_called_once()
-                alert_types = [
-                    call[1]["alert_type"] for call in mock_send_alert.call_args_list
-                ]
+            assert status == 200
+            mock_process_events.assert_called_once()
+            alert_types = [
+                call[1]["alert_type"] for call in mock_send_alert.call_args_list
+            ]
             assert "camera_offline" in alert_types
             if mock_send_alert.call_args_list:
                 for call in mock_send_alert.call_args_list:
@@ -815,11 +781,9 @@ class TestWebhookProcessing:
         create_camera_event,
         mock_asyncio_for_alerts,
         mock_env_tokens,
+        mock_config,
     ):
         """Test that updating with same plate does not trigger overwrite alert."""
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
@@ -829,21 +793,20 @@ class TestWebhookProcessing:
             plate="ABC123", timestamp="2024-11-24T10:00:00Z", timestamp_unix=old_time
         )
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": "camera-front",
-                    "results": [{"plate": "ABC123"}],
-                    "timestamp": "2024-11-24T10:00:05Z",
-                },
-            }
-            response, status = front_rear.process_request(webhook_data)
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2024-11-24T10:00:05Z",
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            mock_process_pair.assert_not_called()
-            mock_send_alert.assert_not_called()
-            assert pair.front_event is not None
+        assert status == 200
+        mock_process_pair.assert_not_called()
+        mock_send_alert.assert_not_called()
+        assert pair.front_event is not None
 
 
 class TestCameraPairProcessing:
@@ -1258,6 +1221,7 @@ class TestSoloCameras:
         create_camera_event,
         mock_asyncio_for_alerts,
         mock_env_tokens,
+        mock_config,
         front,
         rear,
         camera_id,
@@ -1274,35 +1238,29 @@ class TestSoloCameras:
         else:
             front_rear.csv_vehicles = {}
 
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(front=front, rear=rear, description="Solo")
         front_rear.camera_pairs = [pair]
 
-        with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
-            webhook_data = {
-                "webhook_header": {"Authorization": "test-stream-token"},
-                "data": {
-                    "camera_id": camera_id,
-                    "results": [{"plate": plate}],
-                    "timestamp": "2024-11-24T10:00:00Z",
-                },
-            }
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": camera_id,
+                "results": [{"plate": plate}],
+                "timestamp": "2024-11-24T10:00:00Z",
+            },
+        }
 
-            response, status = front_rear.process_request(webhook_data)
+        response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
-            assert "Processed" in response
-            mock_forward.assert_called_once()
+        assert status == 200
+        assert "Processed" in response
+        mock_forward.assert_called_once()
 
-            alert_types = [
-                call[1]["alert_type"] for call in mock_send_alert.call_args_list
-            ]
-            if expected_plate_mismatch:
-                assert "plate_mismatch" in alert_types
-            else:
-                assert "plate_mismatch" not in alert_types
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        if expected_plate_mismatch:
+            assert "plate_mismatch" in alert_types
+        else:
+            assert "plate_mismatch" not in alert_types
 
     @patch("protocols.front_rear._forward_to_parkpow")
     def test_solo_camera_no_rear_plate_alert(
@@ -1312,19 +1270,15 @@ class TestSoloCameras:
         create_camera_event,
         mock_asyncio_for_alerts,
         mock_env_tokens,
+        mock_config,
     ):
         """Test solo camera does not trigger no_rear_plate alert."""
         mock_forward.return_value = 999
         front_rear.csv_vehicles = {}
-        front_rear._config_cache = TEST_CONFIG
-        front_rear._config_last_load = time.time()
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(front="solo-cam", rear=None, description="Solo")
         front_rear.camera_pairs = [pair]
 
-        with patch("protocols.front_rear._send_alert") as mock_alert, patch(
-            "os.path.getmtime", return_value=front_rear._config_last_load - 1
-        ):
+        with patch("protocols.front_rear._send_alert") as mock_alert:
             webhook_data = {
                 "webhook_header": {"Authorization": "test-stream-token"},
                 "data": {
