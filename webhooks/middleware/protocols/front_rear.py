@@ -18,6 +18,7 @@ Alerts:
 
 import asyncio
 import csv
+import hmac
 import json
 import logging
 import os
@@ -799,7 +800,7 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
         logging.error("Invalid or missing token in Authorization header")
         return "Unauthorized: Malformed Authorization header", 401
 
-    if token not in valid_tokens:
+    if not any(hmac.compare_digest(token, v_token) for v_token in valid_tokens):
         logging.error("Invalid token in Authorization header")
         return "Forbidden: Invalid token", 403
 
