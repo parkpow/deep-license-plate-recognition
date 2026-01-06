@@ -62,9 +62,11 @@ TEST_CONFIG = {
 
 @pytest.fixture
 def mock_env_tokens(monkeypatch):
-    """Mock environment variables for tokens."""
+    """Mock environment variables for tokens and set cached token variables."""
     monkeypatch.setenv("STREAM_API_TOKENS", "test-stream-token,another-valid-token")
     monkeypatch.setenv("PARKPOW_TOKEN", "test-parkpow-token")
+    front_rear._stream_api_tokens = ["test-stream-token", "another-valid-token"]
+    front_rear._parkpow_token = "test-parkpow-token"
 
 
 @pytest.fixture
@@ -563,8 +565,8 @@ class TestWebhookProcessing:
     def test_process_request_authentication_not_configured(
         self, reset_front_rear_state, monkeypatch
     ):
-        # Clear the environment variable to test not configured
         monkeypatch.delenv("STREAM_API_TOKENS", raising=False)
+        front_rear._stream_api_tokens = []
         front_rear._config_cache = TEST_CONFIG
         front_rear._config_last_load = time.time()
 
