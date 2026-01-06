@@ -220,7 +220,8 @@ def initialize() -> None:
     parkpow_config = config.get("parkpow", {})
     alert_endpoint = parkpow_config.get("alert_endpoint")
     webhook_endpoint = parkpow_config.get("webhook_endpoint")
-    token = parkpow_config.get("token")
+    token = os.getenv("PARKPOW_TOKEN")
+    stream_tokens = os.getenv("STREAM_API_TOKENS")
 
     if not camera_pairs:
         logging.error("No camera pairs configured in Front-Rear middleware")
@@ -235,8 +236,16 @@ def initialize() -> None:
         raise ValueError("Front-Rear middleware requires parkpow.webhook_endpoint")
 
     if not token:
-        logging.error("ParkPow token not configured")
-        raise ValueError("Front-Rear middleware requires parkpow.token")
+        logging.error("PARKPOW_TOKEN environment variable not configured")
+        raise ValueError(
+            "Front-Rear middleware requires PARKPOW_TOKEN environment variable"
+        )
+
+    if not stream_tokens:
+        logging.error("STREAM_API_TOKENS environment variable not configured")
+        raise ValueError(
+            "Front-Rear middleware requires STREAM_API_TOKENS environment variable"
+        )
 
     _loop = asyncio.new_event_loop()
     _loop_thread = threading.Thread(target=_run_event_loop, args=(_loop,), daemon=True)
@@ -459,7 +468,11 @@ async def _send_alert_async(
 
     parkpow_config = current_config.get("parkpow", {})
     alert_endpoint = parkpow_config["alert_endpoint"]
-    token = parkpow_config["token"]
+    token = os.getenv("PARKPOW_TOKEN")
+
+    if not token:
+        logging.error("PARKPOW_TOKEN environment variable not configured")
+        return
 
     payload = {"visit_id": visit_id, "alert_template_id": alert_template_id}
 
@@ -523,7 +536,12 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
     current_config = _load_config()
     parkpow_config = current_config.get("parkpow", {})
     webhook_url = parkpow_config["webhook_endpoint"]
-    token = parkpow_config["token"]
+    token = os.getenv("PARKPOW_TOKEN")
+
+    if not token:
+        logging.error("PARKPOW_TOKEN environment variable not configured")
+        return None
+
     json_data = event.original_json_data
     all_files = event.original_files
     headers = {"Authorization": f"Token {token}"}
@@ -761,10 +779,12 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
-    expected_token = os.getenv("STREAM_API_TOKEN")
-    if not expected_token:
+    stream_tokens_env = os.getenv("STREAM_API_TOKENS", "")
+    valid_tokens = [t.strip() for t in stream_tokens_env.split(",") if t.strip()]
+
+    if not valid_tokens:
         logging.error(
-            "STREAM_API_TOKEN not configured - rejecting request for security"
+            "STREAM_API_TOKENS environment variable not configured - rejecting request for security"
         )
         return "Unauthorized: Authentication not configured", 401
 
@@ -779,8 +799,8 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
         logging.error("Invalid or missing token in Authorization header")
         return "Unauthorized: Malformed Authorization header", 401
 
-    if token != expected_token:
-        logging.error("Invalid STREAM_API_TOKEN in Authorization header")
+    if token not in valid_tokens:
+        logging.error("Invalid token in Authorization header")
         return "Forbidden: Invalid token", 403
 
     return None

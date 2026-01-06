@@ -1,7 +1,7 @@
 # Caddyfile for Front-Rear Middleware
 
 # HTTP redirect to HTTPS (automatic)
-hertz-7f9a2b4e.platerecognizer.com {
+<domain name> {
     # Reverse proxy to the middleware container
     reverse_proxy middleware:8002 {
         # Health check
