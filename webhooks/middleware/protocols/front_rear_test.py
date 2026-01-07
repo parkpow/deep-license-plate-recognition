@@ -32,7 +32,6 @@ TEST_CONFIG = {
     "parkpow": {
         "alert_endpoint": "https://test.example.com/alerts",
         "webhook_endpoint": "https://test.example.com/webhook",
-        "token": "test-token",
     },
     "thresholds": {"make_model_confidence": 0.2},
     "pairing": {"time_window_seconds": 30, "cleanup_interval_seconds": 60},
@@ -62,9 +61,22 @@ TEST_CONFIG = {
 
 
 @pytest.fixture
-def mock_env_vars(monkeypatch):
-    monkeypatch.setenv("STREAM_API_TOKEN", "test-stream-token")
+def mock_env_tokens(monkeypatch):
+    """Mock environment variables for tokens and set cached token variables."""
+    monkeypatch.setenv("STREAM_API_TOKENS", "test-stream-token,another-valid-token")
     monkeypatch.setenv("PARKPOW_TOKEN", "test-parkpow-token")
+    front_rear._stream_api_tokens = ["test-stream-token", "another-valid-token"]
+    front_rear._parkpow_token = "test-parkpow-token"
+
+
+@pytest.fixture
+def mock_config():
+    """Mock config cache and file modification time to prevent file system access."""
+    front_rear._config_cache = TEST_CONFIG
+    front_rear._config_last_load = time.time()
+    front_rear.config = TEST_CONFIG
+    with patch("os.path.getmtime", return_value=front_rear._config_last_load - 1):
+        yield
 
 
 @pytest.fixture
@@ -504,13 +516,13 @@ class TestAlertSending:
 
 class TestWebhookProcessing:
     def test_process_request_authentication_success(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
         front_rear.camera_pairs = [pair]
+
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -526,7 +538,7 @@ class TestWebhookProcessing:
         assert pair.front_event.camera_id == "camera-front"
 
     def test_process_request_authentication_missing(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
         webhook_data = {"webhook_header": {}, "data": {"camera_id": "camera-front"}}
         response, status = front_rear.process_request(webhook_data)
@@ -535,7 +547,7 @@ class TestWebhookProcessing:
         assert "Unauthorized" in response
 
     def test_process_request_authentication_invalid(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
         webhook_data = {
             "webhook_header": {"Authorization": "wrong-token"},
@@ -547,9 +559,11 @@ class TestWebhookProcessing:
         assert "Forbidden" in response
 
     def test_process_request_authentication_not_configured(
-        self, reset_front_rear_state, monkeypatch
+        self, reset_front_rear_state, monkeypatch, mock_config
     ):
-        monkeypatch.delenv("STREAM_API_TOKEN", raising=False)
+        monkeypatch.delenv("STREAM_API_TOKENS", raising=False)
+        front_rear._stream_api_tokens = []
+
         webhook_data = {
             "webhook_header": {"Authorization": "any-token"},
             "data": {"camera_id": "camera-front"},
@@ -560,7 +574,7 @@ class TestWebhookProcessing:
         assert "not configured" in response
 
     def test_process_request_authentication_malformed_header(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
         webhook_data = {
             "webhook_header": {"Authorization": "Token "},
@@ -572,14 +586,14 @@ class TestWebhookProcessing:
         assert "Malformed" in response
 
     def test_process_request_authentication_token_with_prefix(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
-        front_rear.config = TEST_CONFIG
         front_rear.camera_pairs = [
             front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
         ]
+
         webhook_data = {
             "webhook_header": {"Authorization": "Token test-stream-token"},
             "data": {
@@ -592,14 +606,48 @@ class TestWebhookProcessing:
 
         assert status == 200
 
+    def test_process_request_authentication_multiple_valid_tokens(
+        self, reset_front_rear_state, mock_env_tokens, mock_config
+    ):
+        """Test that any token from the valid tokens list is accepted."""
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+
+        # Test first token
+        webhook_data_1 = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": "2025-11-24T10:00:00Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data_1)
+        assert status == 200
+
+        # Test second token
+        webhook_data_2 = {
+            "webhook_header": {"Authorization": "another-valid-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "XYZ789"}],
+                "timestamp": "2025-11-24T10:00:01Z",
+            },
+        }
+        _response, status = front_rear.process_request(webhook_data_2)
+        assert status == 200
+
     def test_process_request_camera_not_in_pair(
-        self, reset_front_rear_state, mock_env_vars
+        self, reset_front_rear_state, mock_env_tokens, mock_config
     ):
         front_rear.camera_pairs = [
             front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
         ]
+
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -614,12 +662,14 @@ class TestWebhookProcessing:
         assert status == 200
         assert "not configured" in response
 
-    def test_process_request_buffering(self, reset_front_rear_state, mock_env_vars):
-        front_rear.config = TEST_CONFIG
+    def test_process_request_buffering(
+        self, reset_front_rear_state, mock_env_tokens, mock_config
+    ):
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
         front_rear.camera_pairs = [pair]
+
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -639,10 +689,10 @@ class TestWebhookProcessing:
         self,
         mock_process_pair,
         reset_front_rear_state,
-        mock_env_vars,
         create_camera_event,
+        mock_env_tokens,
+        mock_config,
     ):
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
@@ -657,6 +707,7 @@ class TestWebhookProcessing:
         timestamp_str = datetime.fromtimestamp(current_time).strftime(
             "%Y-%m-%d %H:%M:%S.%f"
         )
+
         webhook_data = {
             "webhook_header": {"Authorization": "test-stream-token"},
             "data": {
@@ -679,16 +730,16 @@ class TestWebhookProcessing:
         mock_process_pair,
         mock_forward,
         reset_front_rear_state,
-        mock_env_vars,
         create_camera_event,
         mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
     ):
         """Test that overwriting an unpaired event processes it before replacement."""
         mock_forward.return_value = 123
         with patch(
             "protocols.front_rear._process_events", return_value=123
         ) as mock_process_events:
-            front_rear.config = TEST_CONFIG
             pair = front_rear.CameraPair(
                 front="camera-front", rear="camera-rear", description="Gate 1"
             )
@@ -727,12 +778,12 @@ class TestWebhookProcessing:
         mock_send_alert,
         mock_process_pair,
         reset_front_rear_state,
-        mock_env_vars,
         create_camera_event,
         mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
     ):
         """Test that updating with same plate does not trigger overwrite alert."""
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(
             front="camera-front", rear="camera-rear", description="Gate 1"
         )
@@ -1083,6 +1134,7 @@ class TestInitialization:
         reset_front_rear_state,
         sample_config,
         monkeypatch,
+        mock_env_tokens,
     ):
         """Test initialization with mocked asyncio components."""
         monkeypatch.chdir(Path(sample_config).parent.parent.parent)
@@ -1166,9 +1218,10 @@ class TestSoloCameras:
         mock_send_alert,
         mock_forward,
         reset_front_rear_state,
-        mock_env_vars,
         create_camera_event,
         mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
         front,
         rear,
         camera_id,
@@ -1185,7 +1238,6 @@ class TestSoloCameras:
         else:
             front_rear.csv_vehicles = {}
 
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(front=front, rear=rear, description="Solo")
         front_rear.camera_pairs = [pair]
 
@@ -1215,14 +1267,14 @@ class TestSoloCameras:
         self,
         mock_forward,
         reset_front_rear_state,
-        mock_env_vars,
         create_camera_event,
         mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
     ):
         """Test solo camera does not trigger no_rear_plate alert."""
         mock_forward.return_value = 999
         front_rear.csv_vehicles = {}
-        front_rear.config = TEST_CONFIG
         pair = front_rear.CameraPair(front="solo-cam", rear=None, description="Solo")
         front_rear.camera_pairs = [pair]
 

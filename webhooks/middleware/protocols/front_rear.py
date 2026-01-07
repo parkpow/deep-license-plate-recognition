@@ -18,6 +18,7 @@ Alerts:
 
 import asyncio
 import csv
+import hmac
 import json
 import logging
 import os
@@ -94,6 +95,8 @@ _csv_last_load: float = 0.0
 _loop: asyncio.AbstractEventLoop | None = None
 _loop_thread: threading.Thread | None = None
 _aiohttp_session: aiohttp.ClientSession | None = None
+_stream_api_tokens: list[str] = []
+_parkpow_token: str = ""
 
 
 def _load_config() -> dict[str, Any]:
@@ -213,6 +216,7 @@ def _run_event_loop(loop: asyncio.AbstractEventLoop) -> None:
 def initialize() -> None:
     """Initialize middleware: load database, config, start event loop and cleanup."""
     global camera_pairs, config, _loop, _loop_thread, _aiohttp_session
+    global _stream_api_tokens, _parkpow_token
 
     _load_vehicles_csv()
     config = _load_config()
@@ -220,7 +224,8 @@ def initialize() -> None:
     parkpow_config = config.get("parkpow", {})
     alert_endpoint = parkpow_config.get("alert_endpoint")
     webhook_endpoint = parkpow_config.get("webhook_endpoint")
-    token = parkpow_config.get("token")
+    token = os.getenv("PARKPOW_TOKEN")
+    stream_tokens_env = os.getenv("STREAM_API_TOKENS")
 
     if not camera_pairs:
         logging.error("No camera pairs configured in Front-Rear middleware")
@@ -235,8 +240,19 @@ def initialize() -> None:
         raise ValueError("Front-Rear middleware requires parkpow.webhook_endpoint")
 
     if not token:
-        logging.error("ParkPow token not configured")
-        raise ValueError("Front-Rear middleware requires parkpow.token")
+        logging.error("PARKPOW_TOKEN environment variable not configured")
+        raise ValueError(
+            "Front-Rear middleware requires PARKPOW_TOKEN environment variable"
+        )
+
+    if not stream_tokens_env:
+        logging.error("STREAM_API_TOKENS environment variable not configured")
+        raise ValueError(
+            "Front-Rear middleware requires STREAM_API_TOKENS environment variable"
+        )
+
+    _parkpow_token = token
+    _stream_api_tokens = [t.strip() for t in stream_tokens_env.split(",") if t.strip()]
 
     _loop = asyncio.new_event_loop()
     _loop_thread = threading.Thread(target=_run_event_loop, args=(_loop,), daemon=True)
@@ -459,11 +475,13 @@ async def _send_alert_async(
 
     parkpow_config = current_config.get("parkpow", {})
     alert_endpoint = parkpow_config["alert_endpoint"]
-    token = parkpow_config["token"]
 
     payload = {"visit_id": visit_id, "alert_template_id": alert_template_id}
 
-    headers = {"Authorization": f"Token {token}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Token {_parkpow_token}",
+        "Content-Type": "application/json",
+    }
 
     if _aiohttp_session is None:
         logging.error("Aiohttp session not initialized")
@@ -523,10 +541,10 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
     current_config = _load_config()
     parkpow_config = current_config.get("parkpow", {})
     webhook_url = parkpow_config["webhook_endpoint"]
-    token = parkpow_config["token"]
+
     json_data = event.original_json_data
     all_files = event.original_files
-    headers = {"Authorization": f"Token {token}"}
+    headers = {"Authorization": f"Token {_parkpow_token}"}
 
     if _aiohttp_session is None:
         logging.error("Aiohttp session not initialized")
@@ -761,10 +779,9 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
-    expected_token = os.getenv("STREAM_API_TOKEN")
-    if not expected_token:
+    if not _stream_api_tokens:
         logging.error(
-            "STREAM_API_TOKEN not configured - rejecting request for security"
+            "STREAM_API_TOKENS not configured - rejecting request for security"
         )
         return "Unauthorized: Authentication not configured", 401
 
@@ -779,8 +796,8 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
         logging.error("Invalid or missing token in Authorization header")
         return "Unauthorized: Malformed Authorization header", 401
 
-    if token != expected_token:
-        logging.error("Invalid STREAM_API_TOKEN in Authorization header")
+    if not any(hmac.compare_digest(token, v_token) for v_token in _stream_api_tokens):
+        logging.error("Invalid token in Authorization header")
         return "Forbidden: Invalid token", 403
 
     return None
