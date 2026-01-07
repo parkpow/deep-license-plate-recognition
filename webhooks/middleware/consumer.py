@@ -78,7 +78,7 @@ def health_check():
 
 @app.route("/logs", methods=["GET"])
 def stream_logs():
-    """Stream logs in real-time using Server-Sent Events (like docker logs -f)."""
+    """Stream logs in real-time as a plain text stream (like `docker logs -f`)."""
     auth_header = request.headers.get("Authorization", "")
     auth_token = auth_header.replace("Token ", "").replace("Bearer ", "")
     admin_token = os.getenv("ADMIN_TOKEN")
@@ -91,7 +91,12 @@ def stream_logs():
 
     def generate():
         """Generate log stream in plain text format."""
-        lines = request.args.get("lines", "50")
+        lines_str = request.args.get("lines", "50")
+        if not lines_str.isdigit():
+            yield "Error: 'lines' parameter must be an integer.\n"
+            return
+        lines = lines_str
+
         try:
             proc = subprocess.Popen(
                 ["tail", "-f", "-n", lines, LOG_FILE],
