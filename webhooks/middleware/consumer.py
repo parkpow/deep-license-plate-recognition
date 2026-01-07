@@ -90,7 +90,7 @@ def stream_logs():
         return jsonify({"error": "Unauthorized"}), 401
 
     def generate():
-        """Generate log stream using Server-Sent Events."""
+        """Generate log stream in plain text format."""
         lines = request.args.get("lines", "50")
         try:
             proc = subprocess.Popen(
@@ -102,17 +102,16 @@ def stream_logs():
 
             if proc.stdout:
                 try:
-                    for line in proc.stdout:
-                        yield f"data: {line}\n\n"  # SSE format
+                    yield from proc.stdout
                 except GeneratorExit:
                     proc.terminate()
                     proc.wait()
         except Exception as e:
-            yield f"data: Error streaming logs: {e}\n\n"
+            yield f"Error streaming logs: {e}\n"
 
     return Response(
         stream_with_context(generate()),
-        mimetype="text/event-stream",
+        mimetype="text/plain",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",  # Disable nginx buffering
