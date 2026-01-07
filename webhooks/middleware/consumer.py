@@ -1,14 +1,16 @@
 # common_webhook_consumer.py
 import atexit
+import hmac
 import importlib
 import json
 import logging
 import os
 import signal
+import subprocess
 import sys
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 from waitress import serve  # type: ignore
 
 logging.basicConfig(
@@ -68,6 +70,50 @@ def health_check():
     if not middleware:
         return jsonify({"status": "unhealthy", "reason": "Middleware not loaded"}), 503
     return jsonify({"status": "healthy", "middleware": middleware_name}), 200
+
+
+@app.route("/logs", methods=["GET"])
+def stream_logs():
+    """Stream logs in real-time using Server-Sent Events (like docker logs -f)."""
+    auth_header = request.headers.get("Authorization", "")
+    auth_token = auth_header.replace("Token ", "").replace("Bearer ", "")
+    admin_token = os.getenv("ADMIN_TOKEN")
+
+    if not admin_token:
+        return jsonify({"error": "Admin access not configured"}), 503
+
+    if not hmac.compare_digest(auth_token, admin_token):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    def generate():
+        """Generate log stream using Server-Sent Events."""
+        lines = request.args.get("lines", "50")
+        try:
+            proc = subprocess.Popen(
+                ["docker", "logs", "-f", "--tail", lines, "middleware"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+            )
+
+            if proc.stdout:
+                try:
+                    for line in proc.stdout:
+                        yield f"data: {line}\n\n"  # SSE format
+                except GeneratorExit:
+                    proc.terminate()
+                    proc.wait()
+        except Exception as e:
+            yield f"data: Error streaming logs: {e}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
 
 
 @app.route("/", methods=["POST"])
