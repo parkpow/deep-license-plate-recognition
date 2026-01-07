@@ -13,8 +13,12 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, stream_with_context
 from waitress import serve  # type: ignore
 
+LOG_FILE = "/tmp/middleware.log"
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler(LOG_FILE)],
 )
 
 app = Flask(__name__)
@@ -90,7 +94,7 @@ def stream_logs():
         lines = request.args.get("lines", "50")
         try:
             proc = subprocess.Popen(
-                ["docker", "logs", "-f", "--tail", lines, "middleware"],
+                ["tail", "-f", "-n", lines, LOG_FILE],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
