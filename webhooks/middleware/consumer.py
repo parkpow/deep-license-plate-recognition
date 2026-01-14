@@ -1,18 +1,28 @@
 # common_webhook_consumer.py
 import atexit
+import hmac
 import importlib
 import json
 import logging
 import os
 import signal
+import subprocess
 import sys
+from logging.handlers import RotatingFileHandler
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 from waitress import serve  # type: ignore
 
+LOG_FILE = "/tmp/middleware.log"
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        RotatingFileHandler(LOG_FILE, maxBytes=100 * 1024 * 1024, backupCount=1),
+    ],
 )
 
 app = Flask(__name__)
@@ -68,6 +78,54 @@ def health_check():
     if not middleware:
         return jsonify({"status": "unhealthy", "reason": "Middleware not loaded"}), 503
     return jsonify({"status": "healthy", "middleware": middleware_name}), 200
+
+
+@app.route("/logs", methods=["GET"])
+def stream_logs():
+    """Stream logs in real-time as a plain text stream (like `docker logs -f`)."""
+    auth_header = request.headers.get("Authorization", "")
+    auth_token = auth_header.replace("Token ", "").replace("Bearer ", "")
+    admin_token = os.getenv("ADMIN_TOKEN")
+
+    if not admin_token:
+        return jsonify({"error": "Admin access not configured"}), 503
+
+    if not hmac.compare_digest(auth_token, admin_token):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    def generate():
+        """Generate log stream in plain text format."""
+        lines_str = request.args.get("lines", "50")
+        if not lines_str.isdigit():
+            yield "Error: 'lines' parameter must be an integer.\n"
+            return
+        lines = lines_str
+
+        try:
+            proc = subprocess.Popen(
+                ["tail", "-f", "-n", lines, LOG_FILE],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+            )
+
+            if proc.stdout:
+                try:
+                    yield from proc.stdout
+                except GeneratorExit:
+                    proc.terminate()
+                    proc.wait()
+        except Exception as e:
+            yield f"Error streaming logs: {e}\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
 
 
 @app.route("/", methods=["POST"])
