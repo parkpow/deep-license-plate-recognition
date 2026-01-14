@@ -8,6 +8,7 @@ import os
 import signal
 import subprocess
 import sys
+from logging.handlers import RotatingFileHandler
 from typing import Any
 
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -18,7 +19,10 @@ LOG_FILE = "/tmp/middleware.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler(LOG_FILE)],
+    handlers=[
+        logging.StreamHandler(),
+        RotatingFileHandler(LOG_FILE, maxBytes=100 * 1024 * 1024, backupCount=1),
+    ],
 )
 
 app = Flask(__name__)
