@@ -1,15 +1,15 @@
 services:
   adam:
-    image: "stream-adam:1.1"
-    command: /app/bin/pyAddInfo
+    image: "stream-adam:1.2"
+    command: /app/bin/platerecognizerStream
     environment:
       - LD_LIBRARY_PATH=/usr/share/lib:/usr/share/common
       - CADAM_APP_TYPE=i-PRO
       - CADAM_LOG_LEVEL=6
-      - APPLICATION_NAME=pyAddInfo
+      - APPLICATION_NAME=platerecognizerStream
     networks:
       - nw-frontend
-    restart: no
+    restart: always
 #     deploy:
 #       resources:
 #         limits:
@@ -111,16 +111,6 @@ services:
         read_only: false
         consistency: default
 
-      # TODO SD Card Mounts
-      # - type: bind
-      #   target: "/sdcard"
-      #   source: "/mnt/sda/adamapp/stream"
-      #   read_only: false
-      #   consistency: default
-      # As of now, after you format SD card in ext format, you need to create folder(/mnt/sda/adamapp/stream) manually. Then, you can install ext application.
-      # In the new firmware version, camera will automatically create the folder defined in docker-compose.yaml(/mnt/sda/adamapp/stream)
-      # Camera mounts SD card as “/mnt/sda” and allows partner apps to access under “/mnt/sda/adamapp”.
-
     tmpfs:
       - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
 
@@ -150,8 +140,20 @@ services:
         read_only: false
         consistency: default
 
+      # Using SD Card
+      # Uncomment below in place of `sdk` volume above.
+      # `source` can be set to any directory under the /mnt/sda/adamapp directory.
+      # With camera firmware v3.45 or later, these directories are automatically created on the SD card when the app is installed.
+      # For previous firmware, you need to create the folder manually.
+      # https://dev-partner-en.i-pro.com/space/TPFAQEN/1538556241/Container+AdamApp+basic+architecture+and+guidelines#3.4.1-Use-SD-card
+#      - type: bind
+#        target: "/user-data"
+#        source: "/mnt/sda/adamapp/stream"
+#        read_only: false
+#        consistency: default
+
     tmpfs:
-      - /var/run:rw,noexec,nosuid,gid=1000,uid=1000
+      - /tmp/local:rw,noexec,nosuid,gid=1000,uid=1000
 
     # read config from /ai_data/env-file.ini
     # command: cat /ai_data/env-file.ini
@@ -167,7 +169,7 @@ services:
       - "label=type:ipro-container.process"
       - "no-new-privileges"
     labels:
-      com.i-pro.app-type: "ext"
+      com.i-pro.app-type: "sub"
       com.i-pro.device-category: "CV5x-A"
       com.i-pro.device-vendor: "i-PRO"
     depends_on:

@@ -6,10 +6,10 @@
 # Application name information
 #------------------------------------
 #### Application Program File Name
-APPLICATION	pyAddInfo
+APPLICATION	platerecognizerStream
 
 #### Application Version Name (7 characters or less)
-APPVERSION	V1.1
+APPVERSION	V1.2
 
 #### Application Name(Number at the end of the Tag name is Region code (Country code))
 APPNAME0	Platerecognizer Stream
@@ -18,7 +18,7 @@ APPNAME0	Platerecognizer Stream
 # Resource Information
 #-------------------------------------
 #### Required ROM (Flash memory) size for this application
-ROMSIZE		550000
+ROMSIZE		1055920
 
 #### Required RAM (temporary files and heap) size for this application
 #### adamapp1-adam-1 9.066 + 178.2
