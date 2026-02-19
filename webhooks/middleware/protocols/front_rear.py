@@ -797,10 +797,17 @@ def _process_events(
 
     visit_id = _forward_to_parkpow(data_to_forward)
     if visit_id == -1:
-        logging.warning(
-            "ParkPow rejected visit creation due to low confidence scores, skipping alerts"
+        is_solo = not front_camera_id or not rear_camera_id
+        camera_pair = f"{_short(front_camera_id)}{' / ' if not is_solo else ''}{_short(rear_camera_id)}"
+        plates = (
+            f"front={front_plate}, rear={rear_plate}"
+            if not is_solo
+            else f"plate={front_plate or rear_plate}"
         )
-        return None
+        logging.warning(
+            f"ParkPow rejected visit for {'camera' if is_solo else 'pair'} {camera_pair} ({plates}) - confidence scores too low"
+        )
+        return -1
 
     if not visit_id:
         is_solo = not front_camera_id or not rear_camera_id
@@ -1063,9 +1070,13 @@ def process_request(
                     f"Processing camera pair {_short(pair.front)}/{_short(pair.rear)}"
                 )
 
-            _process_camera_pair(pair)
+            visit_id = _process_camera_pair(pair)
             pair.front_event = None
             pair.rear_event = None
+
+            if visit_id == -1:
+                return "Visit rejected: confidence scores too low", 422
+
             return "Processed camera pair", 200
 
     if not pair.is_solo:
