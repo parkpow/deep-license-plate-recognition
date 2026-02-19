@@ -329,6 +329,11 @@ def _cleanup_task_loop() -> None:
         time.sleep(cleanup_interval)
 
 
+def _short(camera_id: str | None) -> str | None:
+    """Helper to shorten camera ID for logging."""
+    return f"...{camera_id[-9:]}" if camera_id else None
+
+
 def _cleanup_expired_events() -> None:
     """Remove expired events from buffer to prevent memory bloat."""
     global config
@@ -365,9 +370,10 @@ def _cleanup_expired_events() -> None:
             age = time.time() - current_event.timestamp_unix
             missing_camera = pair.rear if is_front else pair.front
 
+        assert missing_camera is not None
+
         logging.warning(
-            f"Unpaired event expired from {camera_id} after {age:.1f}s - "
-            f"{missing_camera} may be offline, processing single camera event"
+            f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {_short(missing_camera)} may be offline, processing single camera event"
         )
 
         visit_id = _process_camera_pair(pair)
@@ -591,12 +597,12 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
 
         if visit_id:
             logging.info(f"Created visit {visit_id} in ParkPow")
-            return visit_id
+            return int(visit_id)
+        elif "requires higher scores" in str(response_data).lower():
+            return -1
         else:
             logging.warning(
-                f"ParkPow response missing or invalid visit id. "
-                f"Response type: {type(response_data).__name__}, "
-                f"Content: {response_data}"
+                f"ParkPow response missing or invalid visit id: {response_data}"
             )
             return None
 
@@ -617,6 +623,135 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
+
+
+def _check_no_rear_plate_alert(
+    rear_camera_id: str | None,
+    rear_plate: str | None,
+    rear_event: CameraEvent | None,
+    front_plate: str | None,
+    visit_id: int,
+) -> bool:
+    """Check and send no rear plate alert. Returns True if should skip further processing."""
+    if rear_camera_id and not rear_plate and rear_event:
+        logging.warning(f"No rear plate detected for {_short(rear_camera_id)}")
+        _send_alert(
+            alert_type="no_rear_plate",
+            visit_id=visit_id,
+            plate=front_plate,
+            camera_id=rear_camera_id,
+            message=f"No rear plate detected for front plate {front_plate}",
+            event_data=rear_event,
+        )
+        return not front_plate
+    return False
+
+
+def _check_plate_mismatch_alerts(
+    front_plate: str | None,
+    rear_plate: str | None,
+    front_camera_id: str | None,
+    rear_camera_id: str | None,
+    front_event: CameraEvent | None,
+    rear_event: CameraEvent | None,
+    detected_make_model: str | None,
+    make_model_score: float,
+    visit_id: int,
+) -> tuple[bool, bool, dict[str, str] | None, dict[str, str] | None]:
+    """Check and send plate mismatch alerts. Returns (front_in_db, rear_in_db, front_info, rear_info)."""
+    front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
+    rear_in_db, rear_vehicle_info = _check_plate_in_vehicles_db(rear_plate)
+
+    if front_plate and not front_in_db:
+        logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
+        if front_camera_id:
+            _send_alert(
+                alert_type="plate_mismatch",
+                visit_id=visit_id,
+                plate=front_plate,
+                camera_id=front_camera_id,
+                message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
+                event_data=front_event,
+                detected_make_model=detected_make_model,
+                make_model_score=make_model_score,
+            )
+
+    if rear_plate and not rear_in_db:
+        logging.warning(f"Rear plate {rear_plate} not found in Front-Rear database")
+        if rear_camera_id:
+            _send_alert(
+                alert_type="plate_mismatch",
+                visit_id=visit_id,
+                plate=rear_plate,
+                camera_id=rear_camera_id,
+                message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
+                event_data=rear_event,
+                detected_make_model=detected_make_model,
+                make_model_score=make_model_score,
+            )
+
+    return front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info
+
+
+def _check_make_model_mismatch_alert(
+    rear_camera_id: str | None,
+    front_camera_id: str | None,
+    rear_plate: str | None,
+    front_plate: str | None,
+    rear_in_db: bool,
+    front_in_db: bool,
+    rear_vehicle_info: dict[str, str] | None,
+    front_vehicle_info: dict[str, str] | None,
+    detected_make_model: str | None,
+    make_model_score: float,
+    rear_event: CameraEvent | None,
+    front_event: CameraEvent | None,
+    visit_id: int,
+) -> None:
+    """Check and send make/model mismatch alert."""
+    current_config = _load_config()
+    make_model_threshold = current_config.get("thresholds", {}).get(
+        "make_model_confidence", 0.2
+    )
+    reference_plate = (
+        rear_plate if rear_in_db else (front_plate if front_in_db else None)
+    )
+    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
+
+    if not reference_plate or not reference_vehicle_info:
+        return
+
+    front_rear_make = reference_vehicle_info.get("make", "")
+    front_rear_model = reference_vehicle_info.get("model", "")
+    front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
+    make_model_mismatch = (
+        detected_make_model and detected_make_model != front_rear_make_model
+    )
+
+    if not (make_model_mismatch and make_model_score >= make_model_threshold):
+        return
+
+    message = f"Make/model mismatch for {reference_plate}: detected {detected_make_model} (score: {make_model_score:.2f}), expected {front_rear_make_model} from Front-Rear database"
+
+    logging.warning(message)
+    alert_camera_id = (
+        rear_camera_id
+        if (rear_camera_id and rear_plate)
+        else (front_camera_id if front_camera_id else None)
+    )
+    if not alert_camera_id:
+        return
+
+    _send_alert(
+        alert_type="make_model_mismatch",
+        visit_id=visit_id,
+        plate=reference_plate,
+        camera_id=alert_camera_id,
+        message=message,
+        event_data=rear_event if rear_event else front_event,
+        detected_make_model=detected_make_model,
+        make_model_score=make_model_score,
+    )
 
 
 def _process_events(
@@ -653,116 +788,65 @@ def _process_events(
 
     data_to_forward = rear_event if rear_event else front_event
     if not data_to_forward:
-        camera_desc = f"{front_camera_id or 'none'}/{rear_camera_id or 'none'}"
+        camera_pair = f"{_short(front_camera_id)} / {_short(rear_camera_id)}"
         is_solo = not (front_camera_id and rear_camera_id)
         logging.warning(
-            f"No event data to forward for {'solo camera' if is_solo else 'pair'} {camera_desc}"
+            f"No event data to forward for {'solo camera' if is_solo else 'pair'} {camera_pair}"
         )
         return None
 
     visit_id = _forward_to_parkpow(data_to_forward)
+    if visit_id == -1:
+        logging.warning(
+            "ParkPow rejected visit creation due to low confidence scores, skipping alerts"
+        )
+        return None
+
     if not visit_id:
-        camera_desc = f"{front_camera_id or 'none'}/{rear_camera_id or 'none'}"
-        is_solo = not (front_camera_id and rear_camera_id)
+        is_solo = not front_camera_id or not rear_camera_id
+        camera_pair = f"{_short(front_camera_id)}{' / ' if not is_solo else ''}{_short(rear_camera_id)}"
         logging.error(
-            f"Failed to create visit in ParkPow for {'solo camera' if is_solo else 'pair'} {camera_desc}, skipping alerts"
+            f"Failed to create visit in ParkPow for {'camera' if is_solo else 'pair'} {camera_pair}, skipping alerts"
         )
         return None
 
     # Alert #2: No Rear Plate Alert (only if rear camera exists and not offline)
-    if rear_camera_id and not rear_plate and rear_event:
-        logging.warning(
-            f"No rear plate detected for camera pair {front_camera_id}/{rear_camera_id}"
-        )
-        _send_alert(
-            alert_type="no_rear_plate",
-            visit_id=visit_id,
-            plate=front_plate,
-            camera_id=rear_camera_id,
-            message=f"No rear plate detected for front plate {front_plate}",
-            event_data=rear_event,
-        )
-
-        if not front_plate:
-            return None
+    if _check_no_rear_plate_alert(
+        rear_camera_id, rear_plate, rear_event, front_plate, visit_id
+    ):
+        return None
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
-    front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
-    rear_in_db, rear_vehicle_info = _check_plate_in_vehicles_db(rear_plate)
-
-    if front_plate and not front_in_db:
-        logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
-        if front_camera_id:
-            _send_alert(
-                alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=front_plate,
-                camera_id=front_camera_id,
-                message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
-                event_data=front_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
-            )
-
-    if rear_plate and not rear_in_db:
-        logging.warning(f"Rear plate {rear_plate} not found in Front-Rear database")
-        if rear_camera_id:
-            _send_alert(
-                alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=rear_plate,
-                camera_id=rear_camera_id,
-                message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
-                event_data=rear_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
-            )
+    front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info = (
+        _check_plate_mismatch_alerts(
+            front_plate,
+            rear_plate,
+            front_camera_id,
+            rear_camera_id,
+            front_event,
+            rear_event,
+            detected_make_model,
+            make_model_score,
+            visit_id,
+        )
+    )
 
     # Alert #3: Make/Model Mismatch Alert
-    # Reload config for hot reload support
-    current_config = _load_config()
-    make_model_threshold = current_config.get("thresholds", {}).get(
-        "make_model_confidence", 0.2
+    _check_make_model_mismatch_alert(
+        rear_camera_id,
+        front_camera_id,
+        rear_plate,
+        front_plate,
+        rear_in_db,
+        front_in_db,
+        rear_vehicle_info,
+        front_vehicle_info,
+        detected_make_model,
+        make_model_score,
+        rear_event,
+        front_event,
+        visit_id,
     )
-    reference_plate = (
-        rear_plate if rear_in_db else (front_plate if front_in_db else None)
-    )
-    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
-
-    if reference_plate and reference_vehicle_info:
-        front_rear_make = reference_vehicle_info.get("make", "")
-        front_rear_model = reference_vehicle_info.get("model", "")
-        front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
-        make_model_mismatch = (
-            detected_make_model and detected_make_model != front_rear_make_model
-        )
-
-        if make_model_mismatch and make_model_score >= make_model_threshold:
-            logging.warning(
-                f"Make/model mismatch for {reference_plate}: "
-                f"Detected: {detected_make_model} (score: {make_model_score:.2f}), "
-                f"Front-Rear DB: {front_rear_make_model}"
-            )
-            alert_camera_id = (
-                rear_camera_id
-                if (rear_camera_id and rear_plate)
-                else (front_camera_id if front_camera_id else None)
-            )
-            if alert_camera_id:
-                _send_alert(
-                    alert_type="make_model_mismatch",
-                    visit_id=visit_id,
-                    plate=reference_plate,
-                    camera_id=alert_camera_id,
-                    message=(
-                        f"Vehicle make/model mismatch for {reference_plate}: "
-                        f"Detected {detected_make_model} (confidence: {make_model_score:.2f}), "
-                        f"Expected {front_rear_make_model} from Front-Rear database"
-                    ),
-                    event_data=rear_event if rear_event else front_event,
-                    detected_make_model=detected_make_model,
-                    make_model_score=make_model_score,
-                )
 
     return visit_id
 
@@ -850,8 +934,8 @@ def _handle_event_overwrite(
     if old_plate != new_plate:
         if not pair.is_solo:
             logging.warning(
-                f"Overwriting unpaired event from {camera_id} (age: {age:.1f}s, old plate: {old_plate}) - "
-                f"new vehicle ({new_plate}) detected before pair completed, {missing_camera} may be offline"
+                f"Overwriting unpaired event from {_short(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
+                f"new vehicle ({new_plate}) detected before pair completed, {_short(missing_camera)} may be offline"
             )
 
         old_front_event = old_event if is_front else None
@@ -907,7 +991,7 @@ def process_request(
     pair = _get_camera_pair(camera_id)
 
     if not pair:
-        logging.warning(f"Camera {camera_id} is not configured in any pair")
+        logging.warning(f"Camera {_short(camera_id)} is not configured in any pair")
         return "Camera not configured in any pair", 200
 
     timestamp_unix = _parse_timestamp(timestamp_str)
@@ -942,11 +1026,9 @@ def process_request(
         else:
             pair.rear_event = event
 
-    if (
-        should_send_overwrite_alert
-        and missing_camera_id is not None
-        and not pair.is_solo
-    ):
+    if should_send_overwrite_alert and not pair.is_solo:
+        assert missing_camera_id is not None
+
         visit_id = _process_events(
             front_event=old_front_event,
             rear_event=old_rear_event,
@@ -961,7 +1043,7 @@ def process_request(
                 visit_id=visit_id,
                 plate=None,
                 camera_id=missing_camera_id,
-                message=f"Camera {missing_camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
+                message=f"Camera {_short(missing_camera_id)} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
                 event_data=overwrite_old_event,
             )
 
@@ -975,9 +1057,11 @@ def process_request(
 
         if should_process_pair:
             if pair.is_solo:
-                logging.info(f"Processing solo camera {pair.solo_camera_id}")
+                logging.info(f"Processing solo camera {_short(pair.solo_camera_id)}")
             else:
-                logging.info(f"Processing camera pair {pair.front}/{pair.rear}")
+                logging.info(
+                    f"Processing camera pair {_short(pair.front)}/{_short(pair.rear)}"
+                )
 
             _process_camera_pair(pair)
             pair.front_event = None
@@ -991,15 +1075,15 @@ def process_request(
 
         if not front_valid:
             status_msg.append(
-                f"front camera ({pair.front}) {'missing' if not front_event else 'expired'}"
+                f"front camera ({_short(pair.front)}) {'missing' if not front_event else 'expired'}"
             )
         if not rear_valid:
             status_msg.append(
-                f"rear camera ({pair.rear}) {'missing' if not rear_event else 'expired'}"
+                f"rear camera ({_short(pair.rear)}) {'missing' if not rear_event else 'expired'}"
             )
 
         logging.info(
-            f"Event buffered for {camera_id}, waiting for: {', '.join(status_msg)}"
+            f"Event buffered for {pair.description} ({_short(camera_id)}), waiting for: {', '.join(status_msg)}"
         )
 
-    return "Event buffered, waiting for pair", 200
+    return "Event buffered, waiting for pair", 202
