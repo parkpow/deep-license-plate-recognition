@@ -329,9 +329,9 @@ def _cleanup_task_loop() -> None:
         time.sleep(cleanup_interval)
 
 
-def _short(camera_id: str | None) -> str | None:
+def _short(camera_id: str | None) -> str:
     """Helper to shorten camera ID for logging."""
-    return f"...{camera_id[-12:]}" if camera_id and len(camera_id) >= 60 else camera_id
+    return f"...{camera_id[-12:]}" if camera_id else ""
 
 
 def _cleanup_expired_events() -> None:
@@ -373,7 +373,7 @@ def _cleanup_expired_events() -> None:
         assert missing_camera is not None
 
         logging.warning(
-            f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {_short(missing_camera)} may be offline, processing single camera event"
+            f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
         )
 
         visit_id = _process_camera_pair(pair)
@@ -634,7 +634,7 @@ def _check_no_rear_plate_alert(
 ) -> bool:
     """Check and send no rear plate alert. Returns True if should skip further processing."""
     if rear_camera_id and not rear_plate and rear_event:
-        logging.warning(f"No rear plate detected for {_short(rear_camera_id)}")
+        logging.warning(f"No rear plate detected for {rear_camera_id}")
         _send_alert(
             alert_type="no_rear_plate",
             visit_id=visit_id,
@@ -791,7 +791,7 @@ def _process_events(
         camera_pair = f"{_short(front_camera_id)} / {_short(rear_camera_id)}"
         is_solo = not (front_camera_id and rear_camera_id)
         logging.warning(
-            f"No event data to forward for {'solo camera' if is_solo else 'pair'} {camera_pair}"
+            f"No event data to forward for {'camera' if is_solo else 'pair'} {camera_pair}"
         )
         return None
 
@@ -942,7 +942,7 @@ def _handle_event_overwrite(
         if not pair.is_solo:
             logging.warning(
                 f"Overwriting unpaired event from {_short(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
-                f"new vehicle ({new_plate}) detected before pair completed, {_short(missing_camera)} may be offline"
+                f"new vehicle ({new_plate}) detected before pair completed, {camera_id} may be offline"
             )
 
         old_front_event = old_event if is_front else None
@@ -1050,7 +1050,7 @@ def process_request(
                 visit_id=visit_id,
                 plate=None,
                 camera_id=missing_camera_id,
-                message=f"Camera {_short(missing_camera_id)} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
+                message=f"Camera {camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
                 event_data=overwrite_old_event,
             )
 
