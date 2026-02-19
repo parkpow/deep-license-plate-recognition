@@ -331,7 +331,9 @@ def _cleanup_task_loop() -> None:
 
 def _short(camera_id: str | None) -> str:
     """Helper to shorten camera ID for logging."""
-    return f"...{camera_id[-12:]}" if camera_id else ""
+    if not camera_id:
+        return ""
+    return f"...{camera_id[-12:]}" if len(camera_id) >= 60 else camera_id
 
 
 def _cleanup_expired_events() -> None:
