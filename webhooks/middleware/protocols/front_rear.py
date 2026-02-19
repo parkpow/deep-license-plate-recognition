@@ -331,7 +331,7 @@ def _cleanup_task_loop() -> None:
 
 def _short(camera_id: str | None) -> str | None:
     """Helper to shorten camera ID for logging."""
-    return f"...{camera_id[-9:]}" if camera_id else None
+    return f"...{camera_id[-12:]}" if camera_id and len(camera_id) >= 60 else camera_id
 
 
 def _cleanup_expired_events() -> None:
@@ -998,7 +998,7 @@ def process_request(
     pair = _get_camera_pair(camera_id)
 
     if not pair:
-        logging.warning(f"Camera {_short(camera_id)} is not configured in any pair")
+        logging.warning(f"Camera {camera_id} is not configured in any pair")
         return "Camera not configured in any pair", 200
 
     timestamp_unix = _parse_timestamp(timestamp_str)
