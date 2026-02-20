@@ -39,6 +39,15 @@ logging.basicConfig(
 )
 
 
+class ParkPowError(Exception):
+    """Raised when ParkPow returns an HTTP error or is unreachable."""
+
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+        self.message = message
+
+
 @dataclass
 class CameraEvent:
     """Structured webhook event from a camera."""
@@ -378,7 +387,13 @@ def _cleanup_expired_events() -> None:
             f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
         )
 
-        visit_id = _process_camera_pair(pair)
+        try:
+            visit_id = _process_camera_pair(pair)
+        except ParkPowError as e:
+            logging.error(
+                f"ParkPow error processing expired event for {pair.description}: [{e.status}] {e.message}"
+            )
+            visit_id = None
 
         with pair_locks[pair_id]:
             is_front = camera_id == pair.front
@@ -601,13 +616,23 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
             logging.info(f"Created visit {visit_id} in ParkPow")
             return int(visit_id)
         elif "requires higher scores" in str(response_data).lower():
-            return -1
+            raise ParkPowError(422, "Visit rejected due to low confidence scores")
         else:
             logging.warning(
                 f"ParkPow response missing or invalid visit id: {response_data}"
             )
             return None
 
+    except ParkPowError:
+        raise
+    except aiohttp.ClientResponseError as e:
+        raise ParkPowError(e.status, e.message) from e
+    except (
+        aiohttp.ServerTimeoutError,
+        aiohttp.ClientConnectorError,
+        asyncio.TimeoutError,
+    ) as e:
+        raise ParkPowError(503, str(e)) from e
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
@@ -622,6 +647,8 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
     future = asyncio.run_coroutine_threadsafe(_forward_to_parkpow_async(event), _loop)
     try:
         return future.result(timeout=15)
+    except ParkPowError:
+        raise
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
@@ -798,19 +825,6 @@ def _process_events(
         return None
 
     visit_id = _forward_to_parkpow(data_to_forward)
-    if visit_id == -1:
-        is_solo = not front_camera_id or not rear_camera_id
-        camera_pair = f"{_short(front_camera_id)}{' / ' if not is_solo else ''}{_short(rear_camera_id)}"
-        plates = (
-            f"front={front_plate}, rear={rear_plate}"
-            if not is_solo
-            else f"plate={front_plate or rear_plate}"
-        )
-        logging.warning(
-            f"ParkPow rejected visit for {'camera' if is_solo else 'pair'} {camera_pair} ({plates}) - confidence scores too low"
-        )
-        return -1
-
     if not visit_id:
         is_solo = not front_camera_id or not rear_camera_id
         camera_pair = f"{_short(front_camera_id)}{' / ' if not is_solo else ''}{_short(rear_camera_id)}"
@@ -870,28 +884,37 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
     )
 
 
+def _stream_response(
+    message: str, status: int, camera_id: str | None = None
+) -> tuple[str, int]:
+    """Log exactly what is returned to Stream and return it."""
+    cam = f" for {_short(camera_id)}" if camera_id else ""
+    log = f"Returned {status} {message!r}{cam}"
+    if status >= 500:
+        logging.error(log)
+    elif status >= 400:
+        logging.warning(log)
+    else:
+        logging.info(log)
+    return message, status
+
+
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
     if not _stream_api_tokens:
-        logging.error(
-            "STREAM_API_TOKENS not configured - rejecting request for security"
-        )
-        return "Unauthorized: Authentication not configured", 401
+        return "FrontRear - Unauthorized: Authentication not configured", 401
 
     auth_header = get_header("Authorization", json_data)
     if not auth_header:
-        logging.error("Missing Authorization header in request from Stream")
-        return "Unauthorized: Missing Authorization header", 401
+        return "FrontRear - Unauthorized: Missing Authorization header", 401
 
     token = auth_header.split()[-1]
 
     if not token or token.lower() in ("token", "bearer"):
-        logging.error("Invalid or missing token in Authorization header")
-        return "Unauthorized: Malformed Authorization header", 401
+        return "FrontRear - Unauthorized: Malformed Authorization header", 401
 
     if not any(hmac.compare_digest(token, v_token) for v_token in _stream_api_tokens):
-        logging.error("Invalid token in Authorization header")
-        return "Forbidden: Invalid token", 403
+        return "FrontRear - Unauthorized: Invalid token", 403
 
     return None
 
@@ -991,7 +1014,7 @@ def process_request(
     """Process incoming webhook request from camera."""
     auth_error = _authenticate_request(json_data)
     if auth_error:
-        return auth_error
+        return _stream_response(*auth_error)
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
@@ -1000,8 +1023,9 @@ def process_request(
     pair = _get_camera_pair(camera_id)
 
     if not pair:
-        logging.warning(f"Camera {camera_id} is not configured in any pair")
-        return "Camera not configured in any pair", 200
+        return _stream_response(
+            "FrontRear - Camera not configured in any pair", 404, camera_id
+        )
 
     timestamp_unix = _parse_timestamp(timestamp_str)
 
@@ -1038,12 +1062,18 @@ def process_request(
     if should_send_overwrite_alert and not pair.is_solo:
         assert missing_camera_id is not None
 
-        visit_id = _process_events(
-            front_event=old_front_event,
-            rear_event=old_rear_event,
-            front_camera_id=pair.front,
-            rear_camera_id=pair.rear,
-        )
+        try:
+            visit_id = _process_events(
+                front_event=old_front_event,
+                rear_event=old_rear_event,
+                front_camera_id=pair.front,
+                rear_camera_id=pair.rear,
+            )
+        except ParkPowError as e:
+            logging.error(
+                f"ParkPow error processing overwrite event for {pair.description}: [{e.status}] {e.message}"
+            )
+            visit_id = None
 
         # Alert #4: Possible Offline Camera Alert
         if visit_id:
@@ -1072,14 +1102,20 @@ def process_request(
                     f"Processing camera pair {_short(pair.front)}/{_short(pair.rear)}"
                 )
 
-            visit_id = _process_camera_pair(pair)
+            try:
+                visit_id = _process_camera_pair(pair)
+            except ParkPowError as e:
+                pair.front_event = None
+                pair.rear_event = None
+                return _stream_response(f"ParkPow - {e.message}", e.status, camera_id)
+
             pair.front_event = None
             pair.rear_event = None
 
-            if visit_id == -1:
-                return "Visit rejected: confidence scores too low", 422
+            if visit_id is None:
+                return _stream_response("FrontRear - Internal error", 424, camera_id)
 
-            return "Processed camera pair", 200
+            return _stream_response("FrontRear - Processed camera pair", 200, camera_id)
 
     if not pair.is_solo:
         front_event = pair.front_event
@@ -1099,4 +1135,6 @@ def process_request(
             f"Event buffered for {pair.description} ({_short(camera_id)}), waiting for: {', '.join(status_msg)}"
         )
 
-    return "Event buffered, waiting for pair", 202
+    return _stream_response(
+        "FrontRear - Event buffered, waiting for pair", 202, camera_id
+    )
