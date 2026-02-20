@@ -17,6 +17,7 @@ Alerts:
 """
 
 import asyncio
+import concurrent.futures
 import csv
 import hmac
 import json
@@ -649,6 +650,8 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
         return future.result(timeout=15)
     except ParkPowError:
         raise
+    except concurrent.futures.TimeoutError as e:
+        raise ParkPowError(503, f"Timed out waiting for ParkPow response: {e}") from e
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
