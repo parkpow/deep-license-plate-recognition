@@ -967,7 +967,7 @@ def _handle_event_overwrite(
         if not pair.is_solo:
             logging.warning(
                 f"Overwriting unpaired event from {_short(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
-                f"new vehicle ({new_plate}) detected before pair completed, {camera_id} may be offline"
+                f"new vehicle ({new_plate}) detected before pair completed, {missing_camera} may be offline"
             )
 
         old_front_event = old_event if is_front else None
@@ -1082,7 +1082,7 @@ def process_request(
                 visit_id=visit_id,
                 plate=None,
                 camera_id=missing_camera_id,
-                message=f"Camera {camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
+                message=f"Camera {missing_camera_id} may be offline - unpaired event overwritten after {overwrite_age:.1f}s",
                 event_data=overwrite_old_event,
             )
 
