@@ -1117,7 +1117,9 @@ def process_request(
             pair.rear_event = None
 
             if visit_id is None:
-                return _stream_response("FrontRear - Internal error", 424, camera_id)
+                return _stream_response(
+                    "FrontRear - Internal error (null visit_id)", 424, camera_id
+                )
 
             return _stream_response("FrontRear - Processed camera pair", 200, camera_id)
 
