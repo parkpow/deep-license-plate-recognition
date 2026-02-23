@@ -1063,8 +1063,6 @@ def process_request(
             pair.rear_event = event
 
     if should_send_overwrite_alert and not pair.is_solo:
-        assert missing_camera_id is not None
-
         try:
             visit_id = _process_events(
                 front_event=old_front_event,
