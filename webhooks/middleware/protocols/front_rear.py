@@ -920,7 +920,7 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
         return "FrontRear - Unauthorized: Malformed Authorization header", 401
 
     if not any(hmac.compare_digest(token, v_token) for v_token in _stream_api_tokens):
-        return "FrontRear - Unauthorized: Invalid token", 403
+        return "FrontRear - Forbidden: Invalid token", 403
 
     return None
 
