@@ -356,6 +356,8 @@ def _cleanup_expired_events() -> None:
     expired_items: list[tuple[CameraPair, str, CameraEvent]] = []
 
     for pair in camera_pairs:
+        if pair.is_solo:
+            continue
         with pair_locks[pair.id]:
             if (
                 pair.front
@@ -381,8 +383,6 @@ def _cleanup_expired_events() -> None:
 
             age = time.time() - current_event.timestamp_unix
             missing_camera = pair.rear if is_front else pair.front
-
-        assert missing_camera is not None
 
         logging.warning(
             f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
