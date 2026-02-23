@@ -264,6 +264,12 @@ def initialize() -> None:
     _parkpow_token = token
     _stream_api_tokens = [t.strip() for t in stream_tokens_env.split(",") if t.strip()]
 
+    if not _stream_api_tokens:
+        logging.error("STREAM_API_TOKENS has no valid tokens after parsing")
+        raise ValueError(
+            "Front-Rear middleware requires at least one valid token in STREAM_API_TOKENS"
+        )
+
     _loop = asyncio.new_event_loop()
     _loop_thread = threading.Thread(target=_run_event_loop, args=(_loop,), daemon=True)
     _loop_thread.start()
@@ -904,9 +910,6 @@ def _stream_response(
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
-    if not _stream_api_tokens:
-        return "FrontRear - Unauthorized: Authentication not configured", 401
-
     auth_header = get_header("Authorization", json_data)
     if not auth_header:
         return "FrontRear - Unauthorized: Missing Authorization header", 401
