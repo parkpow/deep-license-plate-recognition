@@ -826,8 +826,8 @@ def _process_events(
 
     data_to_forward = rear_event if rear_event else front_event
     if not data_to_forward:
-        camera_pair = f"{_short(front_camera_id)} / {_short(rear_camera_id)}"
         is_solo = not (front_camera_id and rear_camera_id)
+        camera_pair = f"{_short(front_camera_id)}{'' if is_solo else ' / '}{_short(rear_camera_id)}"
         logging.warning(
             f"No event data to forward for {'camera' if is_solo else 'pair'} {camera_pair}"
         )
@@ -836,7 +836,7 @@ def _process_events(
     visit_id = _forward_to_parkpow(data_to_forward)
     if not visit_id:
         is_solo = not front_camera_id or not rear_camera_id
-        camera_pair = f"{_short(front_camera_id)}{' / ' if not is_solo else ''}{_short(rear_camera_id)}"
+        camera_pair = f"{_short(front_camera_id)}{'' if is_solo else ' / '}{_short(rear_camera_id)}"
         logging.error(
             f"Failed to create visit in ParkPow for {'camera' if is_solo else 'pair'} {camera_pair}, skipping alerts"
         )
@@ -1103,7 +1103,7 @@ def process_request(
                 logging.info(f"Processing solo camera {_short(pair.solo_camera_id)}")
             else:
                 logging.info(
-                    f"Processing camera pair {_short(pair.front)}/{_short(pair.rear)}"
+                    f"Processing camera pair {_short(pair.front)} / {_short(pair.rear)}"
                 )
 
             try:
