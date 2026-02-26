@@ -846,7 +846,7 @@ def _process_events(
     if _check_no_rear_plate_alert(
         rear_camera_id, rear_plate, rear_event, front_plate, visit_id
     ):
-        return None
+        return visit_id
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
     front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info = (

@@ -533,7 +533,7 @@ class TestWebhookProcessing:
         }
         _response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
+        assert status == 202
         assert pair.front_event is not None
         assert pair.front_event.camera_id == "camera-front"
 
@@ -561,6 +561,7 @@ class TestWebhookProcessing:
     def test_process_request_authentication_not_configured(
         self, reset_front_rear_state, monkeypatch, mock_config
     ):
+        """With empty tokens list, any token fails comparison and returns 403."""
         monkeypatch.delenv("STREAM_API_TOKENS", raising=False)
         front_rear._stream_api_tokens = []
 
@@ -570,8 +571,8 @@ class TestWebhookProcessing:
         }
         response, status = front_rear.process_request(webhook_data)
 
-        assert status == 401
-        assert "not configured" in response
+        assert status == 403
+        assert "Forbidden" in response
 
     def test_process_request_authentication_malformed_header(
         self, reset_front_rear_state, mock_env_tokens, mock_config
@@ -604,7 +605,7 @@ class TestWebhookProcessing:
         }
         _response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
+        assert status == 202
 
     def test_process_request_authentication_multiple_valid_tokens(
         self, reset_front_rear_state, mock_env_tokens, mock_config
@@ -625,7 +626,7 @@ class TestWebhookProcessing:
             },
         }
         _response, status = front_rear.process_request(webhook_data_1)
-        assert status == 200
+        assert status == 202
 
         # Test second token
         webhook_data_2 = {
@@ -637,7 +638,7 @@ class TestWebhookProcessing:
             },
         }
         _response, status = front_rear.process_request(webhook_data_2)
-        assert status == 200
+        assert status == 202
 
     def test_process_request_camera_not_in_pair(
         self, reset_front_rear_state, mock_env_tokens, mock_config
@@ -659,7 +660,7 @@ class TestWebhookProcessing:
 
         response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
+        assert status == 404
         assert "not configured" in response
 
     def test_process_request_buffering(
@@ -680,7 +681,7 @@ class TestWebhookProcessing:
         }
         response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
+        assert status == 202
         assert "buffered" in response.lower()
         assert pair.front_event is not None
 
@@ -761,7 +762,7 @@ class TestWebhookProcessing:
             }
             response, status = front_rear.process_request(webhook_data)
 
-            assert status == 200
+            assert status == 202
             mock_process_events.assert_called_once()
             alert_types = [
                 call[1]["alert_type"] for call in mock_send_alert.call_args_list
@@ -803,10 +804,58 @@ class TestWebhookProcessing:
         }
         response, status = front_rear.process_request(webhook_data)
 
-        assert status == 200
+        assert status == 202
         mock_process_pair.assert_not_called()
         mock_send_alert.assert_not_called()
         assert pair.front_event is not None
+
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_request_no_rear_plate_missing_front_plate_no_424(
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """If ParkPow already created a visit, this flow must not return 424."""
+        mock_forward.return_value = 321
+
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+
+        current_time = time.time()
+        pair.front_event = create_camera_event(
+            camera_id="camera-front", plate=None, timestamp_unix=current_time
+        )
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": None}],
+                "timestamp": timestamp_str,
+            },
+        }
+
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+        assert "Processed camera pair" in response
+        mock_forward.assert_called_once()
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "no_rear_plate" in alert_types
 
 
 class TestCameraPairProcessing:
@@ -1076,6 +1125,36 @@ class TestCameraPairProcessing:
         for call in mock_send_alert.call_args_list:
             assert call[1]["visit_id"] == 123
 
+    @patch("protocols.front_rear._forward_to_parkpow")
+    @patch("protocols.front_rear._send_alert")
+    def test_process_events_no_rear_plate_missing_front_plate_keeps_visit_id(
+        self,
+        mock_send_alert,
+        mock_forward,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
+    ):
+        """If ParkPow visit exists, no-rear-plate path must not return None (prevents 424 retries)."""
+        mock_forward.return_value = 123
+        front_rear.config = TEST_CONFIG
+
+        front_event = create_camera_event(camera_id="camera-front", plate=None)
+        rear_event = create_camera_event(
+            camera_id="camera-rear", plate=None, timestamp="2025-11-24T10:00:05Z"
+        )
+
+        visit_id = front_rear._process_events(
+            front_event=front_event,
+            rear_event=rear_event,
+            front_camera_id="camera-front",
+            rear_camera_id="camera-rear",
+        )
+
+        assert visit_id == 123
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "no_rear_plate" in alert_types
+
 
 class TestCleanupExpiredEvents:
     @patch("protocols.front_rear._load_vehicles_csv")
@@ -1292,6 +1371,364 @@ class TestSoloCameras:
 
             alert_types = [call[1]["alert_type"] for call in mock_alert.call_args_list]
             assert "no_rear_plate" not in alert_types
+
+
+class TestParkPowErrorHandling:
+    """Test ParkPowError propagation through process_request."""
+
+    @patch("protocols.front_rear._process_camera_pair")
+    def test_parkpow_error_propagated_to_stream(
+        self,
+        mock_process_pair,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """ParkPowError during pair processing returns ParkPow status and message."""
+        mock_process_pair.side_effect = front_rear.ParkPowError(502, "Bad Gateway")
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        current_time = time.time()
+        pair.front_event = create_camera_event(timestamp_unix=current_time)
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 502
+        assert "ParkPow" in response
+        assert "Bad Gateway" in response
+        # Events should be cleared on ParkPowError
+        assert pair.front_event is None
+        assert pair.rear_event is None
+
+    @patch("protocols.front_rear._process_camera_pair")
+    def test_parkpow_422_rejected_scores(
+        self,
+        mock_process_pair,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """ParkPow 422 for low confidence scores is returned to Stream."""
+        mock_process_pair.side_effect = front_rear.ParkPowError(
+            422, "Visit rejected due to low confidence scores"
+        )
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        current_time = time.time()
+        pair.front_event = create_camera_event(timestamp_unix=current_time)
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 422
+        assert "low confidence" in response.lower()
+
+    @patch("protocols.front_rear._process_camera_pair")
+    def test_parkpow_503_unreachable(
+        self,
+        mock_process_pair,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """ParkPow 503 connection error is returned to Stream."""
+        mock_process_pair.side_effect = front_rear.ParkPowError(
+            503, "Connection refused"
+        )
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        current_time = time.time()
+        pair.front_event = create_camera_event(timestamp_unix=current_time)
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 503
+        assert "ParkPow" in response
+
+
+class TestNullVisitId:
+    """Test null visit_id (424) response."""
+
+    @patch("protocols.front_rear._process_camera_pair")
+    def test_null_visit_id_returns_424(
+        self,
+        mock_process_pair,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """When _process_camera_pair returns None, Stream gets 424."""
+        mock_process_pair.return_value = None
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        current_time = time.time()
+        pair.front_event = create_camera_event(timestamp_unix=current_time)
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 424
+        assert "null visit_id" in response.lower()
+        # Events should be cleared
+        assert pair.front_event is None
+        assert pair.rear_event is None
+
+    @patch("protocols.front_rear._process_camera_pair")
+    def test_successful_pair_returns_200(
+        self,
+        mock_process_pair,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """Successful pair processing returns 200 with correct message."""
+        mock_process_pair.return_value = 123
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        current_time = time.time()
+        pair.front_event = create_camera_event(timestamp_unix=current_time)
+
+        from datetime import datetime
+
+        timestamp_str = datetime.fromtimestamp(current_time).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-rear",
+                "results": [{"plate": "ABC123"}],
+                "timestamp": timestamp_str,
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        assert status == 200
+        assert "Processed camera pair" in response
+
+
+class TestOverwriteParkPowError:
+    """Test ParkPowError during overwrite event processing."""
+
+    @patch("protocols.front_rear._send_alert")
+    @patch("protocols.front_rear._process_events")
+    def test_overwrite_parkpow_error_continues_normally(
+        self,
+        mock_process_events,
+        mock_send_alert,
+        reset_front_rear_state,
+        create_camera_event,
+        mock_asyncio_for_alerts,
+        mock_env_tokens,
+        mock_config,
+    ):
+        """ParkPowError during overwrite processing doesn't block the main request."""
+        mock_process_events.side_effect = front_rear.ParkPowError(
+            503, "Connection refused"
+        )
+        pair = front_rear.CameraPair(
+            front="camera-front", rear="camera-rear", description="Gate 1"
+        )
+        front_rear.camera_pairs = [pair]
+        old_time = time.time() - 20
+        pair.front_event = create_camera_event(
+            plate="OLD123", timestamp="2024-11-24T10:00:00Z", timestamp_unix=old_time
+        )
+
+        webhook_data = {
+            "webhook_header": {"Authorization": "test-stream-token"},
+            "data": {
+                "camera_id": "camera-front",
+                "results": [{"plate": "NEW456"}],
+                "timestamp": "2024-11-24T10:00:20Z",
+            },
+        }
+        response, status = front_rear.process_request(webhook_data)
+
+        # Main request continues with 202 buffered despite overwrite error
+        assert status == 202
+        # No camera_offline alert since visit_id is None from exception
+        alert_types = [call[1]["alert_type"] for call in mock_send_alert.call_args_list]
+        assert "camera_offline" not in alert_types
+        # New event should still be stored
+        assert pair.front_event is not None
+        assert pair.front_event.results[0]["plate"] == "NEW456"
+
+
+class TestShortHelper:
+    """Test _short camera ID helper."""
+
+    def test_short_none(self):
+        assert front_rear._short(None) == ""
+
+    def test_short_empty(self):
+        assert front_rear._short("") == ""
+
+    def test_short_short_id(self):
+        assert front_rear._short("cam1") == "cam1"
+
+    def test_short_medium_id(self):
+        camera_id = "a" * 59
+        assert front_rear._short(camera_id) == camera_id
+
+    def test_short_long_id(self):
+        camera_id = "a" * 60
+        result = front_rear._short(camera_id)
+        assert result.startswith("...")
+        assert len(result) == 15  # "..." + 12 chars
+
+
+class TestStreamResponse:
+    """Test _stream_response helper."""
+
+    def test_returns_message_and_status(self):
+        msg, status = front_rear._stream_response("test message", 200)
+        assert msg == "test message"
+        assert status == 200
+
+    def test_logs_error_for_5xx(self):
+        with patch("protocols.front_rear.logging.error") as mock_log:
+            front_rear._stream_response("Server Error", 500)
+            mock_log.assert_called_once()
+
+    def test_logs_warning_for_4xx(self):
+        with patch("protocols.front_rear.logging.warning") as mock_log:
+            front_rear._stream_response("Not Found", 404)
+            mock_log.assert_called_once()
+
+    def test_logs_info_for_2xx(self):
+        with patch("protocols.front_rear.logging.info") as mock_log:
+            front_rear._stream_response("OK", 200)
+            mock_log.assert_called_once()
+
+    def test_includes_camera_id_in_log(self):
+        with patch("protocols.front_rear.logging.info") as mock_log:
+            front_rear._stream_response("OK", 200, camera_id="cam1")
+            assert "cam1" in mock_log.call_args[0][0]
+
+
+class TestParkPowErrorException:
+    """Test ParkPowError exception class."""
+
+    def test_attributes(self):
+        err = front_rear.ParkPowError(502, "Bad Gateway")
+        assert err.status == 502
+        assert err.message == "Bad Gateway"
+        assert str(err) == "Bad Gateway"
+
+    def test_is_exception(self):
+        err = front_rear.ParkPowError(500, "Internal")
+        assert isinstance(err, Exception)
+
+
+class TestInitializeValidation:
+    """Test initialization validation of STREAM_API_TOKENS."""
+
+    @patch("protocols.front_rear.asyncio.run_coroutine_threadsafe")
+    @patch("protocols.front_rear.threading.Thread")
+    def test_initialize_empty_stream_tokens_raises(
+        self,
+        mock_thread,
+        mock_run_coro,
+        reset_front_rear_state,
+        sample_config,
+        monkeypatch,
+    ):
+        """Initialization fails if STREAM_API_TOKENS env var has no valid tokens."""
+        monkeypatch.chdir(Path(sample_config).parent.parent.parent)
+        monkeypatch.setenv("PARKPOW_TOKEN", "test-token")
+        monkeypatch.setenv("STREAM_API_TOKENS", "  ,  , ")
+
+        with pytest.raises(ValueError, match="at least one valid token"):
+            front_rear.initialize()
+
+    @patch("protocols.front_rear.asyncio.run_coroutine_threadsafe")
+    @patch("protocols.front_rear.threading.Thread")
+    def test_initialize_missing_stream_tokens_raises(
+        self,
+        mock_thread,
+        mock_run_coro,
+        reset_front_rear_state,
+        sample_config,
+        monkeypatch,
+    ):
+        """Initialization fails if STREAM_API_TOKENS env var is missing."""
+        monkeypatch.chdir(Path(sample_config).parent.parent.parent)
+        monkeypatch.setenv("PARKPOW_TOKEN", "test-token")
+        monkeypatch.delenv("STREAM_API_TOKENS", raising=False)
+
+        with pytest.raises(ValueError, match="STREAM_API_TOKENS"):
+            front_rear.initialize()
 
 
 if __name__ == "__main__":
