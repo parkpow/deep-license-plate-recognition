@@ -17,6 +17,7 @@ Alerts:
 """
 
 import asyncio
+import concurrent.futures
 import csv
 import hmac
 import json
@@ -26,12 +27,12 @@ import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from threading import Lock
 from typing import Any
 
 import aiohttp
 
+from protocols import front_rear_helpers as h
 from protocols.shared.utils import get_header
 
 logging.basicConfig(
@@ -39,7 +40,16 @@ logging.basicConfig(
 )
 
 
-@dataclass
+class ParkPowError(Exception):
+    """Raised when ParkPow returns an HTTP error or is unreachable."""
+
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+        self.message = message
+
+
+@dataclass(slots=True)
 class CameraEvent:
     """Structured webhook event from a camera."""
 
@@ -52,7 +62,22 @@ class CameraEvent:
     original_files: Any
 
 
-@dataclass
+@dataclass(slots=True)
+class AlertCheckContext:
+    """Shared payload used by alert-check helper functions."""
+
+    front_camera_id: str | None
+    rear_camera_id: str | None
+    front_plate: str | None
+    rear_plate: str | None
+    front_event: CameraEvent | None
+    rear_event: CameraEvent | None
+    detected_make_model: str | None
+    make_model_score: float
+    visit_id: int
+
+
+@dataclass(slots=True)
 class CameraPair:
     """Paired front/rear camera configuration with event buffering."""
 
@@ -70,14 +95,12 @@ class CameraPair:
 
     @property
     def is_solo(self) -> bool:
-        """Check if this is a solo camera (only front or only rear)."""
         return (self.front is None or self.front == "") or (
             self.rear is None or self.rear == ""
         )
 
     @property
     def solo_camera_id(self) -> str | None:
-        """Get the camera ID for solo camera (front or rear)."""
         if not self.is_solo:
             return None
         return self.front or self.rear
@@ -254,6 +277,12 @@ def initialize() -> None:
     _parkpow_token = token
     _stream_api_tokens = [t.strip() for t in stream_tokens_env.split(",") if t.strip()]
 
+    if not _stream_api_tokens:
+        logging.error("STREAM_API_TOKENS has no valid tokens after parsing")
+        raise ValueError(
+            "Front-Rear middleware requires at least one valid token in STREAM_API_TOKENS"
+        )
+
     _loop = asyncio.new_event_loop()
     _loop_thread = threading.Thread(target=_run_event_loop, args=(_loop,), daemon=True)
     _loop_thread.start()
@@ -339,6 +368,8 @@ def _cleanup_expired_events() -> None:
     expired_items: list[tuple[CameraPair, str, CameraEvent]] = []
 
     for pair in camera_pairs:
+        if pair.is_solo:
+            continue
         with pair_locks[pair.id]:
             if (
                 pair.front
@@ -354,8 +385,7 @@ def _cleanup_expired_events() -> None:
                 expired_items.append((pair, pair.rear, pair.rear_event))
 
     for pair, camera_id, event in expired_items:
-        pair_id = pair.id
-        with pair_locks[pair_id]:
+        with pair_locks[pair.id]:
             is_front = camera_id == pair.front
             current_event = pair.front_event if is_front else pair.rear_event
 
@@ -366,13 +396,18 @@ def _cleanup_expired_events() -> None:
             missing_camera = pair.rear if is_front else pair.front
 
         logging.warning(
-            f"Unpaired event expired from {camera_id} after {age:.1f}s - "
-            f"{missing_camera} may be offline, processing single camera event"
+            f"Unpaired event for {pair.description} ({h.shorten_id(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
         )
 
-        visit_id = _process_camera_pair(pair)
+        try:
+            visit_id = _process_camera_pair(pair)
+        except ParkPowError as e:
+            logging.error(
+                f"ParkPow error processing expired event for {pair.description}: [{e.status}] {e.message}"
+            )
+            visit_id = None
 
-        with pair_locks[pair_id]:
+        with pair_locks[pair.id]:
             is_front = camera_id == pair.front
             if is_front:
                 pair.front_event = None
@@ -400,53 +435,10 @@ def _get_camera_pair(camera_id: str) -> CameraPair | None:
         (
             pair
             for pair in camera_pairs
-            if (pair.front and pair.front == camera_id)
-            or (pair.rear and pair.rear == camera_id)
+            if pair.front == camera_id or pair.rear == camera_id
         ),
         None,
     )
-
-
-def _extract_plate(result: dict[str, Any]) -> str | None:
-    """Extract license plate from result. Stream sends plate as a simple string."""
-    plate = result.get("plate")
-
-    if not plate or not isinstance(plate, str):
-        logging.error(f"Invalid plate data: {plate} (type: {type(plate).__name__})")
-        return None
-
-    return plate.strip().upper()
-
-
-def _extract_best_make_model(results: list[dict[str, Any]]) -> tuple[str | None, float]:
-    """Extract highest confidence make/model as "MAKE MODEL" string and score."""
-    best_make_model = None
-    best_score = 0.0
-
-    for result in results:
-        model_make_list = result.get("model_make", [])
-
-        for mm in model_make_list:
-            make = mm.get("make", "").strip().upper()
-            model = mm.get("model", "").strip().upper()
-            score = mm.get("score", 0.0)
-
-            if (make or model) and score > best_score:
-                best_make_model = f"{make} {model}".strip()
-                best_score = score
-
-    return best_make_model, best_score
-
-
-def _check_plate_in_vehicles_db(
-    plate: str | None,
-) -> tuple[bool, dict[str, str] | None]:
-    """Check if plate exists in database. Returns (found, vehicle_info)."""
-    if not plate:
-        return False, None
-
-    vehicle_info = csv_vehicles.get(plate.upper())
-    return vehicle_info is not None, vehicle_info
 
 
 async def _send_alert_async(
@@ -591,15 +583,25 @@ async def _forward_to_parkpow_async(event: CameraEvent) -> int | None:
 
         if visit_id:
             logging.info(f"Created visit {visit_id} in ParkPow")
-            return visit_id
+            return int(visit_id)
+        elif "requires higher scores" in str(response_data).lower():
+            raise ParkPowError(422, "Visit rejected due to low confidence scores")
         else:
             logging.warning(
-                f"ParkPow response missing or invalid visit id. "
-                f"Response type: {type(response_data).__name__}, "
-                f"Content: {response_data}"
+                f"ParkPow response missing or invalid visit id: {response_data}"
             )
             return None
 
+    except ParkPowError:
+        raise
+    except aiohttp.ClientResponseError as e:
+        raise ParkPowError(e.status, e.message) from e
+    except (
+        aiohttp.ServerTimeoutError,
+        aiohttp.ClientConnectorError,
+        asyncio.TimeoutError,
+    ) as e:
+        raise ParkPowError(503, str(e)) from e
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
@@ -614,9 +616,117 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
     future = asyncio.run_coroutine_threadsafe(_forward_to_parkpow_async(event), _loop)
     try:
         return future.result(timeout=15)
+    except ParkPowError:
+        raise
+    except concurrent.futures.TimeoutError as e:
+        raise ParkPowError(503, f"Timed out waiting for ParkPow response: {e}") from e
     except Exception as e:
         logging.error(f"Failed to forward to ParkPow: {e}")
         return None
+
+
+def _check_no_rear_plate_alert(ctx: AlertCheckContext) -> bool:
+    """Check and send no rear plate alert. Returns True if should skip further processing."""
+    if ctx.rear_camera_id and not ctx.rear_plate and ctx.rear_event:
+        logging.warning(f"No rear plate detected for {ctx.rear_camera_id}")
+        _send_alert(
+            alert_type="no_rear_plate",
+            visit_id=ctx.visit_id,
+            plate=ctx.front_plate,
+            camera_id=ctx.rear_camera_id,
+            message=f"No rear plate detected for front plate {ctx.front_plate}",
+            event_data=ctx.rear_event,
+        )
+        return not ctx.front_plate
+    return False
+
+
+def _check_plate_mismatch_alerts(
+    ctx: AlertCheckContext,
+) -> tuple[bool, bool, dict[str, str] | None, dict[str, str] | None]:
+    """Check and send plate mismatch alerts. Returns (front_in_db, rear_in_db, front_info, rear_info)."""
+    front_in_db, front_vehicle_info = h.check_plate_in_vehicles_db(
+        ctx.front_plate, csv_vehicles
+    )
+    rear_in_db, rear_vehicle_info = h.check_plate_in_vehicles_db(
+        ctx.rear_plate, csv_vehicles
+    )
+
+    if ctx.front_plate and not front_in_db:
+        logging.warning(
+            f"Front plate {ctx.front_plate} not found in Front-Rear database"
+        )
+        if ctx.front_camera_id:
+            _send_alert(
+                alert_type="plate_mismatch",
+                visit_id=ctx.visit_id,
+                plate=ctx.front_plate,
+                camera_id=ctx.front_camera_id,
+                message=f"License plate {ctx.front_plate} not found in Front-Rear Vehicle Database",
+                event_data=ctx.front_event,
+                detected_make_model=ctx.detected_make_model,
+                make_model_score=ctx.make_model_score,
+            )
+
+    if ctx.rear_plate and not rear_in_db:
+        logging.warning(f"Rear plate {ctx.rear_plate} not found in Front-Rear database")
+        if ctx.rear_camera_id:
+            _send_alert(
+                alert_type="plate_mismatch",
+                visit_id=ctx.visit_id,
+                plate=ctx.rear_plate,
+                camera_id=ctx.rear_camera_id,
+                message=f"License plate {ctx.rear_plate} not found in Front-Rear Vehicle Database",
+                event_data=ctx.rear_event,
+                detected_make_model=ctx.detected_make_model,
+                make_model_score=ctx.make_model_score,
+            )
+
+    return front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info
+
+
+def _check_make_model_mismatch_alert(
+    ctx: AlertCheckContext,
+    reference_plate: str | None,
+    reference_vehicle_info: dict[str, str] | None,
+    alert_camera_id: str | None,
+    event_data: CameraEvent | None,
+    make_model_threshold: float,
+) -> None:
+    """Check and send make/model mismatch alert."""
+    if not reference_plate or not reference_vehicle_info:
+        return
+
+    front_rear_make = reference_vehicle_info.get("make", "")
+    front_rear_model = reference_vehicle_info.get("model", "")
+    front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
+    normalized_expected = front_rear_make_model.upper()
+    normalized_detected = (
+        ctx.detected_make_model.strip().upper() if ctx.detected_make_model else None
+    )
+    make_model_mismatch = (
+        normalized_detected is not None and normalized_detected != normalized_expected
+    )
+
+    if not (make_model_mismatch and ctx.make_model_score >= make_model_threshold):
+        return
+
+    message = f"Make/model mismatch for {reference_plate}: detected {ctx.detected_make_model} (score: {ctx.make_model_score:.2f}), expected {front_rear_make_model} from Front-Rear database"
+
+    logging.warning(message)
+    if not alert_camera_id:
+        return
+
+    _send_alert(
+        alert_type="make_model_mismatch",
+        visit_id=ctx.visit_id,
+        plate=reference_plate,
+        camera_id=alert_camera_id,
+        message=message,
+        event_data=event_data,
+        detected_make_model=ctx.detected_make_model,
+        make_model_score=ctx.make_model_score,
+    )
 
 
 def _process_events(
@@ -636,10 +746,10 @@ def _process_events(
     rear_plate = None
 
     if front_event and front_event.results:
-        front_plate = _extract_plate(front_event.results[0])
+        front_plate = h.extract_plate(front_event.results[0])
 
     if rear_event and rear_event.results:
-        rear_plate = _extract_plate(rear_event.results[0])
+        rear_plate = h.extract_plate(rear_event.results[0])
 
     all_results = []
     if front_event and front_event.results:
@@ -648,121 +758,65 @@ def _process_events(
         all_results.extend(rear_event.results)
 
     detected_make_model, make_model_score = (
-        _extract_best_make_model(all_results) if all_results else (None, 0.0)
+        h.extract_best_make_model(all_results) if all_results else (None, 0.0)
+    )
+    alert_ctx = AlertCheckContext(
+        front_camera_id=front_camera_id,
+        rear_camera_id=rear_camera_id,
+        front_plate=front_plate,
+        rear_plate=rear_plate,
+        front_event=front_event,
+        rear_event=rear_event,
+        detected_make_model=detected_make_model,
+        make_model_score=make_model_score,
+        visit_id=0,
     )
 
-    data_to_forward = rear_event if rear_event else front_event
+    data_to_forward = rear_event or front_event
     if not data_to_forward:
-        camera_desc = f"{front_camera_id or 'none'}/{rear_camera_id or 'none'}"
-        is_solo = not (front_camera_id and rear_camera_id)
-        logging.warning(
-            f"No event data to forward for {'solo camera' if is_solo else 'pair'} {camera_desc}"
+        target_kind, target_label = h.format_camera_target(
+            front_camera_id, rear_camera_id
         )
+        logging.warning(f"No event data to forward for {target_kind} {target_label}")
         return None
 
     visit_id = _forward_to_parkpow(data_to_forward)
     if not visit_id:
-        camera_desc = f"{front_camera_id or 'none'}/{rear_camera_id or 'none'}"
-        is_solo = not (front_camera_id and rear_camera_id)
+        target_kind, target_label = h.format_camera_target(
+            front_camera_id, rear_camera_id
+        )
         logging.error(
-            f"Failed to create visit in ParkPow for {'solo camera' if is_solo else 'pair'} {camera_desc}, skipping alerts"
+            f"Failed to create visit in ParkPow for {target_kind} {target_label}, skipping alerts"
         )
         return None
+    alert_ctx.visit_id = visit_id
 
     # Alert #2: No Rear Plate Alert (only if rear camera exists and not offline)
-    if rear_camera_id and not rear_plate and rear_event:
-        logging.warning(
-            f"No rear plate detected for camera pair {front_camera_id}/{rear_camera_id}"
-        )
-        _send_alert(
-            alert_type="no_rear_plate",
-            visit_id=visit_id,
-            plate=front_plate,
-            camera_id=rear_camera_id,
-            message=f"No rear plate detected for front plate {front_plate}",
-            event_data=rear_event,
-        )
-
-        if not front_plate:
-            return None
+    if _check_no_rear_plate_alert(alert_ctx):
+        return visit_id
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
-    front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
-    rear_in_db, rear_vehicle_info = _check_plate_in_vehicles_db(rear_plate)
+    front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info = (
+        _check_plate_mismatch_alerts(alert_ctx)
+    )
 
-    if front_plate and not front_in_db:
-        logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
-        if front_camera_id:
-            _send_alert(
-                alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=front_plate,
-                camera_id=front_camera_id,
-                message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
-                event_data=front_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
-            )
-
-    if rear_plate and not rear_in_db:
-        logging.warning(f"Rear plate {rear_plate} not found in Front-Rear database")
-        if rear_camera_id:
-            _send_alert(
-                alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=rear_plate,
-                camera_id=rear_camera_id,
-                message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
-                event_data=rear_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
-            )
-
-    # Alert #3: Make/Model Mismatch Alert
-    # Reload config for hot reload support
+    reference_plate = rear_plate if rear_in_db else front_plate if front_in_db else None
+    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
+    alert_camera_id = rear_camera_id if rear_plate else front_camera_id
+    event_data = rear_event or front_event
     current_config = _load_config()
     make_model_threshold = current_config.get("thresholds", {}).get(
         "make_model_confidence", 0.2
     )
-    reference_plate = (
-        rear_plate if rear_in_db else (front_plate if front_in_db else None)
+    # Alert #3: Make/Model Mismatch Alert
+    _check_make_model_mismatch_alert(
+        alert_ctx,
+        reference_plate,
+        reference_vehicle_info,
+        alert_camera_id,
+        event_data,
+        make_model_threshold,
     )
-    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
-
-    if reference_plate and reference_vehicle_info:
-        front_rear_make = reference_vehicle_info.get("make", "")
-        front_rear_model = reference_vehicle_info.get("model", "")
-        front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
-        make_model_mismatch = (
-            detected_make_model and detected_make_model != front_rear_make_model
-        )
-
-        if make_model_mismatch and make_model_score >= make_model_threshold:
-            logging.warning(
-                f"Make/model mismatch for {reference_plate}: "
-                f"Detected: {detected_make_model} (score: {make_model_score:.2f}), "
-                f"Front-Rear DB: {front_rear_make_model}"
-            )
-            alert_camera_id = (
-                rear_camera_id
-                if (rear_camera_id and rear_plate)
-                else (front_camera_id if front_camera_id else None)
-            )
-            if alert_camera_id:
-                _send_alert(
-                    alert_type="make_model_mismatch",
-                    visit_id=visit_id,
-                    plate=reference_plate,
-                    camera_id=alert_camera_id,
-                    message=(
-                        f"Vehicle make/model mismatch for {reference_plate}: "
-                        f"Detected {detected_make_model} (confidence: {make_model_score:.2f}), "
-                        f"Expected {front_rear_make_model} from Front-Rear database"
-                    ),
-                    event_data=rear_event if rear_event else front_event,
-                    detected_make_model=detected_make_model,
-                    make_model_score=make_model_score,
-                )
 
     return visit_id
 
@@ -779,44 +833,19 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
 
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
-    if not _stream_api_tokens:
-        logging.error(
-            "STREAM_API_TOKENS not configured - rejecting request for security"
-        )
-        return "Unauthorized: Authentication not configured", 401
-
     auth_header = get_header("Authorization", json_data)
     if not auth_header:
-        logging.error("Missing Authorization header in request from Stream")
-        return "Unauthorized: Missing Authorization header", 401
+        return "FrontRear - Unauthorized: Missing Authorization header", 401
 
     token = auth_header.split()[-1]
 
     if not token or token.lower() in ("token", "bearer"):
-        logging.error("Invalid or missing token in Authorization header")
-        return "Unauthorized: Malformed Authorization header", 401
+        return "FrontRear - Unauthorized: Malformed Authorization header", 401
 
     if not any(hmac.compare_digest(token, v_token) for v_token in _stream_api_tokens):
-        logging.error("Invalid token in Authorization header")
-        return "Forbidden: Invalid token", 403
+        return "FrontRear - Forbidden: Invalid token", 403
 
     return None
-
-
-def _parse_timestamp(timestamp_str: str) -> float:
-    """Parse timestamp string to unix timestamp. Returns current time if parsing fails."""
-    try:
-        if "T" in timestamp_str and timestamp_str.endswith("Z"):
-            timestamp_str = timestamp_str.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(timestamp_str)
-        else:
-            dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
-        return dt.timestamp()
-    except (ValueError, AttributeError) as e:
-        logging.warning(
-            f"Failed to parse timestamp '{timestamp_str}': {e}, using current time"
-        )
-        return time.time()
 
 
 def _handle_event_overwrite(
@@ -844,13 +873,13 @@ def _handle_event_overwrite(
     age = time.time() - old_timestamp
     missing_camera = pair.rear if is_front else pair.front
 
-    old_plate = _extract_plate(old_event.results[0]) if old_event.results else None
-    new_plate = _extract_plate(new_results[0]) if new_results else None
+    old_plate = h.extract_plate(old_event.results[0]) if old_event.results else None
+    new_plate = h.extract_plate(new_results[0]) if new_results else None
 
     if old_plate != new_plate:
         if not pair.is_solo:
             logging.warning(
-                f"Overwriting unpaired event from {camera_id} (age: {age:.1f}s, old plate: {old_plate}) - "
+                f"Overwriting unpaired event from {h.shorten_id(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
                 f"new vehicle ({new_plate}) detected before pair completed, {missing_camera} may be offline"
             )
 
@@ -872,12 +901,7 @@ def _check_pairing_readiness(
     Returns: (should_process, front_valid, rear_valid)
     """
     if pair.is_solo:
-        front_event = pair.front_event
-        rear_event = pair.rear_event
-        should_process = bool(
-            (pair.front and front_event) or (pair.rear and rear_event)
-        )
-        return should_process, False, False
+        return bool(pair.front_event or pair.rear_event), False, False
 
     now = time.time()
     front_event = pair.front_event
@@ -898,7 +922,7 @@ def process_request(
     """Process incoming webhook request from camera."""
     auth_error = _authenticate_request(json_data)
     if auth_error:
-        return auth_error
+        return h.stream_response(*auth_error)
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
@@ -907,10 +931,11 @@ def process_request(
     pair = _get_camera_pair(camera_id)
 
     if not pair:
-        logging.warning(f"Camera {camera_id} is not configured in any pair")
-        return "Camera not configured in any pair", 200
+        return h.stream_response(
+            "FrontRear - Camera not configured in any pair", 404, camera_id
+        )
 
-    timestamp_unix = _parse_timestamp(timestamp_str)
+    timestamp_unix = h.parse_timestamp(timestamp_str)
 
     event = CameraEvent(
         camera_id=camera_id,
@@ -922,10 +947,9 @@ def process_request(
         original_files=all_files,
     )
 
-    pair_id = pair.id
     is_front = camera_id == pair.front
 
-    with pair_locks[pair_id]:
+    with pair_locks[pair.id]:
         old_event = pair.front_event if is_front else pair.rear_event
 
         (
@@ -942,17 +966,19 @@ def process_request(
         else:
             pair.rear_event = event
 
-    if (
-        should_send_overwrite_alert
-        and missing_camera_id is not None
-        and not pair.is_solo
-    ):
-        visit_id = _process_events(
-            front_event=old_front_event,
-            rear_event=old_rear_event,
-            front_camera_id=pair.front,
-            rear_camera_id=pair.rear,
-        )
+    if should_send_overwrite_alert and not pair.is_solo:
+        try:
+            visit_id = _process_events(
+                front_event=old_front_event,
+                rear_event=old_rear_event,
+                front_camera_id=pair.front,
+                rear_camera_id=pair.rear,
+            )
+        except ParkPowError as e:
+            logging.error(
+                f"ParkPow error processing overwrite event for {pair.description}: [{e.status}] {e.message}"
+            )
+            visit_id = None
 
         # Alert #4: Possible Offline Camera Alert
         if visit_id:
@@ -968,21 +994,39 @@ def process_request(
     current_config = _load_config()
     time_window = current_config.get("pairing", {}).get("time_window_seconds", 30)
 
-    with pair_locks[pair_id]:
+    with pair_locks[pair.id]:
         should_process_pair, front_valid, rear_valid = _check_pairing_readiness(
             pair, time_window
         )
 
         if should_process_pair:
             if pair.is_solo:
-                logging.info(f"Processing solo camera {pair.solo_camera_id}")
+                logging.info(
+                    f"Processing solo camera {h.shorten_id(pair.solo_camera_id)}"
+                )
             else:
-                logging.info(f"Processing camera pair {pair.front}/{pair.rear}")
+                logging.info(
+                    f"Processing camera pair {h.shorten_id(pair.front)} / {h.shorten_id(pair.rear)}"
+                )
 
-            _process_camera_pair(pair)
+            try:
+                visit_id = _process_camera_pair(pair)
+            except ParkPowError as e:
+                pair.front_event = None
+                pair.rear_event = None
+                return h.stream_response(f"ParkPow - {e.message}", e.status, camera_id)
+
             pair.front_event = None
             pair.rear_event = None
-            return "Processed camera pair", 200
+
+            if visit_id is None:
+                return h.stream_response(
+                    "FrontRear - Internal error (null visit_id)", 424, camera_id
+                )
+
+            return h.stream_response(
+                "FrontRear - Processed camera pair", 200, camera_id
+            )
 
     if not pair.is_solo:
         front_event = pair.front_event
@@ -991,15 +1035,17 @@ def process_request(
 
         if not front_valid:
             status_msg.append(
-                f"front camera ({pair.front}) {'missing' if not front_event else 'expired'}"
+                f"front camera ({h.shorten_id(pair.front)}) {'missing' if not front_event else 'expired'}"
             )
         if not rear_valid:
             status_msg.append(
-                f"rear camera ({pair.rear}) {'missing' if not rear_event else 'expired'}"
+                f"rear camera ({h.shorten_id(pair.rear)}) {'missing' if not rear_event else 'expired'}"
             )
 
         logging.info(
-            f"Event buffered for {camera_id}, waiting for: {', '.join(status_msg)}"
+            f"Event buffered for {pair.description} ({h.shorten_id(camera_id)}), waiting for: {', '.join(status_msg)}"
         )
 
-    return "Event buffered, waiting for pair", 200
+    return h.stream_response(
+        "FrontRear - Event buffered, waiting for pair", 202, camera_id
+    )

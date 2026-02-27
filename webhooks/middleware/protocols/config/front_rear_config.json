@@ -35,8 +35,8 @@
   },
   "front_rear_csv_path": "protocols/config/front_rear.csv",
   "parkpow": {
-    "alert_endpoint": "<alert_endpoint>",
-    "webhook_endpoint": "<webhook_endpoint>"
+    "alert_endpoint": "https://app.parkpow.com/api/v1/trigger-alert/",
+    "webhook_endpoint": "https://app.parkpow.com/api/v1/webhook-receiver/"
   },
   "alerts": {
     "plate_mismatch": {
