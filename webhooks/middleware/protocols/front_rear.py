@@ -27,12 +27,12 @@ import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from threading import Lock
 from typing import Any
 
 import aiohttp
 
+from protocols import front_rear_helpers as h
 from protocols.shared.utils import get_header
 
 logging.basicConfig(
@@ -345,13 +345,6 @@ def _cleanup_task_loop() -> None:
         time.sleep(cleanup_interval)
 
 
-def _short(camera_id: str | None) -> str:
-    """Helper to shorten camera ID for logging."""
-    if not camera_id:
-        return ""
-    return f"...{camera_id[-12:]}" if len(camera_id) >= 60 else camera_id
-
-
 def _cleanup_expired_events() -> None:
     """Remove expired events from buffer to prevent memory bloat."""
     global config
@@ -391,7 +384,7 @@ def _cleanup_expired_events() -> None:
             missing_camera = pair.rear if is_front else pair.front
 
         logging.warning(
-            f"Unpaired event for {pair.description} ({_short(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
+            f"Unpaired event for {pair.description} ({h.shorten_id(camera_id)}) expired after {age:.1f}s, {missing_camera} may be offline, processing single camera event"
         )
 
         try:
@@ -435,48 +428,6 @@ def _get_camera_pair(camera_id: str) -> CameraPair | None:
         ),
         None,
     )
-
-
-def _extract_plate(result: dict[str, Any]) -> str | None:
-    """Extract license plate from result. Stream sends plate as a simple string."""
-    plate = result.get("plate")
-
-    if not plate or not isinstance(plate, str):
-        logging.error(f"Invalid plate data: {plate} (type: {type(plate).__name__})")
-        return None
-
-    return plate.strip().upper()
-
-
-def _extract_best_make_model(results: list[dict[str, Any]]) -> tuple[str | None, float]:
-    """Extract highest confidence make/model as "MAKE MODEL" string and score."""
-    best_make_model = None
-    best_score = 0.0
-
-    for result in results:
-        model_make_list = result.get("model_make", [])
-
-        for mm in model_make_list:
-            make = mm.get("make", "").strip().upper()
-            model = mm.get("model", "").strip().upper()
-            score = mm.get("score", 0.0)
-
-            if (make or model) and score > best_score:
-                best_make_model = f"{make} {model}".strip()
-                best_score = score
-
-    return best_make_model, best_score
-
-
-def _check_plate_in_vehicles_db(
-    plate: str | None,
-) -> tuple[bool, dict[str, str] | None]:
-    """Check if plate exists in database. Returns (found, vehicle_info)."""
-    if not plate:
-        return False, None
-
-    vehicle_info = csv_vehicles.get(plate.upper())
-    return vehicle_info is not None, vehicle_info
 
 
 async def _send_alert_async(
@@ -697,8 +648,12 @@ def _check_plate_mismatch_alerts(
     visit_id: int,
 ) -> tuple[bool, bool, dict[str, str] | None, dict[str, str] | None]:
     """Check and send plate mismatch alerts. Returns (front_in_db, rear_in_db, front_info, rear_info)."""
-    front_in_db, front_vehicle_info = _check_plate_in_vehicles_db(front_plate)
-    rear_in_db, rear_vehicle_info = _check_plate_in_vehicles_db(rear_plate)
+    front_in_db, front_vehicle_info = h.check_plate_in_vehicles_db(
+        front_plate, csv_vehicles
+    )
+    rear_in_db, rear_vehicle_info = h.check_plate_in_vehicles_db(
+        rear_plate, csv_vehicles
+    )
 
     if front_plate and not front_in_db:
         logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
@@ -809,10 +764,10 @@ def _process_events(
     rear_plate = None
 
     if front_event and front_event.results:
-        front_plate = _extract_plate(front_event.results[0])
+        front_plate = h.extract_plate(front_event.results[0])
 
     if rear_event and rear_event.results:
-        rear_plate = _extract_plate(rear_event.results[0])
+        rear_plate = h.extract_plate(rear_event.results[0])
 
     all_results = []
     if front_event and front_event.results:
@@ -821,13 +776,13 @@ def _process_events(
         all_results.extend(rear_event.results)
 
     detected_make_model, make_model_score = (
-        _extract_best_make_model(all_results) if all_results else (None, 0.0)
+        h.extract_best_make_model(all_results) if all_results else (None, 0.0)
     )
 
     data_to_forward = rear_event if rear_event else front_event
     if not data_to_forward:
         is_solo = not (front_camera_id and rear_camera_id)
-        camera_pair = f"{_short(front_camera_id)}{'' if is_solo else ' / '}{_short(rear_camera_id)}"
+        camera_pair = f"{h.shorten_id(front_camera_id)}{'' if is_solo else ' / '}{h.shorten_id(rear_camera_id)}"
         logging.warning(
             f"No event data to forward for {'camera' if is_solo else 'pair'} {camera_pair}"
         )
@@ -836,7 +791,7 @@ def _process_events(
     visit_id = _forward_to_parkpow(data_to_forward)
     if not visit_id:
         is_solo = not front_camera_id or not rear_camera_id
-        camera_pair = f"{_short(front_camera_id)}{'' if is_solo else ' / '}{_short(rear_camera_id)}"
+        camera_pair = f"{h.shorten_id(front_camera_id)}{'' if is_solo else ' / '}{h.shorten_id(rear_camera_id)}"
         logging.error(
             f"Failed to create visit in ParkPow for {'camera' if is_solo else 'pair'} {camera_pair}, skipping alerts"
         )
@@ -893,21 +848,6 @@ def _process_camera_pair(pair: CameraPair) -> int | None:
     )
 
 
-def _stream_response(
-    message: str, status: int, camera_id: str | None = None
-) -> tuple[str, int]:
-    """Log exactly what is returned to Stream and return it."""
-    cam = f" for {_short(camera_id)}" if camera_id else ""
-    log = f"Returned {status} {message!r}{cam}"
-    if status >= 500:
-        logging.error(log)
-    elif status >= 400:
-        logging.warning(log)
-    else:
-        logging.info(log)
-    return message, status
-
-
 def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
     """Authenticate webhook request. Returns None if valid, or (error_msg, status) tuple."""
     auth_header = get_header("Authorization", json_data)
@@ -923,22 +863,6 @@ def _authenticate_request(json_data: dict[str, Any]) -> tuple[str, int] | None:
         return "FrontRear - Forbidden: Invalid token", 403
 
     return None
-
-
-def _parse_timestamp(timestamp_str: str) -> float:
-    """Parse timestamp string to unix timestamp. Returns current time if parsing fails."""
-    try:
-        if "T" in timestamp_str and timestamp_str.endswith("Z"):
-            timestamp_str = timestamp_str.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(timestamp_str)
-        else:
-            dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
-        return dt.timestamp()
-    except (ValueError, AttributeError) as e:
-        logging.warning(
-            f"Failed to parse timestamp '{timestamp_str}': {e}, using current time"
-        )
-        return time.time()
 
 
 def _handle_event_overwrite(
@@ -966,13 +890,13 @@ def _handle_event_overwrite(
     age = time.time() - old_timestamp
     missing_camera = pair.rear if is_front else pair.front
 
-    old_plate = _extract_plate(old_event.results[0]) if old_event.results else None
-    new_plate = _extract_plate(new_results[0]) if new_results else None
+    old_plate = h.extract_plate(old_event.results[0]) if old_event.results else None
+    new_plate = h.extract_plate(new_results[0]) if new_results else None
 
     if old_plate != new_plate:
         if not pair.is_solo:
             logging.warning(
-                f"Overwriting unpaired event from {_short(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
+                f"Overwriting unpaired event from {h.shorten_id(camera_id)} (age: {age:.1f}s, old plate: {old_plate}) - "
                 f"new vehicle ({new_plate}) detected before pair completed, {missing_camera} may be offline"
             )
 
@@ -1020,7 +944,7 @@ def process_request(
     """Process incoming webhook request from camera."""
     auth_error = _authenticate_request(json_data)
     if auth_error:
-        return _stream_response(*auth_error)
+        return h.stream_response(*auth_error)
 
     data = json_data.get("data", {})
     camera_id = data.get("camera_id")
@@ -1029,11 +953,11 @@ def process_request(
     pair = _get_camera_pair(camera_id)
 
     if not pair:
-        return _stream_response(
+        return h.stream_response(
             "FrontRear - Camera not configured in any pair", 404, camera_id
         )
 
-    timestamp_unix = _parse_timestamp(timestamp_str)
+    timestamp_unix = h.parse_timestamp(timestamp_str)
 
     event = CameraEvent(
         camera_id=camera_id,
@@ -1100,10 +1024,12 @@ def process_request(
 
         if should_process_pair:
             if pair.is_solo:
-                logging.info(f"Processing solo camera {_short(pair.solo_camera_id)}")
+                logging.info(
+                    f"Processing solo camera {h.shorten_id(pair.solo_camera_id)}"
+                )
             else:
                 logging.info(
-                    f"Processing camera pair {_short(pair.front)} / {_short(pair.rear)}"
+                    f"Processing camera pair {h.shorten_id(pair.front)} / {h.shorten_id(pair.rear)}"
                 )
 
             try:
@@ -1111,17 +1037,19 @@ def process_request(
             except ParkPowError as e:
                 pair.front_event = None
                 pair.rear_event = None
-                return _stream_response(f"ParkPow - {e.message}", e.status, camera_id)
+                return h.stream_response(f"ParkPow - {e.message}", e.status, camera_id)
 
             pair.front_event = None
             pair.rear_event = None
 
             if visit_id is None:
-                return _stream_response(
+                return h.stream_response(
                     "FrontRear - Internal error (null visit_id)", 424, camera_id
                 )
 
-            return _stream_response("FrontRear - Processed camera pair", 200, camera_id)
+            return h.stream_response(
+                "FrontRear - Processed camera pair", 200, camera_id
+            )
 
     if not pair.is_solo:
         front_event = pair.front_event
@@ -1130,17 +1058,17 @@ def process_request(
 
         if not front_valid:
             status_msg.append(
-                f"front camera ({_short(pair.front)}) {'missing' if not front_event else 'expired'}"
+                f"front camera ({h.shorten_id(pair.front)}) {'missing' if not front_event else 'expired'}"
             )
         if not rear_valid:
             status_msg.append(
-                f"rear camera ({_short(pair.rear)}) {'missing' if not rear_event else 'expired'}"
+                f"rear camera ({h.shorten_id(pair.rear)}) {'missing' if not rear_event else 'expired'}"
             )
 
         logging.info(
-            f"Event buffered for {pair.description} ({_short(camera_id)}), waiting for: {', '.join(status_msg)}"
+            f"Event buffered for {pair.description} ({h.shorten_id(camera_id)}), waiting for: {', '.join(status_msg)}"
         )
 
-    return _stream_response(
+    return h.stream_response(
         "FrontRear - Event buffered, waiting for pair", 202, camera_id
     )
