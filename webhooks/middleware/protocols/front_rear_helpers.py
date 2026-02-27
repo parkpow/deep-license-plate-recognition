@@ -82,3 +82,15 @@ def check_plate_in_vehicles_db(
 
     vehicle_info = csv_db.get(plate.upper())
     return vehicle_info is not None, vehicle_info
+
+
+def format_camera_target(
+    front_camera_id: str | None, rear_camera_id: str | None
+) -> tuple[str, str]:
+    """Format camera target label for logs."""
+    is_solo = not front_camera_id or not rear_camera_id
+    camera_target = (
+        f"{shorten_id(front_camera_id)}"
+        f"{'' if is_solo else ' / '}{shorten_id(rear_camera_id)}"
+    )
+    return ("camera" if is_solo else "pair"), camera_target

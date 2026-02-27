@@ -95,14 +95,12 @@ class CameraPair:
 
     @property
     def is_solo(self) -> bool:
-        """Check if this is a solo camera (only front or only rear)."""
         return (self.front is None or self.front == "") or (
             self.rear is None or self.rear == ""
         )
 
     @property
     def solo_camera_id(self) -> str | None:
-        """Get the camera ID for solo camera (front or rear)."""
         if not self.is_solo:
             return None
         return self.front or self.rear
@@ -387,8 +385,7 @@ def _cleanup_expired_events() -> None:
                 expired_items.append((pair, pair.rear, pair.rear_event))
 
     for pair, camera_id, event in expired_items:
-        pair_id = pair.id
-        with pair_locks[pair_id]:
+        with pair_locks[pair.id]:
             is_front = camera_id == pair.front
             current_event = pair.front_event if is_front else pair.rear_event
 
@@ -410,7 +407,7 @@ def _cleanup_expired_events() -> None:
             )
             visit_id = None
 
-        with pair_locks[pair_id]:
+        with pair_locks[pair.id]:
             is_front = camera_id == pair.front
             if is_front:
                 pair.front_event = None
@@ -438,8 +435,7 @@ def _get_camera_pair(camera_id: str) -> CameraPair | None:
         (
             pair
             for pair in camera_pairs
-            if (pair.front and pair.front == camera_id)
-            or (pair.rear and pair.rear == camera_id)
+            if pair.front == camera_id or pair.rear == camera_id
         ),
         None,
     )
@@ -704,8 +700,12 @@ def _check_make_model_mismatch_alert(
     front_rear_make = reference_vehicle_info.get("make", "")
     front_rear_model = reference_vehicle_info.get("model", "")
     front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
+    normalized_expected = front_rear_make_model.upper()
+    normalized_detected = (
+        ctx.detected_make_model.strip().upper() if ctx.detected_make_model else None
+    )
     make_model_mismatch = (
-        ctx.detected_make_model and ctx.detected_make_model != front_rear_make_model
+        normalized_detected is not None and normalized_detected != normalized_expected
     )
 
     if not (make_model_mismatch and ctx.make_model_score >= make_model_threshold):
@@ -772,21 +772,21 @@ def _process_events(
         visit_id=0,
     )
 
-    data_to_forward = rear_event if rear_event else front_event
+    data_to_forward = rear_event or front_event
     if not data_to_forward:
-        is_solo = not (front_camera_id and rear_camera_id)
-        camera_pair = f"{h.shorten_id(front_camera_id)}{'' if is_solo else ' / '}{h.shorten_id(rear_camera_id)}"
-        logging.warning(
-            f"No event data to forward for {'camera' if is_solo else 'pair'} {camera_pair}"
+        target_kind, target_label = h.format_camera_target(
+            front_camera_id, rear_camera_id
         )
+        logging.warning(f"No event data to forward for {target_kind} {target_label}")
         return None
 
     visit_id = _forward_to_parkpow(data_to_forward)
     if not visit_id:
-        is_solo = not front_camera_id or not rear_camera_id
-        camera_pair = f"{h.shorten_id(front_camera_id)}{'' if is_solo else ' / '}{h.shorten_id(rear_camera_id)}"
+        target_kind, target_label = h.format_camera_target(
+            front_camera_id, rear_camera_id
+        )
         logging.error(
-            f"Failed to create visit in ParkPow for {'camera' if is_solo else 'pair'} {camera_pair}, skipping alerts"
+            f"Failed to create visit in ParkPow for {target_kind} {target_label}, skipping alerts"
         )
         return None
     alert_ctx.visit_id = visit_id
@@ -800,16 +800,10 @@ def _process_events(
         _check_plate_mismatch_alerts(alert_ctx)
     )
 
-    reference_plate = (
-        rear_plate if rear_in_db else (front_plate if front_in_db else None)
-    )
+    reference_plate = rear_plate if rear_in_db else front_plate if front_in_db else None
     reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
-    alert_camera_id = (
-        rear_camera_id
-        if (rear_camera_id and rear_plate)
-        else (front_camera_id if front_camera_id else None)
-    )
-    event_data = rear_event if rear_event else front_event
+    alert_camera_id = rear_camera_id if rear_plate else front_camera_id
+    event_data = rear_event or front_event
     current_config = _load_config()
     make_model_threshold = current_config.get("thresholds", {}).get(
         "make_model_confidence", 0.2
@@ -907,12 +901,7 @@ def _check_pairing_readiness(
     Returns: (should_process, front_valid, rear_valid)
     """
     if pair.is_solo:
-        front_event = pair.front_event
-        rear_event = pair.rear_event
-        should_process = bool(
-            (pair.front and front_event) or (pair.rear and rear_event)
-        )
-        return should_process, False, False
+        return bool(pair.front_event or pair.rear_event), False, False
 
     now = time.time()
     front_event = pair.front_event
@@ -958,10 +947,9 @@ def process_request(
         original_files=all_files,
     )
 
-    pair_id = pair.id
     is_front = camera_id == pair.front
 
-    with pair_locks[pair_id]:
+    with pair_locks[pair.id]:
         old_event = pair.front_event if is_front else pair.rear_event
 
         (
@@ -1006,7 +994,7 @@ def process_request(
     current_config = _load_config()
     time_window = current_config.get("pairing", {}).get("time_window_seconds", 30)
 
-    with pair_locks[pair_id]:
+    with pair_locks[pair.id]:
         should_process_pair, front_valid, rear_valid = _check_pairing_readiness(
             pair, time_window
         )
