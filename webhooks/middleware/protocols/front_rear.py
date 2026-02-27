@@ -49,7 +49,7 @@ class ParkPowError(Exception):
         self.message = message
 
 
-@dataclass
+@dataclass(slots=True)
 class CameraEvent:
     """Structured webhook event from a camera."""
 
@@ -62,7 +62,7 @@ class CameraEvent:
     original_files: Any
 
 
-@dataclass
+@dataclass(slots=True)
 class AlertCheckContext:
     """Shared payload used by alert-check helper functions."""
 
@@ -77,7 +77,7 @@ class AlertCheckContext:
     visit_id: int
 
 
-@dataclass
+@dataclass(slots=True)
 class CameraPair:
     """Paired front/rear camera configuration with event buffering."""
 
