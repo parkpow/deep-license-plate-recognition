@@ -63,6 +63,21 @@ class CameraEvent:
 
 
 @dataclass
+class AlertCheckContext:
+    """Shared payload used by alert-check helper functions."""
+
+    front_camera_id: str | None
+    rear_camera_id: str | None
+    front_plate: str | None
+    rear_plate: str | None
+    front_event: CameraEvent | None
+    rear_event: CameraEvent | None
+    detected_make_model: str | None
+    make_model_score: float
+    visit_id: int
+
+
+@dataclass
 class CameraPair:
     """Paired front/rear camera configuration with event buffering."""
 
@@ -614,103 +629,75 @@ def _forward_to_parkpow(event: CameraEvent) -> int | None:
         return None
 
 
-def _check_no_rear_plate_alert(
-    rear_camera_id: str | None,
-    rear_plate: str | None,
-    rear_event: CameraEvent | None,
-    front_plate: str | None,
-    visit_id: int,
-) -> bool:
+def _check_no_rear_plate_alert(ctx: AlertCheckContext) -> bool:
     """Check and send no rear plate alert. Returns True if should skip further processing."""
-    if rear_camera_id and not rear_plate and rear_event:
-        logging.warning(f"No rear plate detected for {rear_camera_id}")
+    if ctx.rear_camera_id and not ctx.rear_plate and ctx.rear_event:
+        logging.warning(f"No rear plate detected for {ctx.rear_camera_id}")
         _send_alert(
             alert_type="no_rear_plate",
-            visit_id=visit_id,
-            plate=front_plate,
-            camera_id=rear_camera_id,
-            message=f"No rear plate detected for front plate {front_plate}",
-            event_data=rear_event,
+            visit_id=ctx.visit_id,
+            plate=ctx.front_plate,
+            camera_id=ctx.rear_camera_id,
+            message=f"No rear plate detected for front plate {ctx.front_plate}",
+            event_data=ctx.rear_event,
         )
-        return not front_plate
+        return not ctx.front_plate
     return False
 
 
 def _check_plate_mismatch_alerts(
-    front_plate: str | None,
-    rear_plate: str | None,
-    front_camera_id: str | None,
-    rear_camera_id: str | None,
-    front_event: CameraEvent | None,
-    rear_event: CameraEvent | None,
-    detected_make_model: str | None,
-    make_model_score: float,
-    visit_id: int,
+    ctx: AlertCheckContext,
 ) -> tuple[bool, bool, dict[str, str] | None, dict[str, str] | None]:
     """Check and send plate mismatch alerts. Returns (front_in_db, rear_in_db, front_info, rear_info)."""
     front_in_db, front_vehicle_info = h.check_plate_in_vehicles_db(
-        front_plate, csv_vehicles
+        ctx.front_plate, csv_vehicles
     )
     rear_in_db, rear_vehicle_info = h.check_plate_in_vehicles_db(
-        rear_plate, csv_vehicles
+        ctx.rear_plate, csv_vehicles
     )
 
-    if front_plate and not front_in_db:
-        logging.warning(f"Front plate {front_plate} not found in Front-Rear database")
-        if front_camera_id:
+    if ctx.front_plate and not front_in_db:
+        logging.warning(
+            f"Front plate {ctx.front_plate} not found in Front-Rear database"
+        )
+        if ctx.front_camera_id:
             _send_alert(
                 alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=front_plate,
-                camera_id=front_camera_id,
-                message=f"License plate {front_plate} not found in Front-Rear Vehicle Database",
-                event_data=front_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
+                visit_id=ctx.visit_id,
+                plate=ctx.front_plate,
+                camera_id=ctx.front_camera_id,
+                message=f"License plate {ctx.front_plate} not found in Front-Rear Vehicle Database",
+                event_data=ctx.front_event,
+                detected_make_model=ctx.detected_make_model,
+                make_model_score=ctx.make_model_score,
             )
 
-    if rear_plate and not rear_in_db:
-        logging.warning(f"Rear plate {rear_plate} not found in Front-Rear database")
-        if rear_camera_id:
+    if ctx.rear_plate and not rear_in_db:
+        logging.warning(f"Rear plate {ctx.rear_plate} not found in Front-Rear database")
+        if ctx.rear_camera_id:
             _send_alert(
                 alert_type="plate_mismatch",
-                visit_id=visit_id,
-                plate=rear_plate,
-                camera_id=rear_camera_id,
-                message=f"License plate {rear_plate} not found in Front-Rear Vehicle Database",
-                event_data=rear_event,
-                detected_make_model=detected_make_model,
-                make_model_score=make_model_score,
+                visit_id=ctx.visit_id,
+                plate=ctx.rear_plate,
+                camera_id=ctx.rear_camera_id,
+                message=f"License plate {ctx.rear_plate} not found in Front-Rear Vehicle Database",
+                event_data=ctx.rear_event,
+                detected_make_model=ctx.detected_make_model,
+                make_model_score=ctx.make_model_score,
             )
 
     return front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info
 
 
 def _check_make_model_mismatch_alert(
-    rear_camera_id: str | None,
-    front_camera_id: str | None,
-    rear_plate: str | None,
-    front_plate: str | None,
-    rear_in_db: bool,
-    front_in_db: bool,
-    rear_vehicle_info: dict[str, str] | None,
-    front_vehicle_info: dict[str, str] | None,
-    detected_make_model: str | None,
-    make_model_score: float,
-    rear_event: CameraEvent | None,
-    front_event: CameraEvent | None,
-    visit_id: int,
+    ctx: AlertCheckContext,
+    reference_plate: str | None,
+    reference_vehicle_info: dict[str, str] | None,
+    alert_camera_id: str | None,
+    event_data: CameraEvent | None,
+    make_model_threshold: float,
 ) -> None:
     """Check and send make/model mismatch alert."""
-    current_config = _load_config()
-    make_model_threshold = current_config.get("thresholds", {}).get(
-        "make_model_confidence", 0.2
-    )
-    reference_plate = (
-        rear_plate if rear_in_db else (front_plate if front_in_db else None)
-    )
-    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
-
     if not reference_plate or not reference_vehicle_info:
         return
 
@@ -718,32 +705,27 @@ def _check_make_model_mismatch_alert(
     front_rear_model = reference_vehicle_info.get("model", "")
     front_rear_make_model = f"{front_rear_make} {front_rear_model}".strip()
     make_model_mismatch = (
-        detected_make_model and detected_make_model != front_rear_make_model
+        ctx.detected_make_model and ctx.detected_make_model != front_rear_make_model
     )
 
-    if not (make_model_mismatch and make_model_score >= make_model_threshold):
+    if not (make_model_mismatch and ctx.make_model_score >= make_model_threshold):
         return
 
-    message = f"Make/model mismatch for {reference_plate}: detected {detected_make_model} (score: {make_model_score:.2f}), expected {front_rear_make_model} from Front-Rear database"
+    message = f"Make/model mismatch for {reference_plate}: detected {ctx.detected_make_model} (score: {ctx.make_model_score:.2f}), expected {front_rear_make_model} from Front-Rear database"
 
     logging.warning(message)
-    alert_camera_id = (
-        rear_camera_id
-        if (rear_camera_id and rear_plate)
-        else (front_camera_id if front_camera_id else None)
-    )
     if not alert_camera_id:
         return
 
     _send_alert(
         alert_type="make_model_mismatch",
-        visit_id=visit_id,
+        visit_id=ctx.visit_id,
         plate=reference_plate,
         camera_id=alert_camera_id,
         message=message,
-        event_data=rear_event if rear_event else front_event,
-        detected_make_model=detected_make_model,
-        make_model_score=make_model_score,
+        event_data=event_data,
+        detected_make_model=ctx.detected_make_model,
+        make_model_score=ctx.make_model_score,
     )
 
 
@@ -778,6 +760,17 @@ def _process_events(
     detected_make_model, make_model_score = (
         h.extract_best_make_model(all_results) if all_results else (None, 0.0)
     )
+    alert_ctx = AlertCheckContext(
+        front_camera_id=front_camera_id,
+        rear_camera_id=rear_camera_id,
+        front_plate=front_plate,
+        rear_plate=rear_plate,
+        front_event=front_event,
+        rear_event=rear_event,
+        detected_make_model=detected_make_model,
+        make_model_score=make_model_score,
+        visit_id=0,
+    )
 
     data_to_forward = rear_event if rear_event else front_event
     if not data_to_forward:
@@ -796,43 +789,39 @@ def _process_events(
             f"Failed to create visit in ParkPow for {'camera' if is_solo else 'pair'} {camera_pair}, skipping alerts"
         )
         return None
+    alert_ctx.visit_id = visit_id
 
     # Alert #2: No Rear Plate Alert (only if rear camera exists and not offline)
-    if _check_no_rear_plate_alert(
-        rear_camera_id, rear_plate, rear_event, front_plate, visit_id
-    ):
+    if _check_no_rear_plate_alert(alert_ctx):
         return visit_id
 
     # Alert #1: Plate Mismatch Alert (either camera plate not in Front-Rear DB)
     front_in_db, rear_in_db, front_vehicle_info, rear_vehicle_info = (
-        _check_plate_mismatch_alerts(
-            front_plate,
-            rear_plate,
-            front_camera_id,
-            rear_camera_id,
-            front_event,
-            rear_event,
-            detected_make_model,
-            make_model_score,
-            visit_id,
-        )
+        _check_plate_mismatch_alerts(alert_ctx)
     )
 
+    reference_plate = (
+        rear_plate if rear_in_db else (front_plate if front_in_db else None)
+    )
+    reference_vehicle_info = rear_vehicle_info if rear_in_db else front_vehicle_info
+    alert_camera_id = (
+        rear_camera_id
+        if (rear_camera_id and rear_plate)
+        else (front_camera_id if front_camera_id else None)
+    )
+    event_data = rear_event if rear_event else front_event
+    current_config = _load_config()
+    make_model_threshold = current_config.get("thresholds", {}).get(
+        "make_model_confidence", 0.2
+    )
     # Alert #3: Make/Model Mismatch Alert
     _check_make_model_mismatch_alert(
-        rear_camera_id,
-        front_camera_id,
-        rear_plate,
-        front_plate,
-        rear_in_db,
-        front_in_db,
-        rear_vehicle_info,
-        front_vehicle_info,
-        detected_make_model,
-        make_model_score,
-        rear_event,
-        front_event,
-        visit_id,
+        alert_ctx,
+        reference_plate,
+        reference_vehicle_info,
+        alert_camera_id,
+        event_data,
+        make_model_threshold,
     )
 
     return visit_id
