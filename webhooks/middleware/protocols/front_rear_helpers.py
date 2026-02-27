@@ -1,7 +1,12 @@
 import logging
 import time
 from datetime import datetime
+from threading import Lock
 from typing import Any
+
+_DUPLICATE_WARNING_WINDOW_SECONDS = 1.0
+_warning_log_lock = Lock()
+_warning_log_last_seen: dict[tuple[int, str, str | None], float] = {}
 
 
 def parse_timestamp(timestamp_str: str) -> float:
@@ -67,7 +72,30 @@ def stream_response(
     if status >= 500:
         logging.error(log)
     elif status >= 400:
-        logging.warning(log)
+        log_key = (status, message, camera_id)
+        now = time.monotonic()
+
+        with _warning_log_lock:
+            last_seen = _warning_log_last_seen.get(log_key)
+            should_log = (
+                last_seen is None
+                or now - last_seen >= _DUPLICATE_WARNING_WINDOW_SECONDS
+            )
+            if should_log:
+                _warning_log_last_seen[log_key] = now
+
+            if len(_warning_log_last_seen) > 1000:
+                cutoff = now - (_DUPLICATE_WARNING_WINDOW_SECONDS * 2)
+                stale_keys = [
+                    key
+                    for key, seen_at in _warning_log_last_seen.items()
+                    if seen_at < cutoff
+                ]
+                for stale_key in stale_keys:
+                    _warning_log_last_seen.pop(stale_key, None)
+
+        if should_log:
+            logging.warning(log)
     else:
         logging.info(log)
     return message, status

@@ -1664,6 +1664,21 @@ class TestStreamResponse:
             h.stream_response("Not Found", 404)
             mock_log.assert_called_once()
 
+    def test_suppresses_immediate_duplicate_4xx_logs(self):
+        with patch("protocols.front_rear.logging.warning") as mock_log:
+            h.stream_response("Not Found Dedupe", 404, camera_id="cam1")
+            h.stream_response("Not Found Dedupe", 404, camera_id="cam1")
+            mock_log.assert_called_once()
+
+    def test_logs_again_after_dedupe_window(self):
+        with patch("protocols.front_rear.time.monotonic") as mock_mono, patch(
+            "protocols.front_rear.logging.warning"
+        ) as mock_log:
+            mock_mono.side_effect = [100.0, 103.0]
+            h.stream_response("Not Found Window", 404, camera_id="cam1")
+            h.stream_response("Not Found Window", 404, camera_id="cam1")
+            assert mock_log.call_count == 2
+
     def test_logs_info_for_2xx(self):
         with patch("protocols.front_rear.logging.info") as mock_log:
             h.stream_response("OK", 200)
