@@ -54,7 +54,11 @@ def process_request(
         logging.error("No bounding box found in the results.")
         return "No bounding box found.", 400
 
-    annotated_image = annotate_image(upload_file, plate_bounding_box)
+    try:
+        annotated_image = annotate_image(upload_file, plate_bounding_box)
+    except (KeyError, ValueError, OSError) as err:
+        logging.error(f"Failed to annotate image: {err}")
+        return "Failed to annotate image.", 400
 
     webhook_url = os.getenv("WEBHOOK_URL")
     if not webhook_url:
