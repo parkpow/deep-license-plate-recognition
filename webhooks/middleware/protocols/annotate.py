@@ -41,7 +41,12 @@ def process_request(
         logging.error("No file uploaded.")
         return "No file uploaded.", 400
 
-    data = json_data["data"]["results"][0]
+    data_results = json_data.get("data", {}).get("results")
+    if not data_results:
+        logging.error("No results found in data.")
+        return "No results found in data.", 400
+
+    data = data_results[0]
     plate = data.get("plate")
 
     plate_bounding_box = data.get("box") or data.get("vehicle", {}).get("box")
@@ -51,16 +56,23 @@ def process_request(
 
     annotated_image = annotate_image(upload_file, plate_bounding_box)
 
+    webhook_url = os.getenv("WEBHOOK_URL")
+    if not webhook_url:
+        logging.error("WEBHOOK_URL environment variable is not set.")
+        return "WEBHOOK_URL not configured.", 500
+
     files = {"upload": ("upload", BytesIO(annotated_image), "image/jpeg")}
     data_payload = {"json": json.dumps(json_data)}
 
+    response = None
     try:
         response = requests.post(
-            os.getenv("WEBHOOK_URL", ""), data=data_payload, files=files
+            webhook_url, data=data_payload, files=files, timeout=10
         )
         response.raise_for_status()
         logging.info(f"Vehicle: {plate}. Request was successful.")
         return "Request was successful", response.status_code
     except requests.exceptions.RequestException as err:
         logging.error(f"Vehicle: {plate}. Error processing the request: {err}")
-        return f"Failed to process the request: {err}", response.status_code
+        status_code = response.status_code if response is not None else 503
+        return f"Failed to process the request: {err}", status_code
