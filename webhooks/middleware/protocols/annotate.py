@@ -47,9 +47,15 @@ def process_request(
         return "No results found in data.", 400
 
     data = data_results[0]
-    plate = data.get("plate")
+    plate_data = data.get("plate")
 
-    plate_bounding_box = data.get("box") or data.get("vehicle", {}).get("box")
+    if isinstance(plate_data, dict):
+        plate = plate_data.get("props", {}).get("plate", [{}])[0].get("value")
+        plate_bounding_box = plate_data.get("box")
+    else:
+        plate = plate_data
+        plate_bounding_box = data.get("box")
+
     if not plate_bounding_box:
         logging.error("No bounding box found in the results.")
         return "No bounding box found.", 400
@@ -65,7 +71,7 @@ def process_request(
         logging.error("WEBHOOK_URL environment variable is not set.")
         return "WEBHOOK_URL not configured.", 500
 
-    files = {"upload": ("upload", BytesIO(annotated_image), "image/jpeg")}
+    files = {"upload": ("upload.jpg", BytesIO(annotated_image), "image/jpeg")}
     data_payload = {"json": json.dumps(json_data)}
 
     response = None
