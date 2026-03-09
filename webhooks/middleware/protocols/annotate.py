@@ -42,29 +42,29 @@ def process_request(
         return "No file uploaded.", 400
 
     data_results = json_data.get("data", {}).get("results")
-    if not data_results:
-        logging.error("No results found in data.")
-        return "No results found in data.", 400
+    annotated_image = upload_file
+    plate = "Unknown"
 
-    data = data_results[0]
-    plate_data = data.get("plate")
+    if data_results:
+        data = data_results[0]
+        plate_data = data.get("plate")
 
-    if isinstance(plate_data, dict):
-        plate = plate_data.get("props", {}).get("plate", [{}])[0].get("value")
-        plate_bounding_box = plate_data.get("box")
+        if isinstance(plate_data, dict):
+            plate = plate_data.get("props", {}).get("plate", [{}])[0].get("value")
+            plate_bounding_box = plate_data.get("box")
+        else:
+            plate = plate_data
+            plate_bounding_box = data.get("box")
+
+        if plate_bounding_box:
+            try:
+                annotated_image = annotate_image(upload_file, plate_bounding_box)
+            except (KeyError, ValueError, OSError) as err:
+                logging.error(f"Failed to annotate image: {err}")
+        else:
+            logging.info("No bounding box found in the results. Skipping annotation.")
     else:
-        plate = plate_data
-        plate_bounding_box = data.get("box")
-
-    if not plate_bounding_box:
-        logging.error("No bounding box found in the results.")
-        return "No bounding box found.", 400
-
-    try:
-        annotated_image = annotate_image(upload_file, plate_bounding_box)
-    except (KeyError, ValueError, OSError) as err:
-        logging.error(f"Failed to annotate image: {err}")
-        return "Failed to annotate image.", 400
+        logging.info("No results found in data. Skipping annotation.")
 
     webhook_url = os.getenv("WEBHOOK_URL")
     if not webhook_url:
