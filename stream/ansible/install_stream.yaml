@@ -1,0 +1,23 @@
+---
+- name: Prepare Stream container setup
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Create app directory
+      file:
+        path: "{{ stream_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy docker-compose.yml
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ compose_file_path }}"
+        mode: '0644'
+
+    - name: Pull Stream container image
+      shell: docker compose -f {{ compose_file_path }} pull
+      args:
+        chdir: "{{ stream_dir }}"

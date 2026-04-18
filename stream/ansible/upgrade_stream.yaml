@@ -1,0 +1,32 @@
+---
+- name: Pull latest Stream image
+  hosts: all
+  become: yes
+  vars:
+    image_version: "{{ stream_version }}"
+
+  tasks:
+    - name: Pull the specified Stream image
+      ansible.builtin.shell: docker pull {{ image_name }}:{{ image_version }}
+      register: pull_result
+
+    - name: Show image pull result
+      ansible.builtin.debug:
+        var: pull_result.stdout_lines
+
+    - name: Get image ID after pull
+      ansible.builtin.command: >
+        docker images --format '{{ "{{.ID}}" }}' {{ image_name }}:{{ image_version }}
+      register: pulled_image_id
+
+    - name: Get build date of the pulled image
+      ansible.builtin.command: >
+        docker inspect --format='{{ "{{.Created}}" }}' {{ pulled_image_id.stdout }}
+      register: pulled_image_created
+
+    - name: Show pulled image build date
+      ansible.builtin.debug:
+        msg: "Image '{{ image_name }}:{{ image_version }}' was built at: {{ pulled_image_created.stdout }}"
+
+# pass a specific version if needed, latest is the default from group_vars.
+# e.g: ansible-playbook -i inventory.ini upgrade_stream.yaml -e stream_version=beta -l=test_lab

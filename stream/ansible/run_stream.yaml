@@ -1,0 +1,22 @@
+---
+- name: Run Stream container, confirm Stream container is running
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Start the container with docker-compose
+      shell: docker compose -f {{ compose_file_path }} up -d --force-recreate
+      args:
+        chdir: "{{ stream_dir }}"
+      register: start_result
+
+    - name: Check running containers
+      command: docker ps
+      register: ps_result
+
+    - name: Show running containers
+      debug:
+        var: ps_result.stdout_lines
+
+# ansible-playbook run_stream.yaml --limit serverX,serverY -e stream_dir=/opt/stream

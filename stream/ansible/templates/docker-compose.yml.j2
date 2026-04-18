@@ -1,0 +1,16 @@
+services:
+  stream:
+    image: platerecognizer/alpr-stream:{{ stream_version | default('latest') }}
+    container_name: stream
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8001:8001" # https://guides.platerecognizer.com/docs/stream/monitoring
+    group_add:
+      - video
+    volumes:
+      - "{{ stream_dir }}:/user-data"
+    environment:
+      #- LOGGING=10 # https://guides.platerecognizer.com/docs/stream/help/faq#how-can-i-get-more-log-output-from-stream
+      - LICENSE_KEY={{ license }}
+      - TOKEN={{ token }}

@@ -1,0 +1,63 @@
+---
+- name: Upgrade Stream container image and restart
+  hosts: all
+  become: yes
+  vars:
+    image_version: "{{ stream_version }}"
+
+  tasks:
+
+    - name: Pull the specified Stream image
+      shell: docker pull {{ image_name }}:{{ image_version }}
+      register: pull_result
+
+    - name: Show image pull result
+      debug:
+        var: pull_result.stdout_lines
+
+    - name: Get the image ID for the pulled image
+      shell: docker image inspect --format '{{"{{.Id}}"}}' {{ image_name }}:{{ image_version }}
+      register: pulled_image_id
+
+    - name: Check if container is running
+      shell: docker ps --filter "name={{ container_name }}" --filter "status=running" -q
+      register: running_containers
+      changed_when: false
+
+    - name: Get running image for the Stream container
+      when: running_containers.stdout != ""
+      shell: docker inspect --format '{{ "{{.Config.Image}}" }}' {{ container_name }}
+      register: running_image_id
+
+    - name: Restart container if running image differs from pulled image
+      shell: docker compose -f {{ compose_file_path }} up -d
+      args:
+        chdir: "{{ stream_dir }}"
+      when: running_containers.stdout != "" and pulled_image_id.stdout != (running_image_id.stdout | default(''))
+      register: restart_result
+
+    - name: Show restart result
+      when: restart_result is defined
+      debug:
+        var: restart_result.stdout_lines
+
+    - name: Get build timestamp of the running image
+      when: running_containers.stdout != ""
+      shell: docker inspect --format '{{ "{{.Created}}" }}' {{ running_image_id.stdout }}
+      register: image_build_time
+
+    - name: Show image build timestamp
+      when: running_containers.stdout != ""
+      debug:
+        msg: "Image build time: {{ image_build_time.stdout }}"
+
+    - name: Show running containers
+      shell: docker ps
+      register: ps_after
+
+    - name: Show running containers output
+      debug:
+        var: ps_after.stdout_lines
+
+# ansible-playbook upgrade_and_run_stream.yaml --limit serverX,serverY -e stream_version=VERSION_TAG_HERE -e stream_dir=/opt/stream
+# leave -e stream_version empty to use the latest version from group_vars
