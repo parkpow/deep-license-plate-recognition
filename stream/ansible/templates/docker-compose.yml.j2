@@ -3,7 +3,7 @@ services:
     image: platerecognizer/alpr-stream:{{ stream_version | default('latest') }}
     container_name: stream
     restart: unless-stopped
-    privileged: true
+    # privileged: true
     ports:
       - "8001:8001" # https://guides.platerecognizer.com/docs/stream/monitoring
     group_add:

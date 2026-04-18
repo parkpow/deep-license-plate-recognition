@@ -17,7 +17,7 @@
         dest: "{{ compose_file_path }}"
         mode: '0644'
 
-    - name: Pull Stream container image
-      shell: docker compose -f {{ compose_file_path }} pull
-      args:
-        chdir: "{{ stream_dir }}"
+    - name: Pull Stream container images
+      community.docker.docker_compose_v2:
+        project_src: "{{ stream_dir }}"
+        pull: always
