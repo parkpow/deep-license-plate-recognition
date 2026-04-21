@@ -7,26 +7,21 @@
 
   tasks:
     - name: Pull the specified Stream image
-      ansible.builtin.shell: docker pull {{ image_name }}:{{ image_version }}
+      community.docker.docker_image:
+        name: "{{ image_name }}"
+        tag: "{{ image_version }}"
+        source: pull
       register: pull_result
 
     - name: Show image pull result
       ansible.builtin.debug:
-        var: pull_result.stdout_lines
-
-    - name: Get image ID after pull
-      ansible.builtin.command: >
-        docker images --format '{{ "{{.ID}}" }}' {{ image_name }}:{{ image_version }}
-      register: pulled_image_id
-
-    - name: Get build date of the pulled image
-      ansible.builtin.command: >
-        docker inspect --format='{{ "{{.Created}}" }}' {{ pulled_image_id.stdout }}
-      register: pulled_image_created
+        msg:
+          - "Image '{{ image_name }}:{{ image_version }}' pull changed: {{ pull_result.changed }}"
+          - "Image ID: {{ pull_result.image.Id }}"
 
     - name: Show pulled image build date
       ansible.builtin.debug:
-        msg: "Image '{{ image_name }}:{{ image_version }}' was built at: {{ pulled_image_created.stdout }}"
+        msg: "Image '{{ image_name }}:{{ image_version }}' was built at: {{ pull_result.image.Created }}"
 
 # pass a specific version if needed, latest is the default from group_vars.
 # e.g: ansible-playbook -i inventory.ini upgrade_stream.yaml -e stream_version=beta -l=test_lab
