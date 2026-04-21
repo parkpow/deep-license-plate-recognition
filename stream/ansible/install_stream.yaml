@@ -11,6 +11,14 @@
         state: directory
         mode: '0755'
 
+    - name: Deploy .env with secrets
+      template:
+        src: templates/.env.j2
+        dest: "{{ stream_dir }}/.env"
+        mode: '0600'
+        owner: root
+        group: root
+
     - name: Deploy docker-compose.yml
       template:
         src: templates/docker-compose.yml.j2

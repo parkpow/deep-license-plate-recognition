@@ -1,23 +1,17 @@
 ---
-
 - name: Stop Stream container
   hosts: all
   become: yes
 
   tasks:
-    - name: Run 'docker compose down'
-      ansible.builtin.shell: |
-        docker compose -f {{ compose_file_path }} down
-      args:
-        chdir: "{{ stream_dir }}"
+    - name: Stop and remove the Stream container
+      community.docker.docker_compose_v2:
+        project_src: "{{ stream_dir }}"
+        state: absent
       register: compose_down
 
     - name: Print result
       debug:
         var: compose_down
-
-    - name: Check running containers
-      command: docker ps
-      register: ps_result
 
 # ansible-playbook stop_stream.yaml --limit serverX,serverY -e stream_dir=/opt/stream
