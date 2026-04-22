@@ -1,7 +1,7 @@
 ---
 - name: Run Stream container
   hosts: all
-  become: yes
+  become: true
 
   tasks:
 
