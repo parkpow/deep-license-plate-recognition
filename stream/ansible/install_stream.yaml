@@ -1,0 +1,31 @@
+---
+- name: Prepare Stream container setup
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ stream_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy .env with secrets
+      ansible.builtin.template:
+        src: templates/.env.j2
+        dest: "{{ stream_dir }}/.env"
+        mode: '0600'
+        owner: root
+        group: root
+
+    - name: Deploy docker-compose.yml
+      ansible.builtin.template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ compose_file_path }}"
+        mode: '0644'
+
+    - name: Pull Stream container images
+      community.docker.docker_compose_v2:
+        project_src: "{{ stream_dir }}"
+        pull: always

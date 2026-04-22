@@ -1,0 +1,17 @@
+---
+- name: Stop Stream container
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Stop and remove the Stream container
+      community.docker.docker_compose_v2:
+        project_src: "{{ stream_dir }}"
+        state: absent
+      register: compose_down
+
+    - name: Print result
+      ansible.builtin.debug:
+        var: compose_down
+
+# ansible-playbook stop_stream.yaml --limit serverX,serverY -e stream_dir=/opt/stream

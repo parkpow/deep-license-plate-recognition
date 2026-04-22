@@ -1,0 +1,13 @@
+---
+- name: Run Stream container
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Start the Stream container
+      community.docker.docker_compose_v2:
+        project_src: "{{ stream_dir }}"
+        state: present
+
+# ansible-playbook run_stream.yaml --limit serverX,serverY -e stream_dir=/opt/stream

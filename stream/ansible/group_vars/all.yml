@@ -1,0 +1,7 @@
+token: "YOUR_PLATERECOGNIZER_TOKEN"
+
+stream_dir: /opt/stream
+compose_file_path: "{{ stream_dir }}/docker-compose.yml"
+image_name: platerecognizer/alpr-stream
+container_name: stream
+stream_version: latest

@@ -1,0 +1,4 @@
+ansible_user: "your_ssh_user"
+ansible_password: "your_ssh_password"
+ansible_become_password: "your_sudo_password"
+license: "YOUR_STREAM_LICENSE_KEY"

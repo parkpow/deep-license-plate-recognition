@@ -1,0 +1,18 @@
+services:
+  stream:
+    image: platerecognizer/alpr-stream:{{ stream_version | default('latest') }}
+    container_name: "{{ container_name | default('stream') }}"
+    restart: unless-stopped
+    # privileged: true
+    ports:
+      - "8001:8001" # https://guides.platerecognizer.com/docs/stream/monitoring
+    group_add:
+      - video
+    volumes:
+      - "{{ stream_dir }}:/user-data"
+    # To enable verbose logging uncomment the line below and redeploy:
+    # https://guides.platerecognizer.com/docs/stream/help/faq#how-can-i-get-more-log-output-from-stream
+    #environment:
+    #  - LOGGING=10
+    env_file:
+      - .env
