@@ -82,7 +82,12 @@ def health_check():
 
 @app.route("/logs", methods=["GET"])
 def stream_logs():
-    """Stream logs in real-time as a plain text stream (like `docker logs -f`)."""
+    """Stream logs in real-time as a plain text stream (like `docker logs -f`).
+
+    Query params:
+      ?tail[=N]  Return the last N lines (default 50) as a static response instead of streaming.
+      ?lines=N   Streaming only: replay the last N lines before following (default 50).
+    """
     auth_header = request.headers.get("Authorization", "")
     auth_token = auth_header.replace("Token ", "").replace("Bearer ", "")
     admin_token = os.getenv("ADMIN_TOKEN")
@@ -92,6 +97,20 @@ def stream_logs():
 
     if not hmac.compare_digest(auth_token, admin_token):
         return jsonify({"error": "Unauthorized"}), 401
+
+    if "tail" in request.args:
+        lines_str = request.args.get("tail", "50")
+        if not lines_str.isdigit():
+            return jsonify(
+                {"error": "'tail' parameter must be a positive integer"}
+            ), 400
+        try:
+            result = subprocess.run(
+                ["tail", "-n", lines_str, LOG_FILE], capture_output=True, text=True
+            )
+            return Response(result.stdout, mimetype="text/plain")
+        except Exception as e:
+            return jsonify({"error": f"Error reading logs: {e}"}), 500
 
     def generate():
         """Generate log stream in plain text format."""
