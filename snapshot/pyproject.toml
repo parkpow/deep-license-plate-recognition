@@ -1,7 +1,7 @@
 [project]
 name = "ftp-to-snapshot-cloud"
 version = "0.1.0"
-description = "Add your description here"
+description = "FTP server that forwards Hikvision ANPR snapshots to the Plate Recognizer Snapshot Cloud API"
 requires-python = ">=3.13"
 dependencies = [
     "pyftpdlib",
