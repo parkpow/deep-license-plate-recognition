@@ -227,8 +227,8 @@ def main() -> None:
     except KeyboardInterrupt:
         log.info("Shutting down")
     finally:
-        SnapshotFTPHandler._executor.shutdown(wait=True)
         server.close_all()
+        SnapshotFTPHandler._executor.shutdown(wait=True)
 
 
 if __name__ == "__main__":
