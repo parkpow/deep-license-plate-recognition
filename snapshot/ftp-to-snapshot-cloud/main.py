@@ -23,7 +23,8 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import ThreadedFTPServer
 
-SNAPSHOT_URL = "https://api.platerecognizer.com/v1/plate-reader/"
+SNAPSHOT_CLOUD_URL = "https://api.platerecognizer.com/v1/plate-reader/"
+SNAPSHOT_SDK_URL = "http://localhost:8080/v1/plate-reader/"
 
 log = logging.getLogger("ftp-to-snapshot")
 session = requests.Session()
@@ -51,6 +52,7 @@ def _env_str(name: str, default: str) -> str:
 def forward_to_snapshot(
     file_path: Path,
     *,
+    url: str,
     token: str,
     regions: list[str] | None,
     camera_id: str | None,
@@ -58,8 +60,10 @@ def forward_to_snapshot(
     config: dict | None,
     timeout: float,
 ) -> None:
-    """Upload ``file_path`` to the Snapshot Cloud plate-reader endpoint."""
-    headers = {"Authorization": f"Token {token}"}
+    """Upload ``file_path`` to a Snapshot (Cloud or SDK) plate-reader endpoint."""
+    headers: dict[str, str] = {}
+    if token:
+        headers["Authorization"] = f"Token {token}"
     data: dict = {}
     if regions:
         data["regions"] = regions
@@ -74,11 +78,7 @@ def forward_to_snapshot(
         with file_path.open("rb") as fp:
             files = {"upload": (file_path.name, fp, "image/jpeg")}
             response = session.post(
-                SNAPSHOT_URL,
-                headers=headers,
-                data=data,
-                files=files,
-                timeout=timeout,
+                url, headers=headers, data=data, files=files, timeout=timeout
             )
     except requests.RequestException as exc:
         log.error("Snapshot API request failed for %s: %s", file_path.name, exc)
@@ -103,6 +103,7 @@ class SnapshotFTPHandler(FTPHandler):
     """FTPHandler that forwards matching uploads to the Snapshot Cloud API."""
 
     # Set by main() before the server starts.
+    snapshot_url: str
     api_token: str
     match_suffix: str
     keep_non_matching: bool
@@ -117,11 +118,20 @@ class SnapshotFTPHandler(FTPHandler):
         path = Path(file)
         name = path.name
         if name.endswith(self.match_suffix):
-            log.info("Forwarding %s to Snapshot Cloud", name)
+            try:
+                if path.stat().st_size == 0:
+                    log.warning("Ignoring empty matching file: %s", name)
+                    return
+                log.info("Forwarding %s to Snapshot Cloud", name)
+            except OSError as exc:
+                log.warning("Could not check file size for %s: %s", name, exc)
+                return
+
             try:
                 self._executor.submit(
                     forward_to_snapshot,
                     path,
+                    url=self.snapshot_url,
                     token=self.api_token,
                     regions=self.regions or None,
                     camera_id=self.camera_id or None,
@@ -163,20 +173,28 @@ def main() -> None:
             f"FTP_PASSIVE_PORTS must be in the form START-END, got {passive_range_raw!r}"
         ) from exc
     if not (0 < pstart < pend <= 65535):
-        raise RuntimeError(
-            f"FTP_PASSIVE_PORTS out of range: {passive_range_raw!r}"
-        )
+        raise RuntimeError(f"FTP_PASSIVE_PORTS out of range: {passive_range_raw!r}")
     masquerade_address = _env_str("FTP_MASQUERADE_ADDRESS", "") or None
 
     token = _env_str("PLATE_RECOGNIZER_TOKEN", "")
-    if not token:
-        raise RuntimeError("PLATE_RECOGNIZER_TOKEN environment variable is required")
+    use_sdk = _env_bool("USE_SDK", False)
+    snapshot_url_override = _env_str("SNAPSHOT_URL", "").strip()
+    if snapshot_url_override:
+        snapshot_url = snapshot_url_override
+    elif use_sdk:
+        snapshot_url = SNAPSHOT_SDK_URL
+    else:
+        snapshot_url = SNAPSHOT_CLOUD_URL
+
+    if not use_sdk and not token:
+        raise RuntimeError(
+            "PLATE_RECOGNIZER_TOKEN environment variable is required when "
+            "USE_SDK is not set"
+        )
 
     match_suffix = _env_str("MATCH_SUFFIX", "VEHICLE_DETECTION.jpg")
     keep_non_matching = _env_bool("KEEP_NON_MATCHING", True)
-    regions = [
-        r.strip() for r in _env_str("REGIONS", "").split(",") if r.strip()
-    ]
+    regions = [r.strip() for r in _env_str("REGIONS", "").split(",") if r.strip()]
     camera_id = _env_str("CAMERA_ID", "") or None
     mmc = _env_bool("MMC", False)
     config_raw = _env_str("CONFIG_JSON", "")
@@ -188,6 +206,7 @@ def main() -> None:
     authorizer.add_user(user, password, str(root), perm="elradfmwMT")
 
     SnapshotFTPHandler.authorizer = authorizer
+    SnapshotFTPHandler.snapshot_url = snapshot_url
     SnapshotFTPHandler.api_token = token
     SnapshotFTPHandler.match_suffix = match_suffix
     SnapshotFTPHandler.keep_non_matching = keep_non_matching
@@ -211,7 +230,7 @@ def main() -> None:
 
     log.info(
         "Starting FTP server on %s:%d (root=%s, match_suffix=%s, regions=%s, mmc=%s, "
-        "passive_ports=%d-%d, masquerade=%s)",
+        "passive_ports=%d-%d, masquerade=%s, snapshot_url=%s, use_sdk=%s)",
         host or "0.0.0.0",
         port,
         root,
@@ -221,6 +240,8 @@ def main() -> None:
         pstart,
         pend,
         masquerade_address,
+        snapshot_url,
+        use_sdk,
     )
 
     try:
