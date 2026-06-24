@@ -26,6 +26,7 @@ from pyftpdlib.servers import ThreadedFTPServer
 SNAPSHOT_URL = "https://api.platerecognizer.com/v1/plate-reader/"
 
 log = logging.getLogger("ftp-to-snapshot")
+session = requests.Session()
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
