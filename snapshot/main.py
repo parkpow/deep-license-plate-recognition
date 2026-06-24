@@ -73,7 +73,7 @@ def forward_to_snapshot(
     try:
         with file_path.open("rb") as fp:
             files = {"upload": (file_path.name, fp, "image/jpeg")}
-            response = requests.post(
+            response = session.post(
                 SNAPSHOT_URL,
                 headers=headers,
                 data=data,
