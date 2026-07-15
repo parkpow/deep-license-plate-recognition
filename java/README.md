@@ -2,7 +2,7 @@
 Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace **MY_API_KEY** with your API key in the file [recognize.java](PlateRecognizer/src/main/java/com/mycompany/numberplate/recognize.java)
 
 # PlateRecognizer Java Client
-This java client uses the [unirest](http://kong.github.io/unirest-java/) library.
+This Java client uses the [Unirest](https://kong.github.io/unirest-java/) library.
 
 If you are using maven, it is very easy to setup, Just add following line in your pom.xml
 

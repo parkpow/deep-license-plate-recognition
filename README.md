@@ -1,66 +1,57 @@
-# Automatic License Plate Recognition Software (ALPR, ANPR)
+# Plate Recognizer examples and utilities
 
-Get high-accuracy, developer-friendly **automatic license plate recognition** ([ALPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) or automatic number plate recognition ([ANPR](https://platerecognizer.com/?utm_source=github&amp;utm_medium=website)) software! The core of our ALPR, ANPR system is based on state of the art deep neural networks architectures.
+This repository contains example clients, integrations, and operational utilities
+for [Plate Recognizer](https://platerecognizer.com/) Snapshot, Stream, Blur, and
+ParkPow. It does not contain the recognition models themselves.
 
-- [Reading License Plates from **Images**](#reading-license-plates-from-images)
-  - [Process images from an FTP or SFTP server](#process-images-from-an-ftp-or-sftp-server)
-  - [Blurring License Plates and Redaction](#blurring-license-plates-and-redaction)
-  - [Benchmark](benchmark/)
-- [Number Plate Recognition on a **Video** or Camera Stream](https://platerecognizer.com/stream/?utm_source=github&utm_medium=website)
-- [Automatic Image Transfer](#automatic-image-transfer)
-- [**Code Samples**](#code-samples)
+Use the quickstart below to recognize a plate in an image, or jump to the
+[repository map](#repository-map) to find a tool for another workflow.
 
-<p align="center">
-  <img src="assets/plate-grid.jpeg">
-</p>
+![Examples of recognized license plates](assets/plate-grid.jpeg)
 
-Our machine-learning software:
-  - Works on **dark, low-res, blurry images** and tough angles, all vehicle types, etc.  See our full [ALPR results](https://platerecognizer.com/alpr-results/?utm_source=github&amp;utm_medium=website).
-  - Decodes **license plate** , vehicle type (e.g. SUV, van, pickup truck), [**vehicle make model**](https://platerecognizer.com/vehicle-make-model-recognition-with-color/?utm_source=github&amp;utm_medium=website) (e.g. Honda Accord), color, and orientation. Ignores bumper stickers, car signs, etc.
-  - Is optimized for all [50 USA States](https://platerecognizer.com/alpr-for-usa/?utm_source=github&amp;utm_medium=website), [India](https://platerecognizer.com/anpr-for-india?utm_source=github&amp;utm_medium=website), [Brazil](https://platerecognizer.com/anpr-for-brazil/?utm_source=github&amp;utm_medium=website) and [**90+ countries worldwide**](https://platerecognizer.com/countries/?utm_source=github&amp;utm_medium=website).
+## Image recognition quickstart
 
-**Snapshot** : Get license plate reader from images in under 60 minutes:
-- Access a **simple REST API** for easy integration in [8 programming languages](http://docs.platerecognizer.com/?utm_source=github&amp;utm_medium=website).
-- Returns results via **JSON Response** or Webhooks.
-- Has [fast inference speed](https://platerecognizer.com/snapshot/#speeds) up to 21 ms.
-- Runs on-premise on **Linux, Windows** , Mac, Jetson **,** [**Kubernetes**](https://platerecognizer.com/anpr-on-kubernetes/?utm_source=github&amp;utm_medium=website), [Raspberry Pi](https://platerecognizer.com/anpr-on-raspberry-pi/?utm_source=github&amp;utm_medium=website), [Zynq](https://platerecognizer.com/alpr-for-xilinx-zynq/?utm_source=github&amp;utm_medium=website), [96Boards](https://platerecognizer.com/alpr-for-96boards/?utm_source=github&amp;utm_medium=website), [LattePanda](https://platerecognizer.com/anpr-on-lattepanda/?utm_source=github&amp;utm_medium=website) and more.
+### Prerequisites
 
-**Stream** : Get number plate recognition from camera or video feed:
-- Returns license plate results via **CSV file** or [**Webhooks**](https://platerecognizer.com/alpr-webhooks/?utm_source=github&amp;utm_medium=website).
-- Handles 4 cameras simultaneously on mid-range PC.
-- Runs on-premise on **Linux, Windows** , Mac and [**Jetson**](https://platerecognizer.com/alpr-on-nvidia-jetson-devices/?utm_source=github&amp;utm_medium=website).
+- Python 3.8 or newer
+- A [Plate Recognizer API token](https://app.platerecognizer.com/start/), or a
+  running self-hosted Snapshot SDK
 
-ALPR, ANPR software is ideal for parking, highway monitoring, toll, police surveillance, community security, and other use cases. Our [license plate recognition (LPR)](https://platerecognizer.com/snapshot/?utm_source=github&amp;utm_medium=website) software can also forward results to our full **ALPR Dashboard** and [**Parking Management software**](https://parkpow.com/?utm_source=github&amp;utm_medium=website) solution, ParkPow. Sign up for a [**Free Trial**](https://app.platerecognizer.com/accounts/signup/?utm_source=github&amp;utm_medium=website) now (no credit card required) or **learn more** at [https://platerecognizer.com](https://platerecognizer.com/).
+Clone the repository and install the two dependencies required by the image
+client:
 
-<br><br><br>
-
-## Reading License Plates from Images
-
-Get your API key from [Plate Recognizer](https://platerecognizer.com/?utm_source=github&utm_medium=website). Replace **MY_API_KEY** with your API key and run the command below.
-> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-in-a-local-folder)
-```
-# Getting started!
+```bash
 git clone https://github.com/parkpow/deep-license-plate-recognition.git
 cd deep-license-plate-recognition
-pip install requests pillow
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python -m pip install requests pillow
+```
 
+Run recognition against the cloud API:
+
+```bash
 python plate_recognition.py --api-key MY_API_KEY /path/to/vehicle.jpg
 ```
 
-The **result** includes the bounding `box`es (rectangle around object) and the `plate` value for each plate. View the details of the results on our [documentation](http://docs.platerecognizer.com/#license-plate-recognition).
+Replace `MY_API_KEY` locally and do not commit your token. To use a running
+self-hosted Snapshot SDK instead:
 
-```javascript
+```bash
+python plate_recognition.py --sdk-url http://localhost:8080 /path/to/vehicle.jpg
+```
+
+The command returns JSON containing the recognized plate, confidence scores,
+and bounding box. The complete response schema is in the
+[Snapshot API reference](https://docs.platerecognizer.com/#license-plate-recognition).
+
+```json
 [
   {
     "version": 1,
     "results": [
       {
-        "box": {
-          "xmin": 85,
-          "ymin": 85,
-          "ymax": 211,
-          "xmax": 331
-        },
+        "box": {"xmin": 85, "ymin": 85, "ymax": 211, "xmax": 331},
         "plate": "ABC123",
         "score": 0.904,
         "dscore": 0.92
@@ -71,113 +62,127 @@ The **result** includes the bounding `box`es (rectangle around object) and the `
 ]
 ```
 
+### Common image workflows
 
-#### Lookups For a Specific Region
+Limit recognition to one or more regions:
 
-You can match the license plate patterns of a specific region.
-
-`python plate_recognition.py --api-key MY_API_KEY --regions fr --regions it /path/to/car.jpg`
-
-
-
-#### Process Multiple Files (Batch Mode)
-
-You can also run the license plate reader on many files at once. To run the script on all the images of a directory, use:
-
-`python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg`
-
-
-#### Running the ALPR Locally (SDK)
-
-To use a locally hosted sdk, pass the url to the docker container as follows:
-
-`python plate_recognition.py  --sdk-url http://localhost:8080 /path/to/vehicle.jpg`
-
-<br><br><br>
-
-### Blurring License Plates and Redaction
-
-The script `number_plate_redaction.py` differs from the default prediction script because it also detects plates that are **barely readable** and/or very small. It returns the bounding boxes of all the license plates. They can be used to blur or mask the license plates.
-
-In addition, it can **split the image** in smaller images to better deal with high resolution images. This will use **3 lookups** instead of just 1. To use this options add `--split-image`.
-
-The option `--save-blurred` lets you save blurred images. They are saved to a new file with `_blurred` suffix.
-
-The option `--ignore-regexp` lets you specify a regex of plates to ignore from blur. This option can be specified multiple times.
-
-The option `--ignore-no-bb` lets you ignore recognitions without a vehicle bounding box from blur.
-
-```
-python number_plate_redaction.py --help
-python number_plate_redaction.py --api-key API_KEY vehicels.jpg
-python number_plate_redaction.py --sdk-url http://localhost:8080 --split-image vehicels.jpg
-
-python number_plate_redaction.py --api-key 77c### 58C5A57_14965463.jpg --save-blurred --ignore-regexp ^58c5a57$ --ignore-regexp ^[0-9][0-9]c5a57$
-
+```bash
+python plate_recognition.py --api-key MY_API_KEY --regions fr --regions it /path/to/car.jpg
 ```
 
-<br><br><br>
+Process several files or a shell glob:
 
-### Process images from an FTP or SFTP server
+```bash
+python plate_recognition.py --api-key MY_API_KEY /path/to/car1.jpg /path/to/car2.jpg /path/to/trucks*.jpg
+```
 
-You can send images directly to our FTP. See our [FTP integration](https://app.platerecognizer.com/start/camera-software) for details.
+Run `python plate_recognition.py --help` for all available output, annotation,
+cropping, and engine options. See the
+[bulk-processing guide](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-in-a-local-folder)
+for a longer walkthrough.
 
-If you want to use your own FTP or SFTP server, another option is to process images with `ftp_and_sftp_processor.py`:
-> For setup instructions of the script, checkout our guides [here](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-are-on-an-ftp-or-sftp-server)
+## Repository map
 
-`python ftp_and_sftp_processor.py --api-key MY_API_KEY --hostname FTP_HOST_NAME --ftp-user FTP_USER --ftp-password FTP_USER_PASSWORD --folder /path/to/server_folder`
+| Goal | Tool or directory | Documentation |
+| --- | --- | --- |
+| Recognize plates in images | `plate_recognition.py` | [Quickstart](#image-recognition-quickstart) |
+| Redact plates in images | `number_plate_redaction.py` | [Redaction](#plate-redaction) |
+| Process an FTP or SFTP server | `ftp_and_sftp_processor.py` | [FTP and SFTP](#ftp-and-sftp-processing) |
+| Monitor and transfer new images | `transfer.py` | [Automatic image transfer](#automatic-image-transfer) |
+| Operate on Stream videos and images | [`stream/`](stream/) | [Stream utilities](stream/README.md) |
+| Integrate webhook consumers | [`webhooks/`](webhooks/) | [Webhook integrations](webhooks/README.md) |
+| Integrate ParkPow and camera systems | [`parkpow/`](parkpow/) | Per-integration READMEs |
+| Run Blur or edit video | [`blur/`](blur/), [`video-editor/`](video-editor/) | [Blur](blur/README.md), [video editor](video-editor/README.md) |
+| Install or manage an on-premise SDK | [`docker/`](docker/) | [On-premise tools](docker/README.md) |
+| Run performance benchmarks | [`benchmark/`](benchmark/) | [Benchmarks](benchmark/README.md) |
+| Use another language | [`cpp/`](cpp/), [`csharp/`](csharp/), [`java/`](java/) | [Language examples](#language-examples) |
+| Control a gate relay | [`gate-controller/`](gate-controller/) | [GateController](gate-controller/README.md) |
 
-By default the script is prepared to process images in FTP servers, if you want to process images in an SFTP server, add the argument `--protocol sftp`.
+Each subproject has its own dependencies. Follow its README or requirements
+file instead of assuming the image-client installation covers the entire
+repository. The root `pyproject.toml` contains the shared Python development
+environment.
 
-To remove images from FTP or SFTP server after processing, add the argument `--delete`.
+## Plate redaction
 
-| Arguments              | Description                                                                                 |
-|------------------------|---------------------------------------------------------------------------------------------|
-| -h, --help             | Show help message                                                                           |
-| -a, --api-key          | Your API key.                                                                               |
-| -r, --regions          | Match the license plate pattern for a specific region.                                      |
-| -s, --sdk-url          | URL to self-hosted SDK. For example, http://localhost:8080                                  |
-| -c, --protocol         | Protocol to use, available choices 'ftp'(default) or 'sftp'                                          |
-| -t, --timestamp        | Timestamp.                                                                                  |
-| -H, --hostname         | Host.                                                                                       |
-| -p, --port             | Port                                                                                        |
-| -U, --ftp-user         | Transfer protocol server user                                                               |
-| -P, --ftp-password     | Transfer protocol server user's password                                                    |
-| -d, --delete           | Remove images from the FTP server after processing. Optionally specify a timeout in seconds.|
-| -f, --folder           | Specify a folder with images on the FTP server.                                             |
-| -o, --output-file      | Save the result to a file.                                                                  |
-| -i, --interval         | Periodically fetch new images from the server every interval seconds.                       |
-| --camera-id            | Name of the source camera.                                                                  |
-| --cameras-root         | Root folder containing dynamic cameras.                                                     |
-| --format               | Format of the result, available choices 'json'(default) or 'csv'                            |
-| --mmc                  | Predict vehicle make and model (SDK only). It has to be enabled.                            |
-| --pkey                 | SFTP Private Key Path.                                                                      |
+`number_plate_redaction.py` detects plates—including small or barely readable
+ones—and can save a blurred copy of an image.
 
-<br><br><br>
+```bash
+python number_plate_redaction.py --api-key MY_API_KEY vehicle.jpg --save-blurred
+```
 
-## Automatic Image Transfer
+Useful options include:
 
-Automatic Image Transfer is a command line tool that runs our [ALPR Engine](https://platerecognizer.com). It **monitors a folder** and automatically process images (Cloud or SDK) as they are added. Once processed, images are moved to an archive directory. It can also **forward the results** to our parking management service [Parkpow](https://parkpow.com/?utm_source=github&utm_medium=website).
+- `--split-image` for high-resolution images; this uses three API lookups.
+- `--ignore-regexp REGEX` to leave matching plates unblurred. Repeat the option
+  to provide more than one expression.
+- `--ignore-no-bb` to ignore results without a vehicle bounding box.
 
-To get started: `python transfer.py --help`
+```bash
+python number_plate_redaction.py \
+  --sdk-url http://localhost:8080 \
+  --split-image \
+  --save-blurred \
+  vehicle.jpg
+```
 
-<br><br><br>
+Run `python number_plate_redaction.py --help` for the complete CLI reference.
 
-## Code Samples
+## FTP and SFTP processing
 
-See our sample projects to easily get started with the API.
-- Example program in [C++](cpp/).
-- Example program in [C#](csharp/).
-- Example program in [Java](java/).
-- [Android App](https://github.com/parkpow/alpr-anpr-android). It lets you take a picture and send it to our API.
-- [Android App](https://github.com/kjbaker-uk/platerecognizer-android-example) in Kotlin.
-- View how to integrate with other languages in our [documentation](http://docs.platerecognizer.com/#introduction).
-- A Node-RED node for [license plate recognition](https://github.com/parkpow/node-red-contrib-plate-recognizer).
-- Or [convert](https://curlconverter.com/) the curl examples to other languages.
+Use `ftp_and_sftp_processor.py` to fetch images from your own FTP or SFTP
+server and recognize them with the cloud API or a self-hosted SDK.
 
-<br><br><br>
+```bash
+python -m pip install requests pillow paramiko
+python ftp_and_sftp_processor.py \
+  --api-key MY_API_KEY \
+  --hostname FTP_HOST_NAME \
+  --ftp-user FTP_USER \
+  --ftp-password FTP_PASSWORD \
+  --folder /path/to/server_folder
+```
 
----
-Have questions?  [Let us know](https://platerecognizer.com/contact?utm_source=github&utm_medium=website) how we can help.
+Add `--protocol sftp` for SFTP. Authentication can use `--ftp-password` or
+`--pkey`. The `--delete` option removes processed remote files, so test without
+it first. Run `python ftp_and_sftp_processor.py --help` for camera, polling,
+output format, and SDK options.
 
-Provided by Plate Recognizer, a subsidiary of [ParkPow](https://parkpow.com/?utm_source=github&utm_medium=website).
+See the [FTP/SFTP bulk-processing guide](https://guides.platerecognizer.com/docs/snapshot/bulk-processing#images-are-on-an-ftp-or-sftp-server)
+for setup details. Plate Recognizer also provides a hosted
+[FTP integration](https://app.platerecognizer.com/start/camera-software).
+
+## Automatic image transfer
+
+`transfer.py` watches a directory, recognizes new images, and moves processed
+images into an archive. It can optionally forward results to
+[ParkPow](https://parkpow.com/).
+
+```bash
+python -m pip install requests watchdog jsonlines
+python transfer.py --help
+```
+
+The help output includes examples for the cloud API and a self-hosted SDK, as
+well as the required source, archive, and camera-path options.
+
+## Language examples
+
+- [C++](cpp/)
+- [C#](csharp/)
+- [Java](java/)
+- [Android example in Java](https://github.com/parkpow/alpr-anpr-android)
+- [Android example in Kotlin](https://github.com/kjbaker-uk/platerecognizer-android-example)
+- [Node-RED integration](https://github.com/parkpow/node-red-contrib-plate-recognizer)
+
+For other languages, start with the
+[API documentation](https://docs.platerecognizer.com/#introduction) or convert
+the API's curl examples with [curlconverter](https://curlconverter.com/).
+
+## Support and license
+
+For product questions, [contact Plate Recognizer](https://platerecognizer.com/contact?utm_source=github&utm_medium=website).
+This repository is provided under the terms in [LICENSE](LICENSE).
+
+Plate Recognizer is a subsidiary of [ParkPow](https://parkpow.com/).

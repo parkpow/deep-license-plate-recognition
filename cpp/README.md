@@ -26,10 +26,10 @@ Get your API key from [Plate Recognizer](https://platerecognizer.com/). Replace 
     .\app.exe
     ```
 
-#### Uisng Visual Studio IDE
-- Open [ConsoleApplication2.sln](cpp/windows/ConsoleApplication2.sln) with Visual Studio and click compile.
+#### Using the Visual Studio IDE
+- Open [ConsoleApplication2.sln](windows/ConsoleApplication2.sln) with Visual Studio and click compile.
 - Execute the program from the terminal (`program.exe car.jpg`)
-- Having trouble with libcurl? Try this [guide](https://olavgg.com/post/141784241963/getting-libcurl-to-work-with-visual-studio-2015) or this [SA question](maybe have a look at https://stackoverflow.com/questions/53861300/how-do-you-properly-install-libcurl-for-use-in-visual-studio-2017).
+- Having trouble with libcurl? Try this [guide](https://olavgg.com/post/141784241963/getting-libcurl-to-work-with-visual-studio-2015) or this [Stack Overflow question](https://stackoverflow.com/questions/53861300/how-do-you-properly-install-libcurl-for-use-in-visual-studio-2017).
 
 
 ### On Linux
