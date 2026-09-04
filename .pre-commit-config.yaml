@@ -27,6 +27,7 @@ repos:
           - types-requests
           - types-paramiko
           - types-python-dateutil
+          - types-waitress
 
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
     rev: v1.1.8

@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { WebhookData } from "@/types/webhook";
 
 interface DashboardSummaryProps {
@@ -50,23 +50,11 @@ export function DashboardSummary({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Dashboard Summary</h2>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              disabled={loading}
-            >
-              <RefreshCw
-                className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`}
-              />
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
+              <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onTestData}
-              disabled={loading}
-            >
+            <Button variant="outline" size="sm" onClick={onTestData} disabled={loading}>
               Test API
             </Button>
           </div>
@@ -74,21 +62,15 @@ export function DashboardSummary({
 
         <div className="flex gap-4">
           <div className="flex-1 bg-blue-50 p-3 rounded-lg">
-            <div className="text-xs text-blue-600 font-medium">
-              Total Plates
-            </div>
+            <div className="text-xs text-blue-600 font-medium">Total Plates</div>
             <div className="text-xl font-bold">{data.length}</div>
           </div>
           <div className="flex-1 bg-green-50 p-3 rounded-lg">
-            <div className="text-xs text-green-600 font-medium">
-              Unique Plates
-            </div>
+            <div className="text-xs text-green-600 font-medium">Unique Plates</div>
             <div className="text-xl font-bold">{uniquePlates}</div>
           </div>
           <div className="flex-1 bg-purple-50 p-3 rounded-lg">
-            <div className="text-xs text-purple-600 font-medium">
-              Last Detection
-            </div>
+            <div className="text-xs text-purple-600 font-medium">Last Detection</div>
             <div className="text-xl font-bold truncate">{lastDetection}</div>
           </div>
         </div>

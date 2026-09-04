@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import requests
+
 from protocols.shared.utils import get_required_header
 
 logging.basicConfig(

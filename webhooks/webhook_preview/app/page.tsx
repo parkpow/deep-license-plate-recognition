@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,8 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { generateUUID } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { generateUUID } from "@/lib/utils";
 
 export default function HomePage() {
   const [uuid, setUuid] = useState<string>("");
@@ -26,8 +26,7 @@ export default function HomePage() {
   }, []);
 
   const handleCreateWebhook = async () => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (!uuidRegex.test(uuid)) {
       toast({

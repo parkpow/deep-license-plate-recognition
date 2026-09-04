@@ -1,8 +1,8 @@
 "use client";
 
+import { Globe, Shield } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import RelayManager from "@/components/RelayManager";
-import { Globe, Shield } from "lucide-react";
 
 export default function Home() {
   return (

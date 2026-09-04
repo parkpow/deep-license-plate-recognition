@@ -175,9 +175,11 @@ def sample_config(tmp_path, sample_front_rear_csv):
 @pytest.fixture
 def mock_asyncio_for_alerts():
     """Mock asyncio components for tests that use _send_alert."""
-    with patch("protocols.front_rear._loop"), patch(
-        "protocols.front_rear._aiohttp_session"
-    ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+    with (
+        patch("protocols.front_rear._loop"),
+        patch("protocols.front_rear._aiohttp_session"),
+        patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run,
+    ):
 
         def run_coro_side_effect(coro, loop):
             close_coroutine(coro)
@@ -451,9 +453,11 @@ class TestPlateDatabase:
 class TestAlertSending:
     def test_send_alert_success(self, reset_front_rear_state):
         """Test that _send_alert schedules the async task (non-blocking)."""
-        with patch("protocols.front_rear._loop") as mock_loop, patch(
-            "protocols.front_rear._aiohttp_session"
-        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+        with (
+            patch("protocols.front_rear._loop") as mock_loop,
+            patch("protocols.front_rear._aiohttp_session"),
+            patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run,
+        ):
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             fr.config = TEST_CONFIG
@@ -471,9 +475,11 @@ class TestAlertSending:
 
     def test_send_alert_with_make_model(self, reset_front_rear_state):
         """Test that _send_alert works with make/model data."""
-        with patch("protocols.front_rear._loop"), patch(
-            "protocols.front_rear._aiohttp_session"
-        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+        with (
+            patch("protocols.front_rear._loop"),
+            patch("protocols.front_rear._aiohttp_session"),
+            patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run,
+        ):
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             fr.config = TEST_CONFIG
@@ -502,9 +508,11 @@ class TestAlertSending:
         }
         fr.config = config_with_disabled
 
-        with patch("protocols.front_rear._loop"), patch(
-            "protocols.front_rear._aiohttp_session"
-        ), patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run:
+        with (
+            patch("protocols.front_rear._loop"),
+            patch("protocols.front_rear._aiohttp_session"),
+            patch("protocols.front_rear.asyncio.run_coroutine_threadsafe") as mock_run,
+        ):
             mock_run.side_effect = lambda coro, loop: close_coroutine(coro) or Mock()
 
             fr._send_alert(
@@ -1671,9 +1679,10 @@ class TestStreamResponse:
             mock_log.assert_called_once()
 
     def test_logs_again_after_dedupe_window(self):
-        with patch("protocols.front_rear.time.monotonic") as mock_mono, patch(
-            "protocols.front_rear.logging.warning"
-        ) as mock_log:
+        with (
+            patch("protocols.front_rear.time.monotonic") as mock_mono,
+            patch("protocols.front_rear.logging.warning") as mock_log,
+        ):
             mock_mono.side_effect = [100.0, 103.0]
             h.stream_response("Not Found Window", 404, camera_id="cam1")
             h.stream_response("Not Found Window", 404, camera_id="cam1")

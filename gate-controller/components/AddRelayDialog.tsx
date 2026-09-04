@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,8 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UsbRelayInfo {
   serial_number: string;
@@ -56,17 +56,13 @@ export function AddRelayDialog({
   const [availablePorts, setAvailablePorts] = useState<string[]>([]);
   const [selectedPort, setSelectedPort] = useState<string>("");
 
-  const [availableUsbRelays, setAvailableUsbRelays] = useState<UsbRelayInfo[]>(
-    [],
-  );
-  const [selectedUsbRelay, setSelectedUsbRelay] = useState<UsbRelayInfo | null>(
-    null,
-  );
+  const [availableUsbRelays, setAvailableUsbRelays] = useState<UsbRelayInfo[]>([]);
+  const [selectedUsbRelay, setSelectedUsbRelay] = useState<UsbRelayInfo | null>(null);
 
   const [ch340Channels, setCh340Channels] = useState(1);
   const [cp210xChannels, setCp210xChannels] = useState(1);
 
-  const refreshSerialPorts = async () => {
+  const refreshSerialPorts = useCallback(async () => {
     try {
       const ports = await invoke<string[]>("list_serial_ports");
       setAvailablePorts(ports);
@@ -76,9 +72,9 @@ export function AddRelayDialog({
         description: String(error),
       });
     }
-  };
+  }, []);
 
-  const refreshUsbRelays = async () => {
+  const refreshUsbRelays = useCallback(async () => {
     try {
       const relays = await invoke<UsbRelayInfo[]>("list_hw348_relays");
       setAvailableUsbRelays(relays);
@@ -86,14 +82,14 @@ export function AddRelayDialog({
     } catch (error) {
       toast.error("Failed to list HW-348 relays", { description: String(error) });
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (open) {
       refreshSerialPorts();
       refreshUsbRelays();
     }
-  }, [open]);
+  }, [open, refreshSerialPorts, refreshUsbRelays]);
 
   const handleAddCh340 = async () => {
     if (!selectedPort) {
@@ -101,8 +97,8 @@ export function AddRelayDialog({
       return;
     }
     if (ch340Channels <= 0) {
-        toast.warning("Number of channels must be greater than 0.");
-        return;
+      toast.warning("Number of channels must be greater than 0.");
+      return;
     }
     try {
       await invoke("add_ch340_relay", { port: selectedPort, channels: ch340Channels });
@@ -143,11 +139,14 @@ export function AddRelayDialog({
       return;
     }
     if (cp210xChannels <= 0) {
-        toast.warning("Number of channels must be greater than 0.");
-        return;
+      toast.warning("Number of channels must be greater than 0.");
+      return;
     }
     try {
-      await invoke("add_cp210x_relay", { port: selectedPort, channels: cp210xChannels });
+      await invoke("add_cp210x_relay", {
+        port: selectedPort,
+        channels: cp210xChannels,
+      });
       toast.success("CP210x Relay Added", {
         description: `Port ${selectedPort} has been configured with ${cp210xChannels} channels.`,
       });
@@ -175,41 +174,43 @@ export function AddRelayDialog({
           </TabsList>
           <TabsContent value="ch340">
             <div className="space-y-4 py-4">
-                <div className="flex items-center gap-4">
-                    <Select value={selectedPort} onValueChange={setSelectedPort}>
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a serial port..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availablePorts.map((port) => (
-                        <SelectItem key={port} value={port}>
-                            {port}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                    <Button variant="outline" onClick={refreshSerialPorts}>
-                    Refresh
-                    </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                    <label htmlFor="channels-ch340" className="text-sm font-medium">Channels</label>
-                    <Input
-                        id="channels-ch340"
-                        type="number"
-                        value={ch340Channels}
-                        onChange={(e) => setCh340Channels(parseInt(e.target.value, 10) || 1)}
-                        className="w-full"
-                        min={1}
-                    />
-                </div>
-                <Button
-                    className="w-full"
-                    onClick={handleAddCh340}
-                    disabled={!selectedPort}
-                >
-                    Add Relay
+              <div className="flex items-center gap-4">
+                <Select value={selectedPort} onValueChange={setSelectedPort}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a serial port..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePorts.map((port) => (
+                      <SelectItem key={port} value={port}>
+                        {port}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={refreshSerialPorts}>
+                  Refresh
                 </Button>
+              </div>
+              <div className="flex items-center gap-4">
+                <label htmlFor="channels-ch340" className="text-sm font-medium">
+                  Channels
+                </label>
+                <Input
+                  id="channels-ch340"
+                  type="number"
+                  value={ch340Channels}
+                  onChange={(e) => setCh340Channels(parseInt(e.target.value, 10) || 1)}
+                  className="w-full"
+                  min={1}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleAddCh340}
+                disabled={!selectedPort}
+              >
+                Add Relay
+              </Button>
             </div>
           </TabsContent>
           <TabsContent value="hw348">
@@ -219,8 +220,7 @@ export function AddRelayDialog({
                   value={selectedUsbRelay?.serial_number || ""}
                   onValueChange={(sn) =>
                     setSelectedUsbRelay(
-                      availableUsbRelays.find((r) => r.serial_number === sn) ||
-                        null,
+                      availableUsbRelays.find((r) => r.serial_number === sn) || null,
                     )
                   }
                 >
@@ -250,41 +250,43 @@ export function AddRelayDialog({
           </TabsContent>
           <TabsContent value="cp210x">
             <div className="space-y-4 py-4">
-                <div className="flex items-center gap-4">
-                    <Select value={selectedPort} onValueChange={setSelectedPort}>
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a serial port..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availablePorts.map((port) => (
-                        <SelectItem key={port} value={port}>
-                            {port}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                    <Button variant="outline" onClick={refreshSerialPorts}>
-                    Refresh
-                    </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                    <label htmlFor="channels" className="text-sm font-medium">Channels</label>
-                    <Input
-                        id="channels"
-                        type="number"
-                        value={cp210xChannels}
-                        onChange={(e) => setCp210xChannels(parseInt(e.target.value, 10) || 1)}
-                        className="w-full"
-                        min={1}
-                    />
-                </div>
-                <Button
-                    className="w-full"
-                    onClick={handleAddCp210x}
-                    disabled={!selectedPort}
-                >
-                    Add Relay
+              <div className="flex items-center gap-4">
+                <Select value={selectedPort} onValueChange={setSelectedPort}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a serial port..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePorts.map((port) => (
+                      <SelectItem key={port} value={port}>
+                        {port}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={refreshSerialPorts}>
+                  Refresh
                 </Button>
+              </div>
+              <div className="flex items-center gap-4">
+                <label htmlFor="channels" className="text-sm font-medium">
+                  Channels
+                </label>
+                <Input
+                  id="channels"
+                  type="number"
+                  value={cp210xChannels}
+                  onChange={(e) => setCp210xChannels(parseInt(e.target.value, 10) || 1)}
+                  className="w-full"
+                  min={1}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleAddCp210x}
+                disabled={!selectedPort}
+              >
+                Add Relay
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
