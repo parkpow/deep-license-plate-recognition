@@ -13,7 +13,7 @@ Use the quickstart below to recognize a plate in an image, or jump to the
 
 ### Prerequisites
 
-- Python 3.8 or newer
+- Python 3.10 or newer
 - A [Plate Recognizer API token](https://app.platerecognizer.com/start/), or a
   running self-hosted Snapshot SDK
 
