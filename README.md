@@ -101,7 +101,26 @@ for a longer walkthrough.
 Each subproject has its own dependencies. Follow its README or requirements
 file instead of assuming the image-client installation covers the entire
 repository. The root `pyproject.toml` contains the shared Python development
-environment.
+environment, managed with [uv](https://docs.astral.sh/uv/).
+
+## Development setup
+
+Install uv, then create the root development environment from `uv.lock`:
+
+```bash
+uv sync --locked
+```
+
+The root is a collection of scripts rather than an installable package. Run
+tools in its environment with `uv run`, for example:
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
+The first command installs the repository's Git hooks; the second runs every
+configured hook against the repository.
 
 ## Plate redaction
 
