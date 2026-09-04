@@ -1,29 +1,30 @@
-[tool.poetry]
+[project]
 name = "platerec"
 version = "0.1.0"
 description = ""
-authors = ["Marc Belmont"]
+authors = [{ name = "Marc Belmont" }]
+requires-python = ">=3.8,<4.0"
+dependencies = [
+  "flask>=2.3.2,<3.0.0",
+  "paramiko>=3.4.0,<4.0.0",
+  "pillow==10.2.0",
+  "psutil>=5.7.0,<6.0.0",
+  "requests>=2.31.0,<3.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-Pillow = "10.2.0"
-requests = "^2.31.0"
-psutil = "^5.7.0"
-paramiko = "^3.4.0"
-flask = "^2.3.2"
+[dependency-groups]
+dev = [
+  "flake8",
+  "hypothesis",
+  "pdbpp",
+  "pre-commit>=3.5.0,<5.0.0",
+  "pytest>=7.3.1,<8.0.0",
+  "rope>=0.14.0,<0.15.0",
+  "yapf==0.27",
+]
 
-[tool.poetry.dev-dependencies]
-pre-commit = "^2.2.0"
-pytest = "^7.3.1"
-hypothesis = "*"
-flake8 = "*"
-yapf = "==0.27"
-rope = "^0.14.0"
-pdbpp = "*"
-
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+[tool.uv]
+package = false
 
 [tool.ruff]
 target-version = "py38"
