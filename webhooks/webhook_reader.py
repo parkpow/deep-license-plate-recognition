@@ -7,7 +7,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from json.decoder import JSONDecodeError
 
 upload_to = "uploads"
-# Refuse bodies larger than this instead of buffering them in memory
+# cgi.FieldStorage spooled large uploads to disk, parse_multipart reads the whole body
+# into memory, so refuse bodies larger than this
 MAX_BODY_SIZE = 50 * 1024 * 1024
 
 
@@ -21,7 +22,7 @@ class GetHandler(BaseHTTPRequestHandler):
     def parse_multipart(self):
         """Return {field name: (filename, bytes)} for a multipart/form-data body.
         Replaces cgi.FieldStorage (the cgi module was removed in Python 3.13)."""
-        body = self.rfile.read(int(self.headers["Content-Length"]))
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
         head = f"Content-Type: {self.headers['Content-Type']}\r\n\r\n".encode()
         msg = BytesParser(policy=HTTP).parsebytes(head + body)
         return {
