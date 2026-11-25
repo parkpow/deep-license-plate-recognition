@@ -7,6 +7,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from json.decoder import JSONDecodeError
 
 upload_to = "uploads"
+# Refuse bodies larger than this instead of buffering them in memory
+MAX_BODY_SIZE = 50 * 1024 * 1024
 
 
 class GetHandler(BaseHTTPRequestHandler):
@@ -31,6 +33,9 @@ class GetHandler(BaseHTTPRequestHandler):
         }
 
     def do_POST(self):
+        if int(self.headers.get("Content-Length") or 0) > MAX_BODY_SIZE:
+            self.send_error(413, "Request body too large")
+            return
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
