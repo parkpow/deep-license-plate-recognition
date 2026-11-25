@@ -24,24 +24,36 @@ class BlurError(Exception):
     pass
 
 
+# Same formats imghdr.what() recognized (the imghdr module was removed in Python 3.13)
 IMAGE_SIGNATURES = (
     b"\xff\xd8\xff",  # JPEG
     b"\x89PNG\r\n\x1a\n",
     b"GIF87a",
     b"GIF89a",
     b"BM",
-    b"II*\x00",  # TIFF
-    b"MM\x00*",
+    b"II",  # TIFF
+    b"MM",
+    b"\x01\xda",  # SGI
+    b"\x59\xa6\x6a\x95",  # Sun raster
+    b"#define ",  # XBM
+    b"\x76\x2f\x31\x01",  # OpenEXR
 )
 
 
 def is_image(path):
-    """Detect common image formats by their header (the imghdr module was
-    removed in Python 3.13)."""
+    """Detect image formats by their header, like imghdr.what() did."""
     with open(path, "rb") as f:
         head = f.read(12)
-    return head.startswith(IMAGE_SIGNATURES) or (
-        head[:4] == b"RIFF" and head[8:12] == b"WEBP"
+    if head.startswith(IMAGE_SIGNATURES):
+        return True
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return True
+    # PBM/PGM/PPM: "P1".."P6" followed by whitespace
+    return (
+        len(head) >= 3
+        and head[0:1] == b"P"
+        and head[1:2] in (b"1", b"2", b"3", b"4", b"5", b"6")
+        and head[2:3] in (b" ", b"\t", b"\n", b"\r")
     )
 
 
