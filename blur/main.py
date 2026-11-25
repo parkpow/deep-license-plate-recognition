@@ -1,6 +1,5 @@
 import argparse
 import base64
-import imghdr
 import logging
 import os
 import sys
@@ -23,6 +22,27 @@ lgr = logging.getLogger("blur")
 
 class BlurError(Exception):
     pass
+
+
+IMAGE_SIGNATURES = (
+    b"\xff\xd8\xff",  # JPEG
+    b"\x89PNG\r\n\x1a\n",
+    b"GIF87a",
+    b"GIF89a",
+    b"BM",
+    b"II*\x00",  # TIFF
+    b"MM\x00*",
+)
+
+
+def is_image(path):
+    """Detect common image formats by their header (the imghdr module was
+    removed in Python 3.13)."""
+    with open(path, "rb") as f:
+        head = f.read(12)
+    return head.startswith(IMAGE_SIGNATURES) or (
+        head[:4] == b"RIFF" and head[8:12] == b"WEBP"
+    )
 
 
 def merge_paths(path1: Path, path2: Path):
@@ -147,7 +167,7 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
         if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
             # Skip files that are not images
-            if imghdr.what(path) is None:
+            if not is_image(path):
                 lgr.debug(f"Skipped not an image: {path}")
                 continue
 

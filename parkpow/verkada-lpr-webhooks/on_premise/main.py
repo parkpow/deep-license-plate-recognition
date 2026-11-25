@@ -1,6 +1,5 @@
 import argparse
 import base64
-import cgi
 import json
 import logging
 import os
@@ -178,7 +177,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        ctype, pdict = cgi.parse_header(self.headers["Content-Type"])
+        ctype = self.headers.get_content_type()
         if ctype != "application/json":
             lgr.error(f"Unexpected content type: {ctype}")
             self.wfile.write(b"OK")
