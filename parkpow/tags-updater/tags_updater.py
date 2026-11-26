@@ -1,4 +1,3 @@
-import cgi
 import configparser
 import csv
 import json
@@ -188,7 +187,7 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        content_type, options = cgi.parse_header(self.headers["Content-Type"])
+        content_type = self.headers.get_content_type()
 
         lgr.debug(f"Server config: {self.server.config}")
         if content_type == "application/x-www-form-urlencoded":

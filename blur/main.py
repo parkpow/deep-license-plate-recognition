@@ -1,6 +1,5 @@
 import argparse
 import base64
-import imghdr
 import logging
 import os
 import sys
@@ -23,6 +22,39 @@ lgr = logging.getLogger("blur")
 
 class BlurError(Exception):
     pass
+
+
+# Same formats imghdr.what() recognized (the imghdr module was removed in Python 3.13)
+IMAGE_SIGNATURES = (
+    b"\xff\xd8\xff",  # JPEG
+    b"\x89PNG\r\n\x1a\n",
+    b"GIF87a",
+    b"GIF89a",
+    b"BM",
+    b"II",  # TIFF
+    b"MM",
+    b"\x01\xda",  # SGI
+    b"\x59\xa6\x6a\x95",  # Sun raster
+    b"#define ",  # XBM
+    b"\x76\x2f\x31\x01",  # OpenEXR
+)
+
+
+def is_image(path):
+    """Detect image formats by their header, like imghdr.what() did."""
+    with open(path, "rb") as f:
+        head = f.read(12)
+    if head.startswith(IMAGE_SIGNATURES):
+        return True
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return True
+    # PBM/PGM/PPM: "P1".."P6" followed by whitespace
+    return (
+        len(head) >= 3
+        and head[0:1] == b"P"
+        and head[1:2] in (b"1", b"2", b"3", b"4", b"5", b"6")
+        and head[2:3] in (b" ", b"\t", b"\n", b"\r")
+    )
 
 
 def merge_paths(path1: Path, path2: Path):
@@ -147,7 +179,7 @@ def process_dir(input_dir: Path, args, output_dir: Path, rename_file, resume):
         if path.is_file() and not path.name.startswith("blur-"):
             lgr.info(f"Processing file: {path}")
             # Skip files that are not images
-            if imghdr.what(path) is None:
+            if not is_image(path):
                 lgr.debug(f"Skipped not an image: {path}")
                 continue
 

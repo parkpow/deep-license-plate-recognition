@@ -1,6 +1,5 @@
 import argparse
 import base64
-import cgi
 import json
 import logging
 import os
@@ -240,18 +239,15 @@ def send_to_sftp(file_data, args):
 def event_handler():
     try:
         image_base64 = None
-        ctype, pdict = cgi.parse_header(request.headers["Content-Type"])
-        if ctype == "multipart/form-data":
-            pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
-            fields = cgi.parse_multipart(request.stream, pdict)
-            json_data = json.loads(fields.get("json")[0])
+        if request.mimetype == "multipart/form-data":
+            json_data = json.loads(request.form["json"])
             try:
-                buffer = fields.get("upload")[0]
+                buffer = request.files["upload"].read()
                 image_base64 = base64.b64encode(buffer).decode("utf-8")
-            except TypeError as e:
+            except KeyError as e:
                 print(
                     "Error caught: "
-                    + e
+                    + str(e)
                     + "\nNot a file, check event sender image configuration."
                 )
         else:

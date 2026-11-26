@@ -1,11 +1,15 @@
-import cgi
 import json
 import os
 import urllib.parse
+from email.parser import BytesParser
+from email.policy import HTTP
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from json.decoder import JSONDecodeError
 
 upload_to = "uploads"
+# cgi.FieldStorage spooled large uploads to disk, parse_multipart reads the whole body
+# into memory, so refuse bodies larger than this
+MAX_BODY_SIZE = 50 * 1024 * 1024
 
 
 class GetHandler(BaseHTTPRequestHandler):
@@ -15,26 +19,34 @@ class GetHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Send a POST request instead.")
         return
 
+    def parse_multipart(self):
+        """Return {field name: (filename, bytes)} for a multipart/form-data body.
+        Replaces cgi.FieldStorage (the cgi module was removed in Python 3.13)."""
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        head = f"Content-Type: {self.headers['Content-Type']}\r\n\r\n".encode()
+        msg = BytesParser(policy=HTTP).parsebytes(head + body)
+        return {
+            part.get_param("name", header="content-disposition"): (
+                part.get_filename(),
+                part.get_payload(decode=True),
+            )
+            for part in msg.iter_parts()
+        }
+
     def do_POST(self):
+        if int(self.headers.get("Content-Length") or 0) > MAX_BODY_SIZE:
+            self.send_error(413, "Request body too large")
+            return
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        ctype, pdict = cgi.parse_header(self.headers["Content-Type"])
-        if ctype == "multipart/form-data":
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={
-                    "REQUEST_METHOD": "POST",
-                    "CONTENT_TYPE": self.headers["Content-Type"],
-                },
-            )
+        if self.headers.get_content_type() == "multipart/form-data":
+            form = self.parse_multipart()
             # Get webhook content
-            json_data = form.getvalue("json")
+            json_data = form["json"][1].decode("utf-8") if "json" in form else None
             # Get webhook file
             if "upload" in form:
-                filename = form["upload"].filename
-                buffer = form["upload"].file.read()
+                filename, buffer = form["upload"]
                 if not os.path.exists(upload_to):
                     try:
                         os.makedirs(upload_to)
